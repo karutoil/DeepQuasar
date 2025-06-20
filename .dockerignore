@@ -105,8 +105,8 @@ temp/
 *.bak
 *.tmp
 
-# Package lock files (we copy package.json but use npm ci)
-package-lock.json
+# Package lock files (include package-lock.json for npm ci)
+# package-lock.json  # Commented out - needed for npm ci
 yarn.lock
 
 # Examples and unnecessary files

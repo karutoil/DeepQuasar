@@ -11,6 +11,7 @@ RUN apk add --no-cache \
     g++ \
     git \
     curl \
+    libc6-compat \
     && ln -sf python3 /usr/bin/python
 
 # Create non-root user for security
@@ -20,12 +21,13 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy package files first for better caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install dependencies (omit dev dependencies for production)
+RUN npm --version && node --version && \
+    npm ci --omit=dev && \
+    npm cache clean --force
 
 # Copy source code (only what's needed for production)
 COPY src/ ./src/
-#COPY lavalink/ ./lavalink/
 
 # Create logs directory
 RUN mkdir -p logs transcripts
