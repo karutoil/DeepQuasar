@@ -147,80 +147,66 @@ Models: llama2, codellama, mistral, etc.
 - **maxMessageLength**: Maximum Discord message length (100-2000, default: 2000)
 - **systemPrompt**: Custom system prompt for AI personality
 
-## Error Handling
+## Tips for Server Owners
 
-The bot gracefully handles various error conditions:
+### Choosing Response Settings
+- **Low Activity Servers**: Set chance to 15-25% to keep chat lively
+- **High Activity Servers**: Set chance to 5-10% to avoid spam
+- **Specific Use**: Use whitelist mode with dedicated AI channels
 
-- **401 Unauthorized**: Invalid API key
-- **429 Rate Limited**: Too many requests
-- **400 Bad Request**: Invalid parameters
-- **Timeout**: Request took too long
-- **Network Errors**: Connection issues
+### Managing Costs
+- Use cheaper models like `gpt-3.5-turbo` for casual chat
+- Set lower `max-tokens` to reduce API costs
+- Increase cooldowns during peak hours
+- Consider free local AI models for unlimited usage
 
-Error messages are user-friendly and provide guidance on resolution.
+### Creating Engaging AI Personalities
+```bash
+# Gaming community
+/chatbot prompt You are a gaming expert who loves helping with game strategies and tech recommendations.
 
-## Database Schema Addition
+# Study server
+/chatbot prompt You are a patient tutor who explains complex topics in simple terms and encourages learning.
 
-The chatbot settings are stored in the Guild schema under the `chatbot` field:
-
-```javascript
-chatbot: {
-    enabled: Boolean,
-    apiUrl: String,
-    apiKey: String,
-    model: String,
-    maxTokens: Number,
-    temperature: Number,
-    systemPrompt: String,
-    responseChance: Number,
-    channelMode: String, // 'all', 'whitelist', 'blacklist'
-    whitelistedChannels: [String],
-    blacklistedChannels: [String],
-    ignoreBots: Boolean,
-    requireMention: Boolean,
-    cooldown: Number,
-    maxMessageLength: Number
-}
+# Creative community  
+/chatbot prompt You are an artistic mentor who inspires creativity and provides feedback on creative projects.
 ```
 
-## Security Considerations
+### Moderation Tips
+- Use blacklist mode to exclude serious discussion channels
+- Set reasonable cooldowns (5-10 seconds) to prevent spam
+- Monitor API usage to avoid unexpected costs
+- Create AI-specific channels for better organization
 
-- API keys are stored in the database - ensure your MongoDB is secure
-- Consider using environment variables for sensitive default values
-- Implement rate limiting to prevent API abuse
-- Monitor API usage and costs
-- Regularly rotate API keys
+## Troubleshooting Common Issues
 
-## Troubleshooting
+### **Bot Not Responding**
+1. Check status: `/chatbot status`
+2. Test API: `/chatbot test`  
+3. Verify channel permissions
+4. Check if response chance is set too low
 
-### Bot Not Responding
-1. Check if chatbot is enabled: `/chatbot status`
-2. Verify API key is set: `/chatbot test`
-3. Check channel permissions
-4. Verify response chance is > 0
-5. Check if user is on cooldown
+### **API Errors**
+1. Verify API key is correct
+2. Check if you have API credits/quota remaining
+3. Ensure model name is spelled correctly
+4. Try a different model (e.g., `gpt-3.5-turbo`)
 
-### API Errors
-1. Test connection: `/chatbot test`
-2. Verify API URL format
-3. Check API key validity
-4. Ensure model name is correct
-5. Check API provider status
+### **Responses Too Slow/Fast**
+- **Too Slow**: Use faster models, reduce max tokens
+- **Too Fast**: Increase cooldown, lower response chance
 
-### Performance Issues
-1. Reduce max tokens for faster responses
-2. Increase cooldown to reduce API calls
-3. Lower response chance percentage
-4. Use faster/cheaper models
-5. Implement channel restrictions
+### **Responses Off-Topic**
+- Update system prompt to be more specific
+- Use lower temperature (0.3-0.7) for focused responses
+- Test with `/ask` to refine prompts
 
-## Contributing
+### **Too Expensive**
+- Switch to cheaper models
+- Reduce max tokens (try 150-300)
+- Lower response chance percentage
+- Use local AI models (free but requires technical setup)
 
-When adding new features to the chatbot module:
+---
 
-1. Update the schema in `Guild.js`
-2. Add command options to `chatbot.js`
-3. Implement functionality in `ChatBot.js`
-4. Update help text and documentation
-5. Test with multiple API providers
-6. Consider backwards compatibility
+*For advanced technical details, refer to the source code in `src/utils/ChatBot.js` and `src/commands/ai/chatbot.js`*

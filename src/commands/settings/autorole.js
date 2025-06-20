@@ -3,10 +3,11 @@ const Utils = require('../../utils/utils');
 
 module.exports = {
     category: 'Settings',
-    permissions: [PermissionFlagsBits.ManageGuild],
+    permissions: [PermissionFlagsBits.Administrator],
     data: new SlashCommandBuilder()
         .setName('autorole')
         .setDescription('Configure automatic role assignment for new members')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setup')
@@ -55,6 +56,15 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        // Check permissions first
+        const permissionCheck = Utils.checkAutorolePermissions(interaction);
+        if (!permissionCheck.hasPermission) {
+            return interaction.reply({
+                content: permissionCheck.reason,
+                ephemeral: true
+            });
+        }
+
         const subcommand = interaction.options.getSubcommand();
 
         try {

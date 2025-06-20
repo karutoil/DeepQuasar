@@ -21,6 +21,7 @@ const TicketManager = require('./utils/TicketManager');
 require('./schemas/Guild');
 require('./schemas/User');
 require('./schemas/SelfRole');
+require('./schemas/EmbedTemplate');
 
 class MusicBot {
     constructor() {
@@ -42,6 +43,12 @@ class MusicBot {
         this.client.config = config;
         this.client.logger = logger;
         this.client.players = new Collection(); // Store active players
+
+        // Initialize embed builder sessions
+        this.client.embedBuilderSessions = new Map();
+        this.client.embedBuilderMessageContent = new Map();
+        this.client.embedBuilderEditIndex = new Map();
+        this.client.embedBuilderMessages = new Map();
 
         // Initialize Music Player Manager
         this.client.musicPlayer = new MusicPlayerManager(this.client);

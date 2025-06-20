@@ -478,6 +478,123 @@ class Utils {
 
         return null;
     }
+
+    /**
+     * Check if user is bot owner
+     */
+    static isBotOwner(interaction) {
+        const config = require('../config/bot');
+        return config.bot.owners.includes(interaction.user.id);
+    }
+
+    /**
+     * Check if user is server owner
+     */
+    static isServerOwner(interaction) {
+        return interaction.guild.ownerId === interaction.user.id;
+    }
+
+    /**
+     * Check permissions for chatbot commands (Server Owner only)
+     */
+    static checkChatbotPermissions(interaction) {
+        if (this.isBotOwner(interaction)) {
+            return { hasPermission: true };
+        }
+
+        if (this.isServerOwner(interaction)) {
+            return { hasPermission: true };
+        }
+
+        return {
+            hasPermission: false,
+            reason: '❌ Only the server owner can configure chatbot settings.'
+        };
+    }
+
+    /**
+     * Check permissions for autorole commands (Administrator and Server Owner)
+     */
+    static checkAutorolePermissions(interaction) {
+        if (this.isBotOwner(interaction)) {
+            return { hasPermission: true };
+        }
+
+        if (this.isServerOwner(interaction)) {
+            return { hasPermission: true };
+        }
+
+        if (interaction.member.permissions.has('Administrator')) {
+            return { hasPermission: true };
+        }
+
+        return {
+            hasPermission: false,
+            reason: '❌ You need Administrator permissions or be the server owner to configure autorole.'
+        };
+    }
+
+    /**
+     * Check permissions for selfrole commands (Administrator and Server Owner)
+     */
+    static checkSelfrolePermissions(interaction) {
+        if (this.isBotOwner(interaction)) {
+            return { hasPermission: true };
+        }
+
+        if (this.isServerOwner(interaction)) {
+            return { hasPermission: true };
+        }
+
+        if (interaction.member.permissions.has('Administrator')) {
+            return { hasPermission: true };
+        }
+
+        return {
+            hasPermission: false,
+            reason: '❌ You need Administrator permissions or be the server owner to configure self-roles.'
+        };
+    }
+
+    /**
+     * Check permissions for embed template commands (Manage Messages, Administrator, or Server Owner)
+     */
+    static checkEmbedPermissions(interaction) {
+        if (this.isBotOwner(interaction)) {
+            return { hasPermission: true };
+        }
+
+        if (this.isServerOwner(interaction)) {
+            return { hasPermission: true };
+        }
+
+        if (interaction.member.permissions.has('Administrator')) {
+            return { hasPermission: true };
+        }
+
+        if (interaction.member.permissions.has('ManageMessages')) {
+            return { hasPermission: true };
+        }
+
+        return {
+            hasPermission: false,
+            reason: '❌ You need Manage Messages, Administrator permissions, or be the server owner to use embed commands.'
+        };
+    }
+
+    /**
+     * Check permissions for testing commands (Bot Owner only)
+     */
+    static checkTestingPermissions(interaction) {
+        if (this.isBotOwner(interaction)) {
+            return { hasPermission: true };
+        }
+
+        return {
+            hasPermission: false,
+            reason: '❌ This command is only available to bot developers.'
+        };
+    }
 }
 
 module.exports = Utils;

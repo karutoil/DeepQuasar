@@ -147,44 +147,87 @@ Edit the `ModLogManager` class in `src/utils/ModLogManager.js`:
 You can add custom filtering logic in individual event handlers:
 - Skip certain users (e.g., other bots)
 - Filter by channel types
-- Add custom conditions
+## Configuration Examples
+
+### Basic Server Setup
+```bash
+/modlog setup #mod-logs                    # Enable logging
+/modlog configure                          # Use interactive menu to choose events
+```
+
+### Advanced Multi-Channel Setup
+```bash
+/modlog setup #general-logs                # Set default channel
+/modlog setchannel member-join #welcome    # Join messages to welcome channel
+/modlog setchannel member-leave #welcome   # Leave messages to welcome channel  
+/modlog setchannel message-delete #message-logs  # Deleted messages separately
+/modlog setchannel voice-update #voice-logs      # Voice activity separately
+```
+
+### Event Category Recommendations
+
+**Small Servers (< 100 members)**
+- Enable: Member events, message events, role events
+- Skip: Voice events (can be noisy), presence updates
+
+**Medium Servers (100-1000 members)**  
+- Enable: Member events, message events, channel events
+- Separate: Voice events to dedicated channel
+- Skip: Presence updates, reaction events
+
+**Large Servers (1000+ members)**
+- Enable: Critical events only (bans, kicks, bulk deletes)
+- Separate: Different event types to different channels
+- Skip: High-frequency events (voice, presence, reactions)
 
 ## Troubleshooting
 
-### Events Not Logging
-1. Check if modlog is enabled: `/modlog status`
-2. Verify the specific event is enabled
-3. Ensure the bot has permissions in the log channel
-4. Check if the default channel is set correctly
+### **Events Not Logging**
+1. Check status: `/modlog status`
+2. Verify bot has "Send Messages" permission in log channel
+3. Ensure specific event is enabled
+4. Check if bot has required permissions for the event type
 
-### Missing Audit Log Information
-1. Verify the bot has "View Audit Log" permission
-2. Audit log entries may not always be available immediately
-3. Some actions may not generate audit log entries
+### **Missing Audit Log Info**
+1. Bot needs "View Audit Log" permission
+2. Some events may not have audit log entries
+3. Audit logs may take a few seconds to appear
 
-### Performance Considerations
-1. Disable high-frequency events like `presenceUpdate` if not needed
-2. Consider using specific channels for different event types
-3. Monitor database storage usage with large servers
+### **Too Many Logs/Spam**
+1. Disable high-frequency events: `/modlog toggle presence-update`
+2. Use separate channels for chatty events
+3. Consider disabling reaction logging in active servers
 
-## Event Details
+### **Logs Not Detailed Enough**
+1. Ensure bot has proper permissions to see full event data
+2. Some information may be limited by Discord's API
+3. Check if audit log permissions are granted
 
-Each logged event includes relevant information:
+## Best Practices
 
-- **User Information**: Username, ID, avatar
-- **Timestamps**: When the event occurred
-- **Context**: Channel, server, or other relevant location
-- **Changes**: Before/after values for updates
-- **Audit Information**: Who performed the action (when available)
-- **Additional Data**: Event-specific details
+### Channel Organization
+- **#mod-logs** - General moderation events
+- **#member-logs** - Joins, leaves, role changes
+- **#message-logs** - Message edits, deletions
+- **#voice-logs** - Voice channel activity
 
-## Privacy and Security
+### Permission Setup
+Required bot permissions:
+- ✅ Send Messages (in log channels)
+- ✅ View Audit Log (for detailed info)
+- ✅ View Channels (to see events)
+- ✅ Read Message History (for message events)
 
-- The system only logs events that occur in servers where it's enabled
-- No private message content is logged
-- Sensitive information is handled according to Discord's ToS
-- Audit log access is used responsibly and only for logging purposes
+### Storage Considerations
+- Modlogs can generate lots of data in active servers
+- Consider periodic cleanup of old logs
+- Monitor your MongoDB storage usage
+
+### Privacy Respect
+- The bot only logs metadata, not message content
+- Sensitive actions are logged responsibly
+- Configure logging to respect your community's privacy needs
 
 ---
 
-For support or feature requests, please check the bot's documentation or contact the development team.
+*For technical implementation details, refer to the source code in `src/events/` and `src/commands/settings/modlog.js`*

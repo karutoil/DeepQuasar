@@ -1,10 +1,12 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const WelcomeSystem = require('../../utils/WelcomeSystem');
+const Utils = require('../../utils/utils');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('test-welcome')
         .setDescription('Test the welcome system (Developer only)')
+        .setDefaultMemberPermissions(null) // Hide from all users by default
         .addStringOption(option =>
             option
                 .setName('type')
@@ -18,10 +20,10 @@ module.exports = {
 
     async execute(interaction) {
         // Check if user is bot owner/developer
-        const config = require('../../config/bot');
-        if (!config.owners.includes(interaction.user.id)) {
+        const permissionCheck = Utils.checkTestingPermissions(interaction);
+        if (!permissionCheck.hasPermission) {
             return interaction.reply({
-                content: '❌ This command is only available to bot developers.',
+                content: permissionCheck.reason,
                 ephemeral: true
             });
         }

@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType, ButtonStyle } = require('discord.js');
+const Utils = require('../../utils/utils');
 
 module.exports = {
     category: 'Settings',
@@ -6,6 +7,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('selfrole-setup')
         .setDescription('Quick setup wizard for self-roles')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addChannelOption(option =>
             option
                 .setName('channel')
@@ -43,6 +45,15 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        // Check permissions first
+        const permissionCheck = Utils.checkSelfrolePermissions(interaction);
+        if (!permissionCheck.hasPermission) {
+            return interaction.reply({
+                content: permissionCheck.reason,
+                ephemeral: true
+            });
+        }
+
         const channel = interaction.options.getChannel('channel');
         const template = interaction.options.getString('template');
         const customTitle = interaction.options.getString('title');

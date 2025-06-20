@@ -1,4 +1,5 @@
 const Utils = require('../utils/utils');
+const EmbedBuilderHandler = require('../utils/EmbedBuilderHandler');
 
 module.exports = {
     name: 'interactionCreate',
@@ -188,6 +189,12 @@ async function handleButtonInteraction(interaction, client) {
     const customId = interaction.customId;
 
     try {
+        // Handle embed builder buttons
+        if (customId.startsWith('embed_')) {
+            // This is handled in the embed builder command itself
+            return;
+        }
+
         // Handle pagination buttons
         if (customId.startsWith('page_')) {
             await handlePaginationButton(interaction, client);
@@ -268,6 +275,12 @@ async function handleSelectMenuInteraction(interaction, client) {
     const customId = interaction.customId;
 
     try {
+        // Handle embed builder select menus
+        if (customId.startsWith('embed_select_')) {
+            const handled = await EmbedBuilderHandler.handleSelectMenu(interaction);
+            if (handled) return;
+        }
+
         // Handle search result selection
         if (customId === 'search_select') {
             await handleSearchSelection(interaction, client);
@@ -1140,6 +1153,12 @@ async function handleTicketDeleteConfirmation(interaction, client) {
 async function handleModalSubmit(interaction, client) {
     try {
         const customId = interaction.customId;
+        
+        // Handle embed builder modals
+        if (customId.startsWith('embed_modal_')) {
+            const handled = await EmbedBuilderHandler.handleModalSubmit(interaction);
+            if (handled) return;
+        }
         
         // Handle ticket creation modals
         if (customId.startsWith('ticket_modal_')) {

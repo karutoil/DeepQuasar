@@ -1,174 +1,227 @@
 # Discord Music & AI Bot
 
-A modern, feature-rich Discord bot for music, AI chat, moderation, and server management. Built with Discord.js v14+, Lavalink V4, and MongoDB.
+A modern, feature-rich Discord bot perfect for any server. Play music, chat with AI, manage your community, and keep everything organized with comprehensive logging.
 
----
+## ✨ Key Features
 
-## Features
+### 🎵 **Music System**
+- **Multi-Platform Support**: YouTube, Spotify, SoundCloud, Apple Music, and direct URLs
+- **Smart Queue Management**: Add, remove, shuffle, loop tracks and playlists  
+- **Audio Enhancement**: Bass boost, speed control, nightcore, vaporwave effects
+- **Premium Features**: Higher volume limits, larger queues, advanced filters
 
-- **Music Playback:**
-  - YouTube, Spotify, SoundCloud, playlists, direct URLs
-  - Audio filters: bass, speed, nightcore, vaporwave, clear
-  - Advanced queue: show, clear, shuffle, remove, move, loop, history
-  - Loop modes: off, track, queue
-  - Seek, pause, resume, skip, stop, volume (up to 200 for premium)
-  - Per-guild music settings: default/max volume, queue size, playlist size, auto-shuffle, default source
-- **AI Chatbot:**
-  - OpenAI-compatible, Claude, local LLMs, custom personalities
-  - Channel whitelist/blacklist, mention detection, response chance, cooldowns
-  - `/ask` for direct chat, `/chatbot` for full config
-- **Moderation & Logging:**
-  - Modlog: setup, disable, status, configure, setchannel, toggle
-  - 40+ event types: member, message, channel, role, guild, voice, invite, thread, emoji, sticker, etc.
-  - Audit log integration, flexible routing
-- **Server Settings:**
-  - DJ role, allowed/restricted channels, command cooldowns, enable/disable commands
-  - Reset all settings, view current config
-- **AutoRole System:**
-  - Automatically assign roles to new members
-  - Configurable delay, bot bypass, verification requirements
-  - Administrator-configurable settings
-- **Premium:**
-  - Larger queues (up to 500), higher volume (up to 200), advanced filters, reduced cooldowns, priority support
-- **Web Dashboard (optional):**
-  - GUI for server management
-- **Comprehensive Logging:**
-  - Command, error, music, and database logs
+### 🤖 **AI Chatbot**  
+- **Universal Compatibility**: Works with OpenAI, Claude, local LLMs, and other providers
+- **Smart Responses**: Configurable response chance, mention detection
+- **Channel Control**: Whitelist/blacklist specific channels
+- **Direct Chat**: `/ask` command for instant AI conversations
 
----
+### 🛡️ **Moderation & Logging**
+- **Complete Coverage**: 40+ event types monitored
+- **Flexible Setup**: Log different events to different channels
+- **Rich Information**: Audit log integration with detailed embeds
+- **Easy Management**: Simple commands to configure everything
 
-## Quick Start
+### ⚙️ **Server Management**
+- **Role Management**: AutoRole system for new members
+- **Permission Control**: DJ roles, channel restrictions, command cooldowns
+- **Customizable Settings**: Per-server configuration for all features
+- **Content Creation**: Professional embed builder and message cleanup tools
+- **Easy Reset**: Restore default settings anytime
 
-1. **Clone & Install**
+## 🚀 Quick Setup (Self-Hosting)
+
+### **Prerequisites**
+- Node.js 18+ 
+- MongoDB database
+- Discord Application with Bot Token
+
+### **Installation Steps**
+
+1. **Clone and Install**
    ```bash
-   git clone https://github.com/yourusername/discord-music-bot.git
+   git clone <your-repo-url>
    cd discord-music-bot
    npm install
    ```
-2. **Configure**
-   - Copy `.env.example` to `.env` and fill in your Discord, MongoDB, and Lavalink details
-3. **Start Lavalink**
+
+2. **Configure Environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Discord token, MongoDB URL, etc.
+   ```
+
+3. **Start Lavalink (Music Server)**
    ```bash
    cd lavalink
    java -jar Lavalink.jar
    ```
-4. **Deploy Commands**
+
+4. **Deploy Commands & Start Bot**
    ```bash
    npm run deploy
-   ```
-5. **Start the Bot**
-   ```bash
    npm start
    ```
 
----
-
-## Slash Commands
-
-### Music
-| Command                | Description                                 |
-|------------------------|---------------------------------------------|
-| `/play`                | Play a song, playlist, or URL               |
-| `/queue show`          | Show current queue                          |
-| `/queue clear`         | Clear the queue                             |
-| `/queue shuffle`       | Shuffle the queue                           |
-| `/queue remove`        | Remove a track by position                  |
-| `/queue move`          | Move a track to a new position              |
-| `/queue loop`          | Set loop mode for the queue                 |
-| `/queue history`       | Show recently played tracks                 |
-| `/pause`               | Pause or resume playback                    |
-| `/resume`              | Resume paused music                         |
-| `/skip`                | Skip current or multiple tracks             |
-| `/stop`                | Stop music and clear the queue              |
-| `/volume`              | Set or show playback volume                 |
-| `/nowplaying`          | Show info about the current track           |
-| `/seek`                | Seek to a position in the current track     |
-| `/filters bass`        | Apply bass boost filter                     |
-| `/filters speed`       | Change playback speed                       |
-| `/filters nightcore`   | Apply nightcore effect                      |
-| `/filters vaporwave`   | Apply vaporwave effect                      |
-| `/filters clear`       | Clear all filters                           |
-
-### AI Chatbot
-| Command                | Description                                 |
-|------------------------|---------------------------------------------|
-| `/ask`                 | Direct AI chat                              |
-| `/chatbot status`      | View chatbot config                         |
-| `/chatbot toggle`      | Enable/disable chatbot                      |
-| `/chatbot api`         | Set API URL/key/model                       |
-| `/chatbot behavior`    | Set response chance/cooldown                |
-| `/chatbot channels`    | Whitelist/blacklist channels                |
-| `/chatbot prompt`      | Set AI personality                          |
-| `/chatbot test`        | Test API connection                         |
-
-### Moderation & Logging
-| Command                | Description                                 |
-|------------------------|---------------------------------------------|
-| `/modlog setup`        | Enable modlog in a channel                  |
-| `/modlog disable`      | Disable moderation logging                  |
-| `/modlog status`       | View modlog config                          |
-| `/modlog configure`    | Interactive event config                    |
-| `/modlog setchannel`   | Set channel for specific event              |
-| `/modlog toggle`       | Enable/disable specific event logging        |
-
-### Server Settings
-| Command                        | Description                         |
-|---------------------------------|-------------------------------------|
-| `/settings view`                | View current settings               |
-| `/settings reset`               | Reset all settings to default       |
-| `/settings music volume`        | Set default/max volume              |
-| `/settings music queue`         | Set queue and playlist size, auto-shuffle |
-| `/settings music source`        | Set default music source            |
-| `/settings permissions dj-role` | Set DJ role                         |
-| `/settings permissions channels`| Set allowed channels for music      |
-| `/settings commands cooldown`   | Set command cooldown                |
-| `/settings commands disable`    | Disable a command                   |
-| `/settings commands enable`     | Enable a command                    |
-
-### AutoRole System
-| Command                | Description                         |
-|------------------------|-------------------------------------|
-| `/autorole setup`      | Configure automatic role assignment |
-| `/autorole disable`    | Disable autorole system             |
-| `/autorole status`     | View current autorole configuration |
-| `/autorole test`       | Test autorole configuration        |
-
-### Info
-| Command      | Description                                                                 |
-|--------------|----------------------------------------------------------------------------|
-| `/help`      | Show help and info                                                          |
-| `/stats`     | Show bot/server stats: total played songs, AI conversations, servers, users, supporters |
+> **Need Help?** Check the [Setup Guide](docs/SETUP_GUIDE.md) for detailed instructions.
 
 ---
 
-## Modules & Structure
+## 📋 Complete Command Reference
 
-- **src/commands/**: All slash commands (music, ai, settings, modlog, info)
-- **src/events/**: Discord event handlers (message, interaction, modlog, etc.)
-- **src/utils/**: Utilities (ChatBot, MusicPlayer, logger, etc.)
-- **src/schemas/**: MongoDB schemas (Guild, User, ModLog)
-- **lavalink/**: Lavalink server and plugins
-- **test/**: Test scripts for all major features
-- **docs/**: Full documentation for all modules and features
+### 🎵 **Music Commands**
+| Command | What It Does |
+|---------|-------------|
+| `/play <song>` | Play music from YouTube, Spotify, SoundCloud, or URLs |
+| `/queue show` | Display current music queue with pagination |
+| `/queue clear` | Clear the entire music queue |
+| `/queue shuffle` | Randomize the order of queued songs |
+| `/queue remove <position>` | Remove a specific track from queue |
+| `/queue move <from> <to>` | Move a track to different position |
+| `/queue loop <mode>` | Set loop mode (off/track/queue) |
+| `/queue history` | Show recently played tracks |
+| `/pause` | Pause current music playback |
+| `/resume` | Resume paused music |
+| `/skip [amount]` | Skip current song or multiple songs |
+| `/stop` | Stop music and clear queue |
+| `/volume [1-100]` | Set playback volume (premium: up to 200) |
+| `/nowplaying` | Show detailed info about current track |
+| `/seek <time>` | Jump to specific time in current song |
+| `/search <query>` | Search for music without playing |
+
+### 🎚️ **Audio Filters**
+| Command | What It Does |
+|---------|-------------|
+| `/filters bass [level]` | Add bass boost effect |
+| `/filters speed <multiplier>` | Change playback speed |
+| `/filters nightcore` | Apply nightcore effect (high pitch + fast) |
+| `/filters vaporwave` | Apply vaporwave effect (slow + deep) |
+| `/filters clear` | Remove all audio effects |
+
+### 🤖 **AI Chatbot Commands**  
+| Command | What It Does |
+|---------|-------------|
+| `/ask <question>` | Ask the AI anything directly |
+| `/chatbot toggle` | Enable/disable AI for your server |
+| `/chatbot status` | View current AI configuration |
+| `/chatbot api` | Configure AI service (OpenAI, Claude, etc.) |
+| `/chatbot behavior` | Set response chance and cooldowns |
+| `/chatbot channels` | Control which channels AI responds in |
+| `/chatbot advanced` | Configure AI parameters (temperature, tokens) |
+| `/chatbot prompt` | Set custom AI personality |
+| `/chatbot test` | Test AI connection and setup |
+| `/chatbot conversation` | Manage conversation history |
+
+### 🛡️ **Moderation & Logging**
+| Command | What It Does |
+|---------|-------------|
+| `/modlog setup <channel>` | Enable server event logging |
+| `/modlog disable` | Turn off moderation logging |
+| `/modlog status` | View current logging configuration |
+| `/modlog configure` | Interactive event configuration menu |
+| `/modlog setchannel <event> <channel>` | Route specific events to channels |
+| `/modlog toggle <event>` | Enable/disable specific event types |
+
+### 🧹 **Cleanup & Management**
+| Command | What It Does |
+|---------|-------------|
+| `/cleanup user <user> [amount]` | Delete messages from specific user |
+| `/cleanup amount <count>` | Delete a number of recent messages |
+| `/cleanup bots [amount]` | Remove bot messages only |
+| `/cleanup all <channel>` | ⚠️ Recreate channel (deletes ALL messages) |
+| `/embed builder` | Create beautiful embed messages |
+
+### 🎫 **Ticket System**
+| Command | What It Does |
+|---------|-------------|
+| `/tickets setup` | Configure support ticket system |
+| `/tickets config` | View ticket system status |
+| `/tickets staff add/remove <role>` | Manage staff roles |
+| `/tickets settings` | Configure ticket behavior |
+| `/panel create <channel>` | Create ticket creation panel |
+| `/ticket close` | Close current ticket |
+| `/ticket add/remove <user>` | Manage ticket participants |
+
+### 👥 **Role Management**
+| Command | What It Does |
+|---------|-------------|
+| `/autorole setup <role>` | Auto-assign roles to new members |
+| `/autorole disable` | Turn off automatic role assignment |
+| `/autorole status` | View autorole configuration |
+| `/autorole test` | Test autorole setup |
+| `/selfrole create` | Create self-assignable role buttons |
+| `/selfrole manage` | Manage existing self-role messages |
+| `/selfrole settings` | Configure self-role behavior |
+
+### 💬 **Welcome & Community**
+| Command | What It Does |
+|---------|-------------|
+| `/welcome setup` | Configure welcome/leave messages |
+| `/welcome disable` | Turn off welcome system |
+| `/welcome test` | Test welcome message setup |
+
+### ⚙️ **Server Settings**
+| Command | What It Does |
+|---------|-------------|
+| `/settings view` | View all current bot settings |
+| `/settings reset` | Reset all settings to defaults |
+| `/settings music volume` | Set default/max volume limits |
+| `/settings music queue` | Configure queue size limits |
+| `/settings music source` | Set default music search platform |
+| `/settings permissions dj-role` | Set DJ role for music control |
+| `/settings permissions channels` | Restrict commands to specific channels |
+| `/settings commands cooldown` | Set command usage cooldowns |
+| `/settings commands disable/enable` | Turn commands on/off |
+
+### 📊 **Information & Stats**
+| Command | What It Does |
+|---------|-------------|
+| `/help [command]` | Get help with commands |
+| `/stats` | View server and bot usage statistics |
+| `/globalstats` | View bot statistics across all servers |
+| `/linecount` | View bot code statistics (developer info) |
+
+### 🔧 **Advanced & Debug**
+| Command | What It Does |
+|---------|-------------|
+| `/templates` | Manage embed and message templates |
+| `/fix-tickets` | Repair ticket system issues |
+| `/debug-welcome` | Test welcome system (admin only) |
 
 ---
 
-## Premium Features
-- Larger queues (up to 500 tracks)
-- Higher volume (up to 200)
-- Advanced filters (nightcore, bassboost, etc.)
-- Reduced cooldowns
-- Priority support
+## 🎯 Perfect For Your Server
+
+### **Community Servers**
+- Keep members entertained with music and AI chat
+- Track member activity with comprehensive logging
+- Automatically welcome new members with roles
+
+### **Gaming Communities**  
+- Background music during gaming sessions
+- AI assistant for game tips and general questions
+- Voice channel activity monitoring
+
+### **Study/Work Groups**
+- Focus music and ambient sounds
+- AI help with questions and explanations  
+- Clean moderation logs for peaceful environment
+
+### **Music Communities**
+- High-quality audio with premium filters
+- Support for all major music platforms
+- Advanced queue management for music sessions
 
 ---
 
-## Documentation & Support
-- Full docs: `docs/` folder
-- Test suite: `test/` folder
-- For help: `/help` command, GitHub Issues, or support email
+## 💝 Support & Links
+
+- **Documentation**: [Complete Setup Guide](docs/SETUP_GUIDE.md) | [All Features](docs/FEATURES.md)
+- **Premium**: [Upgrade for Enhanced Features](docs/PREMIUM.md) 
+- **Support**: Join our [Discord Server](https://discord.gg/your-invite) or create an [Issue](https://github.com/yourusername/discord-music-bot/issues)
+- **Community**: Check out the [FAQ](docs/FAQ.md) for common questions
 
 ---
 
-**MIT License**
-
-*Made with ❤️ for the Discord community*
+**Made with ❤️ for Discord communities**  
+*Licensed under MIT - Free to use and modify*

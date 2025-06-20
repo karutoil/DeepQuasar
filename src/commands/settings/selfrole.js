@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType, ButtonStyle } = require('discord.js');
 const SelfRole = require('../../schemas/SelfRole');
+const Utils = require('../../utils/utils');
 
 module.exports = {
     category: 'Settings',
@@ -7,6 +8,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('selfrole')
         .setDescription('Manage self-assignable roles with buttons')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('create')
@@ -216,6 +218,15 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        // Check permissions first
+        const permissionCheck = Utils.checkSelfrolePermissions(interaction);
+        if (!permissionCheck.hasPermission) {
+            return interaction.reply({
+                content: permissionCheck.reason,
+                ephemeral: true
+            });
+        }
+
         const subcommand = interaction.options.getSubcommand();
         const selfRoleManager = interaction.client.selfRoleManager;
 

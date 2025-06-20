@@ -5,9 +5,18 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('create-guild-data')
         .setDescription('Force create/update guild data with welcome system (Debug)')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+        .setDefaultMemberPermissions(null), // Hidden from all users
 
     async execute(interaction) {
+        // Check permissions first - This is a debug command
+        const permissionCheck = Utils.checkTestingPermissions(interaction);
+        if (!permissionCheck.hasPermission) {
+            return interaction.reply({
+                content: permissionCheck.reason,
+                ephemeral: true
+            });
+        }
+
         try {
             const Guild = require('../../schemas/Guild');
             

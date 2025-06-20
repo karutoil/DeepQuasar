@@ -5,10 +5,11 @@ const ChatBot = require('../../utils/ChatBot');
 
 module.exports = {
     category: 'Settings',
-    permissions: [PermissionFlagsBits.ManageGuild],
+    permissions: [PermissionFlagsBits.Administrator], // Will be overridden by custom permission check
     data: new SlashCommandBuilder()
         .setName('chatbot')
         .setDescription('Configure AI chatbot settings for this server')
+        .setDefaultMemberPermissions(null) // Hidden by default, only server owners can use
         .addSubcommand(subcommand =>
             subcommand
                 .setName('status')
@@ -171,6 +172,15 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        // Check permissions first - Only server owners can configure chatbot
+        const permissionCheck = Utils.checkChatbotPermissions(interaction);
+        if (!permissionCheck.hasPermission) {
+            return interaction.reply({
+                content: permissionCheck.reason,
+                ephemeral: true
+            });
+        }
+
         try {
             const subcommand = interaction.options.getSubcommand();
             const guildId = interaction.guild.id;

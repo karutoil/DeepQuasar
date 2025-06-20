@@ -8,6 +8,15 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 
     async execute(interaction) {
+        // Check permissions first
+        const permissionCheck = Utils.checkAutorolePermissions(interaction);
+        if (!permissionCheck.hasPermission) {
+            return interaction.reply({
+                content: permissionCheck.reason,
+                ephemeral: true
+            });
+        }
+
         try {
             const guildData = await Utils.getGuildData(interaction.guildId, interaction.guild.name);
             
