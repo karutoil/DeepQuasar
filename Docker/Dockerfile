@@ -23,12 +23,9 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy source code
+# Copy source code (only what's needed for production)
 COPY src/ ./src/
 COPY lavalink/ ./lavalink/
-COPY docs/ ./docs/
-COPY examples/ ./examples/
-COPY test/ ./test/
 
 # Create logs directory
 RUN mkdir -p logs transcripts
