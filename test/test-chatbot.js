@@ -12,8 +12,8 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // Import necessary modules
-const Guild = require('../src/schemas/Guild');
-const ChatBot = require('../src/utils/ChatBot');
+const Guild = require('./src/schemas/Guild');
+const ChatBot = require('./src/utils/ChatBot');
 
 async function testChatbotModule() {
     console.log('🤖 Testing AI Chatbot Module...\n');

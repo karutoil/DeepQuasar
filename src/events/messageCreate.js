@@ -16,5 +16,29 @@ module.exports = {
 
         // Process the message with the chatbot
         await ChatBot.processMessage(message);
+
+        // Update ticket activity if this is a ticket channel
+        if (message.client.ticketManager) {
+            await updateTicketActivity(message);
+        }
     }
 };
+
+async function updateTicketActivity(message) {
+    try {
+        const Ticket = require('../schemas/Ticket');
+        
+        // Check if this is a ticket channel
+        const ticket = await Ticket.findOne({ 
+            channelId: message.channel.id,
+            status: 'open'
+        });
+        
+        if (ticket) {
+            ticket.lastActivity = new Date();
+            await ticket.save();
+        }
+    } catch (error) {
+        console.error('Error updating ticket activity:', error);
+    }
+}

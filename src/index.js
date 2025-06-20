@@ -14,10 +14,13 @@ const config = require('./config/bot');
 const MusicPlayerManager = require('./utils/MusicPlayer');
 const ChatBot = require('./utils/ChatBot');
 const AutoRoleManager = require('./utils/AutoRoleManager');
+const SelfRoleManager = require('./utils/SelfRoleManager');
+const TicketManager = require('./utils/TicketManager');
 
 // Import database models
 require('./schemas/Guild');
 require('./schemas/User');
+require('./schemas/SelfRole');
 
 class MusicBot {
     constructor() {
@@ -48,6 +51,12 @@ class MusicBot {
 
         // Initialize AutoRole Manager
         this.client.autoRoleManager = new AutoRoleManager(this.client);
+
+        // Initialize SelfRole Manager
+        this.client.selfRoleManager = new SelfRoleManager(this.client);
+
+        // Initialize Ticket Manager
+        this.client.ticketManager = new TicketManager(this.client);
 
         // Initialize Lavalink
         this.setupLavalink();

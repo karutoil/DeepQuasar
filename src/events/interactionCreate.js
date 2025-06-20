@@ -22,6 +22,11 @@ module.exports = {
         else if (interaction.isAnySelectMenu()) {
             await handleSelectMenuInteraction(interaction, client);
         }
+        
+        // Handle modal submissions
+        else if (interaction.isModalSubmit()) {
+            await handleModalSubmit(interaction, client);
+        }
     }
 };
 
@@ -216,6 +221,30 @@ async function handleButtonInteraction(interaction, client) {
         // Handle modlog buttons
         if (customId.startsWith('modlog_')) {
             await handleModLogButton(interaction, client);
+            return;
+        }
+
+        // Handle ticket buttons
+        if (customId.startsWith('ticket_')) {
+            await handleTicketButton(interaction, client);
+            return;
+        }
+
+        // Handle ticket confirmation buttons
+        if (customId.startsWith('confirm_delete_')) {
+            await handleTicketDeleteConfirmation(interaction, client);
+            return;
+        }
+
+        if (customId === 'cancel_delete') {
+            await interaction.update({
+                embeds: [Utils.createEmbed({
+                    title: '❌ Cancelled',
+                    description: 'Ticket deletion has been cancelled.',
+                    color: 0x99AAB5
+                })],
+                components: []
+            });
             return;
         }
 
@@ -1008,5 +1037,149 @@ async function handleModLogButton(interaction, client) {
     
     if (interaction.customId.startsWith('modlog_toggle_')) {
         await handleModLogEventToggle(interaction, client);
+    }
+}
+
+// Ticket interaction handlers
+async function handleTicketButton(interaction, client) {
+    try {
+        const ticketManager = client.ticketManager;
+        
+        if (interaction.customId.startsWith('ticket_create_')) {
+            await ticketManager.handleTicketButton(interaction);
+        } else {
+            await ticketManager.handleTicketAction(interaction);
+        }
+    } catch (error) {
+        console.error('Error handling ticket button:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                embeds: [Utils.createErrorEmbed('Error', 'An error occurred while processing your request.')],
+                ephemeral: true
+            });
+        }
+    }
+}
+
+async function handleTicketDeleteConfirmation(interaction, client) {
+    try {
+        const ticketId = interaction.customId.replace('confirm_delete_', '');
+        const Ticket = require('../schemas/Ticket');
+        const TicketConfig = require('../schemas/TicketConfig');
+        
+        const ticket = await Ticket.findOne({ ticketId });
+        if (!ticket) {
+            return interaction.update({
+                embeds: [Utils.createErrorEmbed('Error', 'Ticket not found.')],
+                components: []
+            });
+        }
+
+        const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
+        const ticketManager = client.ticketManager;
+
+        // Generate transcript before deletion if enabled
+        if (config.transcripts.enabled) {
+            const channel = interaction.guild.channels.cache.get(ticket.channelId);
+            if (channel) {
+                try {
+                    const transcript = await ticketManager.transcriptGenerator.generateTranscript(
+                        ticket, 
+                        channel, 
+                        config.transcripts.format
+                    );
+                    
+                    // Send to mod log or archive channel
+                    const logChannel = config.channels.modLogChannel || config.channels.archiveChannel;
+                    if (logChannel) {
+                        const logChannelObj = interaction.guild.channels.cache.get(logChannel);
+                        if (logChannelObj) {
+                            await logChannelObj.send({
+                                embeds: [Utils.createEmbed({
+                                    title: `🗑️ Ticket #${ticket.ticketId} Deleted`,
+                                    description: `Ticket deleted by ${interaction.user}\nTranscript attached below.`,
+                                    color: 0xED4245
+                                })],
+                                files: [transcript.file]
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error generating transcript before deletion:', error);
+                }
+            }
+        }
+
+        // Delete the channel
+        const channel = interaction.guild.channels.cache.get(ticket.channelId);
+        if (channel) {
+            await channel.delete('Ticket deleted by ' + interaction.user.tag);
+        }
+
+        // Update ticket status in database
+        ticket.status = 'deleted';
+        await ticket.save();
+
+        // Log event
+        await ticketManager.logTicketEvent('delete', ticket, interaction.user, config);
+
+        // If the interaction is in the same channel being deleted, we can't reply
+        // The channel deletion will handle the interaction
+        
+    } catch (error) {
+        console.error('Error deleting ticket:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.update({
+                embeds: [Utils.createErrorEmbed('Error', 'Failed to delete ticket.')],
+                components: []
+            });
+        }
+    }
+}
+
+async function handleModalSubmit(interaction, client) {
+    try {
+        const customId = interaction.customId;
+        
+        // Handle ticket creation modals
+        if (customId.startsWith('ticket_modal_')) {
+            const ticketManager = client.ticketManager;
+            await ticketManager.handleModalSubmit(interaction);
+            return;
+        }
+
+        // Handle ticket close reason modals
+        if (customId.startsWith('ticket_close_reason_')) {
+            const ticketId = customId.replace('ticket_close_reason_', '');
+            const reason = interaction.fields.getTextInputValue('reason');
+            
+            const Ticket = require('../schemas/Ticket');
+            const TicketConfig = require('../schemas/TicketConfig');
+            
+            const ticket = await Ticket.findOne({ ticketId });
+            if (!ticket) {
+                return interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Error', 'Ticket not found.')],
+                    ephemeral: true
+                });
+            }
+
+            const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
+            const ticketManager = client.ticketManager;
+            
+            await ticketManager.processCloseTicket(interaction, ticket, reason, config);
+            return;
+        }
+
+        // Handle other modals...
+        
+    } catch (error) {
+        console.error('Error handling modal submit:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                embeds: [Utils.createErrorEmbed('Error', 'An error occurred while processing your submission.')],
+                ephemeral: true
+            });
+        }
     }
 }
