@@ -146,8 +146,8 @@ module.exports = {
         await interaction.deferReply({ ephemeral: true });
 
         try {
-            // Fetch messages from the target user
-            const messages = await targetChannel.messages.fetch({ limit: 200 });
+            // Fetch messages from the target user (Discord API limit is 100)
+            const messages = await targetChannel.messages.fetch({ limit: 100 });
             const userMessages = messages.filter(msg => 
                 msg.author.id === targetUser.id && 
                 Date.now() - msg.createdTimestamp < 14 * 24 * 60 * 60 * 1000 // Only messages newer than 14 days
@@ -405,8 +405,8 @@ module.exports = {
         await interaction.deferReply({ ephemeral: true });
 
         try {
-            // Fetch messages from bots
-            const messages = await targetChannel.messages.fetch({ limit: 200 });
+            // Fetch messages from bots (Discord API limit is 100)
+            const messages = await targetChannel.messages.fetch({ limit: 100 });
             const botMessages = messages.filter(msg => 
                 msg.author.bot && 
                 Date.now() - msg.createdTimestamp < 14 * 24 * 60 * 60 * 1000 // Only messages newer than 14 days
