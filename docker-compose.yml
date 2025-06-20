@@ -1,30 +1,148 @@
 version: '3.8'
 
 services:
+  # MongoDB Database
   mongodb:
-    image: mongo:7-jammy
-    container_name: discord-bot-mongo
+    image: mongo:8.0
+    container_name: discord-bot-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: discord-music-bot
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: discord-music-bot
     volumes:
-      - mongodb_data:/data/db
-    restart: unless-stopped
+      # Link MongoDB data directly to host filesystem for easy backup
+      - ./data/mongodb:/data/db
+      - ./data/mongodb-config:/data/configdb
+      - ./Docker/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - discord-bot-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # Optional: MongoDB Express for database management
-  mongo-express:
-    image: mongo-express:latest
-    container_name: discord-bot-mongo-express
-    ports:
-      - "8081:8081"
+  # Lavalink Audio Server
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4-alpine
+    container_name: discord-bot-lavalink
+    restart: unless-stopped
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/discord-music-bot
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: password
+      SERVER_PORT: 2333
+      LAVALINK_SERVER_PASSWORD: ${LAVALINK_PASSWORD}
+      JAVA_OPTS: -Xmx1g -Xms512m
+      # Environment variables for application.yml substitution
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "2333:2333"
+    volumes:
+      # Link Lavalink config and plugins directly to host filesystem
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - ./lavalink/plugins:/opt/Lavalink/plugins:ro
+      - ./data/lavalink-logs:/opt/Lavalink/logs
+    networks:
+      - discord-bot-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2333/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     depends_on:
-      - mongodb
-    restart: unless-stopped
+      mongodb:
+        condition: service_healthy
 
-volumes:
-  mongodb_data:
+  # Discord Bot (from Docker Hub)
+  discord-bot:
+    image: karutoil/deepquasarv2:latest
+    container_name: discord-bot
+    restart: unless-stopped
+    environment:
+      # Discord Configuration
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      CLIENT_ID: ${CLIENT_ID}
+      GUILD_ID: ${GUILD_ID:-}
+      BOT_PREFIX: ${BOT_PREFIX:-!}
+      BOT_OWNERS: ${BOT_OWNERS:-}
+      
+      # Database Configuration
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/discord-music-bot?authSource=admin
+      
+      # Lavalink Configuration
+      LAVALINK_HOST: lavalink
+      LAVALINK_PORT: ${LAVALINK_PORT}
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD}
+      LAVALINK_SECURE: false
+      
+      # Spotify Configuration (optional)
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      
+      # OpenAI Configuration (optional)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      
+      # Bot Settings
+      DEFAULT_VOLUME: ${DEFAULT_VOLUME:-50}
+      MAX_QUEUE_SIZE: ${MAX_QUEUE_SIZE:-100}
+      PREMIUM_MAX_QUEUE_SIZE: ${PREMIUM_MAX_QUEUE_SIZE:-500}
+      COMMAND_COOLDOWN: ${COMMAND_COOLDOWN:-3000}
+      PREMIUM_COMMAND_COOLDOWN: ${PREMIUM_COMMAND_COOLDOWN:-1000}
+      AUTO_DEPLOY_COMMANDS: ${AUTO_DEPLOY_COMMANDS:-true}
+      
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      
+      # Node Environment
+      NODE_ENV: ${NODE_ENV:-production}
+    volumes:
+      # Link bot data directly to host filesystem for easy backup
+      - ./data/bot-logs:/app/logs
+      - ./data/bot-transcripts:/app/transcripts
+      - ./data/bot-config:/app/config
+    networks:
+      - discord-bot-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      lavalink:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Optional: Backup service for automated backups
+  backup:
+    image: alpine:latest
+    container_name: discord-bot-backup
+    restart: "no"
+    profiles:
+      - backup
+    volumes:
+      - ./data:/backup/data:ro
+      - ./backups:/backup/output
+    command: >
+      sh -c "
+        echo 'Creating backup...'
+        DATE=$$(date +%Y%m%d_%H%M%S)
+        mkdir -p /backup/output
+        tar -czf /backup/output/discord-bot-backup-$$DATE.tar.gz -C /backup data
+        echo 'Backup created: discord-bot-backup-$$DATE.tar.gz'
+        ls -la /backup/output/
+      "
+
+networks:
+  discord-bot-network:
+    driver: bridge
+
+# Note: No named volumes - everything is linked to host filesystem for easy backup
