@@ -25,7 +25,7 @@ RUN npm ci --only=production && npm cache clean --force
 
 # Copy source code (only what's needed for production)
 COPY src/ ./src/
-COPY lavalink/ ./lavalink/
+#COPY lavalink/ ./lavalink/
 
 # Create logs directory
 RUN mkdir -p logs transcripts
