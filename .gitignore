@@ -17,7 +17,9 @@ logs/
 
 # Large binary files
 core
-lavalink/
+lavalink/plugins/
+lavalink/Lavalink.jar
+lavalink/*.jar
 !lavalink/application.yml
 
 # Runtime data
@@ -31,9 +33,6 @@ coverage/
 
 # Dependency directories
 jspm_packages/
-
-lavalink/plugins
-lavalink/Lavalink.jar
 
 # Optional npm cache directory
 .npm
