@@ -8,6 +8,8 @@
     "start:no-deploy": "AUTO_DEPLOY_COMMANDS=false node src/index.js",
     "dev": "nodemon src/index.js",
     "deploy": "node src/deploy-commands.js",
+    "clear": "node src/clear-commands.js",
+    "clear-commands": "node src/clear-commands.js",
     "setup": "node setup-dev.js",
     "check-token": "node test/check-token.js",
     "validate": "node test/validate-bot.js",

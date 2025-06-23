@@ -7,8 +7,6 @@ services:
     container_name: discord-bot-mongodb
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password123
       MONGO_INITDB_DATABASE: discord-music-bot
     ports:
       - "27017:27017"
@@ -24,38 +22,39 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   # Lavalink Audio Server
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4-alpine
     container_name: discord-bot-lavalink
+    user: root  # Run as host user to fix permissions
     restart: unless-stopped
     environment:
-      SERVER_PORT: 2333
-      LAVALINK_SERVER_PASSWORD: ${LAVALINK_PASSWORD}
-      JAVA_OPTS: -Xmx1g -Xms512m
-      # Environment variables for application.yml substitution
-      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD}
-      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
-      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
-      YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      - SERVER_PORT=2333
+      - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD}
+      - JAVA_OPTS=-Xmx1g -Xms512m
+        # Environment variables for application.yml substitution
+      - LAVALINK_PASSWORD=${LAVALINK_PASSWORD}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
+      - YOUTUBE_REFRESH_TOKEN=${YOUTUBE_REFRESH_TOKEN:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
       - "2333:2333"
     volumes:
       # Link Lavalink config and plugins directly to host filesystem
-      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
-      - ./lavalink/plugins:/opt/Lavalink/plugins:ro
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:rw
+      - ./data/lavalink-plugins:/opt/Lavalink/plugins
       - ./data/lavalink-logs:/opt/Lavalink/logs
     networks:
       - discord-bot-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2333/version"]
+      test: ["CMD-SHELL", "wget --header=\"Authorization: ${LAVALINK_PASSWORD}\" --no-verbose --spider http://localhost:2333/v4/stats"]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 60s
+      start_period: 10s
     depends_on:
       mongodb:
         condition: service_healthy
@@ -65,48 +64,12 @@ services:
     image: karutoil/deepquasarv2:latest
     container_name: discord-bot
     restart: unless-stopped
-    environment:
-      # Discord Configuration
-      DISCORD_TOKEN: ${DISCORD_TOKEN}
-      CLIENT_ID: ${CLIENT_ID}
-      GUILD_ID: ${GUILD_ID:-}
-      BOT_PREFIX: ${BOT_PREFIX:-!}
-      BOT_OWNERS: ${BOT_OWNERS:-}
-      
-      # Database Configuration
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/discord-music-bot?authSource=admin
-      
-      # Lavalink Configuration
-      LAVALINK_HOST: lavalink
-      LAVALINK_PORT: ${LAVALINK_PORT}
-      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD}
-      LAVALINK_SECURE: false
-      
-      # Spotify Configuration (optional)
-      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
-      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
-      
-      # OpenAI Configuration (optional)
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      
-      # Bot Settings
-      DEFAULT_VOLUME: ${DEFAULT_VOLUME:-50}
-      MAX_QUEUE_SIZE: ${MAX_QUEUE_SIZE:-100}
-      PREMIUM_MAX_QUEUE_SIZE: ${PREMIUM_MAX_QUEUE_SIZE:-500}
-      COMMAND_COOLDOWN: ${COMMAND_COOLDOWN:-3000}
-      PREMIUM_COMMAND_COOLDOWN: ${PREMIUM_COMMAND_COOLDOWN:-1000}
-      AUTO_DEPLOY_COMMANDS: ${AUTO_DEPLOY_COMMANDS:-true}
-      
-      # Logging
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-      
-      # Node Environment
-      NODE_ENV: ${NODE_ENV:-production}
-    volumes:
+    env_file: .env
+#    volumes:
       # Link bot data directly to host filesystem for easy backup
-      - ./data/bot-logs:/app/logs
-      - ./data/bot-transcripts:/app/transcripts
-      - ./data/bot-config:/app/config
+#      - ./data/bot-logs:/app/logs
+#      - ./data/bot-transcripts:/app/transcripts
+#      - ./data/bot-config:/app/config
     networks:
       - discord-bot-network
     depends_on:
