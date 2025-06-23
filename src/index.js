@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
-const { Shoukaku, Connectors } = require('shoukaku');
+const { Manager } = require('moonlink.js');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
@@ -11,7 +11,7 @@ const { loadCommands } = require('./handlers/commandHandler');
 const { loadEvents } = require('./handlers/eventHandler');
 const { deployCommands } = require('./utils/deployCommands');
 const config = require('./config/bot');
-const MusicPlayerManager = require('./utils/MusicPlayer');
+const MusicPlayerManager = require('./utils/MusicPlayerManager');
 const ChatBot = require('./utils/ChatBot');
 const AutoRoleManager = require('./utils/AutoRoleManager');
 const SelfRoleManager = require('./utils/SelfRoleManager');
@@ -51,7 +51,7 @@ class MusicBot {
         this.client.embedBuilderMessages = new Map();
 
         // Initialize Music Player Manager
-        this.client.musicPlayer = new MusicPlayerManager(this.client);
+        this.client.musicPlayerManager = new MusicPlayerManager(this.client);
 
         // Initialize Chatbot service
         this.client.chatBot = ChatBot;
@@ -65,53 +65,128 @@ class MusicBot {
         // Initialize Ticket Manager
         this.client.ticketManager = new TicketManager(this.client);
 
-        // Initialize Lavalink
-        this.setupLavalink();
+        // Initialize Moonlink Manager
+        this.setupMoonlink();
     }
 
-    setupLavalink() {
-        // Shoukaku configuration
-        const shoukakuOptions = {
-            resume: true,
-            resumeTimeout: 30,
-            resumeByLibrary: true,
-            reconnectTries: 10,
-            restTimeout: 60000
-        };
+    setupMoonlink() {
+        // Create Moonlink Manager instance
+        logger.info('Setting up Moonlink with config:', {
+            host: config.lavalink.host,
+            port: config.lavalink.port,
+            secure: config.lavalink.secure
+        });
 
-        const lavalinkNodes = [{
-            name: 'main',
-            url: `${config.lavalink.host}:${config.lavalink.port}`,
-            auth: config.lavalink.password,
-            secure: config.lavalink.secure || false
-        }];
+        this.client.manager = new Manager({
+            nodes: [{
+                identifier: 'main',
+                host: config.lavalink.host,
+                port: config.lavalink.port,
+                password: config.lavalink.password,
+                secure: config.lavalink.secure || false,
+            }],
+            sendPayload: (guildId, payload) => {
+                const guild = this.client.guilds.cache.get(guildId);
+                if (guild) {
+                    let parsedPayload = payload;
+                    if (typeof payload === 'string') {
+                        try {
+                            parsedPayload = JSON.parse(payload);
+                        } catch (error) {
+                            logger.error('Failed to parse voice payload:', error);
+                            return;
+                        }
+                    }
+                    guild.shard.send(parsedPayload);
+                }
+            },
+            options: {
+                autoPlay: true,
+            }
+        });
 
-        // Initialize Shoukaku
-        this.client.shoukaku = new Shoukaku(
-            new Connectors.DiscordJS(this.client),
-            lavalinkNodes,
-            shoukakuOptions
-        );
+        // Setup Moonlink event handlers
+        this.setupMoonlinkEvents();
 
-        // Lavalink event handlers
-        this.setupLavalinkEvents();
+        // Handle raw events for voice state updates
+        this.client.on('raw', (packet) => {
+            this.client.manager.packetUpdate(packet);
+        });
     }
 
-    setupLavalinkEvents() {
-        this.client.shoukaku.on('ready', (name) => {
-            logger.info(`Lavalink node "${name}" connected successfully`);
+    setupMoonlinkEvents() {
+        // Node connection events
+        this.client.manager.on('nodeConnect', (node) => {
+            logger.info(`Moonlink node "${node.identifier}" connected successfully`);
         });
 
-        this.client.shoukaku.on('error', (name, error) => {
-            logger.error(`Lavalink node "${name}" error:`, error);
+        this.client.manager.on('nodeDisconnect', (node) => {
+            logger.warn(`Moonlink node "${node.identifier}" disconnected`);
         });
 
-        this.client.shoukaku.on('close', (name, code, reason) => {
-            logger.warn(`Lavalink node "${name}" closed with code ${code}: ${reason}`);
+        this.client.manager.on('nodeError', (node, error) => {
+            logger.error(`Moonlink node "${node.identifier}" error:`, error);
         });
 
-        this.client.shoukaku.on('disconnect', (name, players, moved) => {
-            logger.warn(`Lavalink node "${name}" disconnected. Players: ${players}, Moved: ${moved}`);
+        this.client.manager.on('nodeReconnect', (node) => {
+            logger.info(`Moonlink node "${node.identifier}" reconnecting...`);
+        });
+
+        // Track events
+        this.client.manager.on('trackStart', (player, track) => {
+            const channel = this.client.channels.cache.get(player.textChannelId);
+            if (channel) {
+                logger.info(`Now playing: ${track.title} in ${player.guildId}`);
+                // Send now playing message (optional - you can customize this)
+                // channel.send(`🎵 Now playing: **${track.title}**`);
+            }
+        });
+
+        // Player connection events
+        this.client.manager.on('playerConnect', (player) => {
+            logger.info(`Player connected to voice channel ${player.voiceChannelId} in guild ${player.guildId}`);
+        });
+
+        this.client.manager.on('playerDisconnect', (player) => {
+            logger.info(`Player disconnected from voice channel in guild ${player.guildId}`);
+        });
+
+        this.client.manager.on('playerDestroy', (player) => {
+            logger.info(`Player destroyed in guild ${player.guildId}`);
+        });
+
+        this.client.manager.on('playerCreate', (player) => {
+            logger.info(`Player created for guild ${player.guildId}, voice channel ${player.voiceChannelId}`);
+        });
+
+        this.client.manager.on('trackEnd', (player, track) => {
+            logger.debug(`Track ended: ${track.title} in ${player.guildId}`);
+        });
+
+        this.client.manager.on('queueEnd', (player) => {
+            const channel = this.client.channels.cache.get(player.textChannelId);
+            if (channel) {
+                channel.send('Queue ended. Disconnecting in 30 seconds if no new tracks are added.');
+            }
+            
+            // Disconnect after a delay if no new tracks are added
+            setTimeout(() => {
+                if (!player.playing && player.queue.size === 0) {
+                    player.destroy();
+                    if (channel) {
+                        channel.send('Disconnected due to inactivity.');
+                    }
+                }
+            }, 30000);
+        });
+
+        // Add voice connection events
+        this.client.manager.on('playerMove', (player, oldChannelId, newChannelId) => {
+            logger.info(`Player moved from channel ${oldChannelId} to ${newChannelId} in guild ${player.guildId}`);
+        });
+
+        this.client.manager.on('playerUpdate', (player) => {
+            logger.debug(`Player updated for guild ${player.guildId}, connected: ${player.connected}, state: ${player.state}`);
         });
     }
 
@@ -206,34 +281,48 @@ class MusicBot {
 
         try {
             // Destroy all music players and disconnect from voice channels
-            if (this.client.musicPlayer) {
+            if (this.client.manager && this.client.manager.players) {
                 logger.info('Closing all music players...');
-                const players = this.client.musicPlayer.getAllPlayers();
                 
                 let destroyedCount = 0;
-                for (const [guildId, player] of players) {
-                    try {
-                        logger.info(`Destroying player for guild: ${guildId}`);
-                        await player.destroy();
-                        destroyedCount++;
-                    } catch (error) {
-                        logger.error(`Error destroying player for guild ${guildId}:`, error);
+                try {
+                    // Moonlink.js V4 PlayerManager has a cache property
+                    if (this.client.manager.players.cache) {
+                        for (const [guildId, player] of this.client.manager.players.cache) {
+                            try {
+                                logger.info(`Destroying player for guild: ${guildId}`);
+                                await player.destroy();
+                                destroyedCount++;
+                            } catch (error) {
+                                logger.error(`Error destroying player for guild ${guildId}:`, error);
+                            }
+                        }
                     }
+                } catch (error) {
+                    logger.error('Error accessing players:', error);
                 }
                 
-                logger.info(`Closed ${destroyedCount}/${players.size} music players`);
+                logger.info(`Closed ${destroyedCount} music players`);
             }
 
-            // Close Lavalink connections
-            if (this.client.shoukaku) {
-                logger.info('Closing Lavalink connections...');
-                for (const [name, node] of this.client.shoukaku.nodes) {
-                    try {
-                        node.disconnect();
-                        logger.info(`Disconnected from Lavalink node: ${name}`);
-                    } catch (error) {
-                        logger.error(`Error disconnecting from Lavalink node ${name}:`, error);
+            // Close Moonlink connections
+            if (this.client.manager && this.client.manager.nodes) {
+                logger.info('Closing Moonlink connections...');
+                try {
+                    if (this.client.manager.nodes.cache) {
+                        for (const [id, node] of this.client.manager.nodes.cache) {
+                            try {
+                                if (node.disconnect) {
+                                    node.disconnect();
+                                    logger.info(`Disconnected from Moonlink node: ${id}`);
+                                }
+                            } catch (error) {
+                                logger.error(`Error disconnecting from Moonlink node ${id}:`, error);
+                            }
+                        }
                     }
+                } catch (error) {
+                    logger.error('Error accessing nodes:', error);
                 }
             }
 

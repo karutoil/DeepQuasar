@@ -171,8 +171,12 @@ async function handleAutocomplete(interaction, client) {
 
         await command.autocomplete(interaction, client);
     } catch (error) {
+        // Suppress 'Unknown interaction' errors (DiscordAPIError[10062])
+        if (error?.code === 10062 || (error?.message && error.message.includes('Unknown interaction'))) {
+            client.logger.debug(`Suppressed Unknown interaction error in autocomplete for ${interaction.commandName}`);
+            return;
+        }
         client.logger.error(`Error in autocomplete for ${interaction.commandName}:`, error);
-        
         // Try to respond with empty array if interaction is still valid
         try {
             if (!interaction.responded && !interaction.deferred) {
@@ -195,7 +199,29 @@ async function handleButtonInteraction(interaction, client) {
             return;
         }
 
-        // Handle pagination buttons
+        // Handle queue pagination buttons (queue_prev_X, queue_next_X)
+        if (customId.startsWith('queue_prev_') || customId.startsWith('queue_next_')) {
+            // Extract the page number from the customId
+            const match = customId.match(/queue_(prev|next)_(\d+)/);
+            if (match) {
+                let page = parseInt(match[2], 10);
+                page = match[1] === 'prev' ? Math.max(1, page - 1) : page + 1;
+                // Call the /queue command's execute function for button navigation
+                const queueCommand = client.commands.get('queue');
+                if (queueCommand && typeof queueCommand.execute === 'function') {
+                    // Patch interaction.options to simulate a slash command option
+                    interaction.options = {
+                        getInteger: (name) => name === 'page' ? page : null
+                    };
+                    // Mark as button interaction
+                    interaction.isButton = () => true;
+                    await queueCommand.execute(interaction, client);
+                }
+                return;
+            }
+        }
+
+        // Handle pagination buttons (legacy: page_prev, page_next, etc.)
         if (customId.startsWith('page_')) {
             await handlePaginationButton(interaction, client);
             return;
@@ -282,7 +308,7 @@ async function handleSelectMenuInteraction(interaction, client) {
         }
 
         // Handle search result selection
-        if (customId === 'search_select') {
+        if (customId === 'search_select' || customId.startsWith('search_select_')) {
             await handleSearchSelection(interaction, client);
             return;
         }
@@ -368,9 +394,16 @@ async function handlePaginationButton(interaction, client) {
 }
 
 async function handleQueuePagination(interaction, client, page) {
-    const player = client.musicPlayer.getPlayer(interaction.guildId);
+    const player = client.musicPlayerManager.getPlayer(interaction.guildId);
     
-    if (!player || ((!player.queue || !player.queue.length) && !player.current)) {
+    // Moonlink.js V4: player.queue is an object, use .tracks or .toArray()
+    const queueArray = player && player.queue && typeof player.queue.toArray === 'function'
+        ? player.queue.toArray()
+        : (player && Array.isArray(player.queue) ? player.queue : []);
+    const hasQueue = queueArray && queueArray.length > 0;
+    const hasCurrent = !!player?.current;
+
+    if (!player || (!hasQueue && !hasCurrent)) {
         const embed = Utils.createInfoEmbed(
             'Empty Queue',
             'The queue is currently empty. Use `/play` to add some music!'
@@ -380,7 +413,8 @@ async function handleQueuePagination(interaction, client, page) {
 
     // Import the queue command to use the createQueueDisplay function
     const queueCommand = require('../commands/music/queue');
-    const { embed, components } = queueCommand.createQueueDisplay(client, player, page);
+    // Pass the correct queue array to the display function if needed
+    const { embed, components } = queueCommand.createQueueDisplay(client, player, page, queueArray);
     
     await interaction.update({ embeds: [embed], components });
 }
@@ -396,7 +430,7 @@ function createProgressBar(current, total, length = 20) {
 }
 
 async function handleMusicControlButton(interaction, client) {
-    const player = client.musicPlayer.getPlayer(interaction.guildId);
+    const player = client.musicPlayerManager.getPlayer(interaction.guildId);
     
     if (!player) {
         const embed = Utils.createErrorEmbed(
@@ -420,27 +454,27 @@ async function handleMusicControlButton(interaction, client) {
 
     switch (customId) {
         case 'play_pause':
-            if (player.isPlaying) {
-                await client.musicPlayer.pause(interaction.guildId, true);
+            if (player.playing) {
+                await player.pause();
                 await interaction.reply({ content: '⏸️ Paused the music.', ephemeral: true });
             } else {
-                await client.musicPlayer.pause(interaction.guildId, false);
+                await player.resume();
                 await interaction.reply({ content: '▶️ Resumed the music.', ephemeral: true });
             }
             break;
 
         case 'skip':
-            await client.musicPlayer.skip(interaction.guildId);
+            await player.skip();
             await interaction.reply({ content: '⏭️ Skipped the current track.', ephemeral: true });
             break;
 
         case 'stop':
-            await client.musicPlayer.destroy(interaction.guildId);
+            await player.destroy();
             await interaction.reply({ content: '⏹️ Stopped the music and cleared the queue.', ephemeral: true });
             break;
 
         case 'shuffle':
-            await client.musicPlayer.shuffleQueue(interaction.guildId);
+            player.queue.shuffle();
             await interaction.reply({ content: '🔀 Shuffled the queue.', ephemeral: true });
             break;
 
@@ -448,7 +482,7 @@ async function handleMusicControlButton(interaction, client) {
             const currentLoop = player.loop;
             const nextLoop = currentLoop === 'none' ? 'track' : 
                            currentLoop === 'track' ? 'queue' : 'none';
-            await client.musicPlayer.setLoop(interaction.guildId, nextLoop);
+            player.setLoop(nextLoop);
             
             const loopEmojis = { none: '➡️', track: '🔂', queue: '🔁' };
             await interaction.reply({ 
@@ -460,7 +494,7 @@ async function handleMusicControlButton(interaction, client) {
 }
 
 async function handleQueueButton(interaction, client) {
-    const player = client.musicPlayer.getPlayer(interaction.guildId);
+    const player = client.musicPlayerManager.getPlayer(interaction.guildId);
     
     if (!player) {
         const embed = Utils.createErrorEmbed(
@@ -485,12 +519,12 @@ async function handleQueueButton(interaction, client) {
 
     switch (customId) {
         case 'queue_shuffle':
-            await client.musicPlayer.shuffleQueue(interaction.guildId);
+            player.queue.shuffle();
             actionMessage = '🔀 Shuffled the queue.';
             break;
 
         case 'queue_clear':
-            await client.musicPlayer.clearQueue(interaction.guildId);
+            player.queue.clear();
             actionMessage = '🗑️ Cleared the queue.';
             break;
 
@@ -498,7 +532,7 @@ async function handleQueueButton(interaction, client) {
             const currentLoop = player.loop;
             const nextLoop = currentLoop === 'none' ? 'track' : 
                            currentLoop === 'track' ? 'queue' : 'none';
-            await client.musicPlayer.setLoop(interaction.guildId, nextLoop);
+            player.setLoop(nextLoop);
             
             const loopEmojis = { none: '➡️', track: '🔂', queue: '🔁' };
             actionMessage = `${loopEmojis[nextLoop]} Loop mode: ${nextLoop}`;
@@ -512,7 +546,7 @@ async function handleQueueButton(interaction, client) {
     // Update the original message with the new queue state
     try {
         // Get the updated player
-        const updatedPlayer = client.musicPlayer.getPlayer(interaction.guildId);
+        const updatedPlayer = client.musicPlayerManager.getPlayer(interaction.guildId);
         
         if (!updatedPlayer || ((!updatedPlayer.queue || !updatedPlayer.queue.length) && !updatedPlayer.current)) {
             // Queue is empty after clearing
@@ -610,19 +644,17 @@ async function handleSearchPlayAll(interaction, client) {
     const source = sourceLine ? sourceLine.replace('Source: **', '').replace('**', '').toLowerCase() : 'youtube';
     
     try {
-        // Get or create player
-        let player = client.musicPlayer.getPlayer(interaction.guildId);
+        // Get or create player using Moonlink.js V4
+        let player = client.musicPlayerManager.getPlayer(interaction.guildId);
         
         if (!player) {
-            player = await client.musicPlayer.create(
-                interaction.guildId,
-                voiceCheck.channel.id,
-                interaction.channelId
-            );
-            
-            if (!player) {
-                return interaction.editReply({ content: 'Failed to connect to the voice channel. Please try again.' });
-            }
+            player = client.musicPlayerManager.createPlayer({
+                guildId: interaction.guildId,
+                voiceChannelId: voiceCheck.channel.id,
+                textChannelId: interaction.channelId,
+                autoPlay: true
+            });
+            await player.connect();
         } else {
             // Check if user is in the same voice channel as the bot
             if (player.voiceChannelId !== voiceCheck.channel.id) {
@@ -630,9 +662,8 @@ async function handleSearchPlayAll(interaction, client) {
             }
         }
 
-        // Search for tracks
-        const result = await player.search(query, source);
-        
+        // Search for tracks using Moonlink.js V4
+        const result = await client.musicPlayerManager.search(query, { source });
         if (!result || !result.tracks || result.tracks.length === 0) {
             return interaction.editReply({ content: 'No tracks found for the search query.' });
         }
@@ -643,19 +674,16 @@ async function handleSearchPlayAll(interaction, client) {
             username: interaction.user.username,
             discriminator: interaction.user.discriminator
         };
-
         const tracksToAdd = result.tracks.map(track => ({
             ...track,
-            requester: requester
+            requester
         }));
 
         // Add tracks to queue
-        for (const track of tracksToAdd) {
-            await player.addTrack(track);
-        }
+        player.queue.add(tracksToAdd);
 
         // Start playing if not already playing
-        if (!player.isPlaying && !player.isPaused) {
+        if (!player.playing && !player.paused && player.queue.size > 0) {
             await player.play();
         }
         
@@ -697,19 +725,17 @@ async function handleSearchQueueAll(interaction, client) {
     const source = sourceLine ? sourceLine.replace('Source: **', '').replace('**', '').toLowerCase() : 'youtube';
     
     try {
-        // Get or create player
-        let player = client.musicPlayer.getPlayer(interaction.guildId);
+        // Get or create player using Moonlink.js V4
+        let player = client.musicPlayerManager.getPlayer(interaction.guildId);
         
         if (!player) {
-            player = await client.musicPlayer.create(
-                interaction.guildId,
-                voiceCheck.channel.id,
-                interaction.channelId
-            );
-            
-            if (!player) {
-                return interaction.editReply({ content: 'Failed to connect to the voice channel. Please try again.' });
-            }
+            player = client.musicPlayerManager.createPlayer({
+                guildId: interaction.guildId,
+                voiceChannelId: voiceCheck.channel.id,
+                textChannelId: interaction.channelId,
+                autoPlay: false
+            });
+            await player.connect();
         } else {
             // Check if user is in the same voice channel as the bot
             if (player.voiceChannelId !== voiceCheck.channel.id) {
@@ -717,9 +743,8 @@ async function handleSearchQueueAll(interaction, client) {
             }
         }
 
-        // Search for tracks
-        const result = await player.search(query, source);
-        
+        // Search for tracks using Moonlink.js V4
+        const result = await client.musicPlayerManager.search(query, { source });
         if (!result || !result.tracks || result.tracks.length === 0) {
             return interaction.editReply({ content: 'No tracks found for the search query.' });
         }
@@ -730,16 +755,13 @@ async function handleSearchQueueAll(interaction, client) {
             username: interaction.user.username,
             discriminator: interaction.user.discriminator
         };
-
         const tracksToAdd = result.tracks.map(track => ({
             ...track,
-            requester: requester
+            requester
         }));
 
         // Add tracks to queue (but don't start playing if nothing is currently playing)
-        for (const track of tracksToAdd) {
-            await player.addTrack(track);
-        }
+        player.queue.add(tracksToAdd);
         
         await interaction.editReply({ 
             content: `➕ Added ${tracksToAdd.length} track${tracksToAdd.length !== 1 ? 's' : ''} to the queue!` 
@@ -794,75 +816,79 @@ async function handleSearchRefresh(interaction, client) {
 }
 
 async function handleSearchSelection(interaction, client) {
-    const selectedValue = interaction.values[0];
+    const selectedValues = interaction.values; // Array of selected indices as strings
+    const userId = interaction.user.id;
     
-    // Check if user is in voice channel
-    const voiceCheck = Utils.checkVoiceChannel(interaction.member);
-    if (!voiceCheck.inVoice) {
-        const embed = Utils.createErrorEmbed(
-            'Not in Voice Channel',
-            'You need to be in a voice channel to play music.'
-        );
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+    // Check if we have search results for this user
+    if (!client.searchResults || !client.searchResults.has(userId)) {
+        return interaction.reply({ 
+            content: '❌ Search results have expired. Please search again.', 
+            ephemeral: true 
+        });
     }
-
-    // Parse the selected value (format: search_play_<index>)
-    const parts = selectedValue.split('_');
-    if (parts.length !== 3 || parts[0] !== 'search' || parts[1] !== 'play') {
-        return interaction.reply({ content: 'Invalid selection.', ephemeral: true });
+    
+    const searchData = client.searchResults.get(userId);
+    // Validate all selected indices
+    const validIndices = selectedValues
+        .map(v => parseInt(v))
+        .filter(idx => idx >= 0 && idx < searchData.tracks.length);
+    if (validIndices.length === 0) {
+        return interaction.reply({ 
+            content: '❌ Invalid track selection.', 
+            ephemeral: true 
+        });
     }
-
-    const selectedIndex = parseInt(parts[2]);
+    
+    await interaction.deferReply({ ephemeral: true });
     
     try {
-        await interaction.deferReply({ ephemeral: true });
-        
-        // Extract search results from the original message embed
-        const embed = interaction.message.embeds[0];
-        const fields = embed.fields;
-        
-        if (!fields || fields.length === 0) {
-            return interaction.editReply({ content: 'Could not find search results.' });
+        // Check if user is still in the same voice channel
+        if (!interaction.member.voice.channel || 
+            interaction.member.voice.channel.id !== searchData.voiceChannelId) {
+            return interaction.editReply({ 
+                content: '❌ You need to be in the same voice channel where you started the search.' 
+            });
         }
-
-        // Get the original search query from the embed description
-        const descriptionLines = embed.description.split('\n');
-        const queryLine = descriptionLines.find(line => line.startsWith('Search for:'));
-        const sourceLine = descriptionLines.find(line => line.startsWith('Source:'));
         
-        if (!queryLine) {
-            return interaction.editReply({ content: 'Could not determine search query.' });
-        }
-
-        const query = queryLine.replace('Search for: **', '').replace('**', '');
-        const source = sourceLine ? sourceLine.replace('Source: **', '').replace('**', '').toLowerCase() : 'youtube';
-        
-        // Re-perform the search to get the actual track data
-        const searchCommand = require('../commands/music/search');
-        const searchResults = await searchCommand.performSearch(client, query, source, 'track', 25);
-        
-        if (!searchResults || selectedIndex >= searchResults.length) {
-            return interaction.editReply({ content: 'Selected track is no longer available.' });
-        }
-
-        const selectedTrack = searchResults[selectedIndex];
-        
-        // Play the selected track
-        await client.musicPlayer.play(interaction, selectedTrack.uri, {
-            requester: {
-                id: interaction.user.id,
-                username: interaction.user.username,
-                discriminator: interaction.user.discriminator
-            }
+        // Create or get player
+        const player = client.musicPlayerManager.createPlayer({
+            guildId: searchData.guildId,
+            voiceChannelId: searchData.voiceChannelId,
+            textChannelId: searchData.textChannelId,
+            autoPlay: true
         });
         
+        // Connect to voice channel if not connected
+        if (!player.connected) {
+            await player.connect();
+        }
+        
+        // Add all selected tracks to queue
+        const addedTitles = [];
+        for (const idx of validIndices) {
+            const track = searchData.tracks[idx];
+            player.queue.add(track);
+            addedTitles.push(track.title);
+        }
+        
+        // Start playback if not already playing
+        if (!player.playing && !player.paused && player.queue.size > 0) {
+            await player.play();
+        }
+        
+        // Send confirmation
         await interaction.editReply({ 
-            content: `🎵 Playing: **${selectedTrack.title}** by *${selectedTrack.author}*` 
+            content: `✅ Added to queue: ${addedTitles.map(t => `**${t}**`).join(', ')}` 
         });
-
+        
+        // Clean up search results
+        client.searchResults.delete(userId);
+        
     } catch (error) {
         client.logger.error('Error handling search selection:', error);
-        await interaction.editReply({ content: 'Failed to play the selected track.' });
+        await interaction.editReply({ 
+            content: '❌ Failed to add track(s) to queue. Please try again.' 
+        });
     }
 }
 

@@ -1,72 +1,54 @@
-const { SlashCommandBuilder } = require('discord.js');
-const Utils = require('../../utils/utils');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
 module.exports = {
     category: 'Music',
     data: new SlashCommandBuilder()
         .setName('resume')
-        .setDescription('Resume the paused music'),
+        .setDescription('Resume playback if paused'),
 
     async execute(interaction, client) {
-        try {
-            const player = client.musicPlayer.getPlayer(interaction.guildId);
-            
-            if (!player) {
-                const embed = Utils.createErrorEmbed(
-                    'No Active Player',
-                    'There is no music player active in this server.'
-                );
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
-            // Voice channel check
-            const voiceCheck = Utils.checkVoiceChannel(interaction.member);
-            if (!voiceCheck.inVoice || voiceCheck.channel.id !== player.voiceChannelId) {
-                const embed = Utils.createErrorEmbed(
-                    'Voice Channel Required',
-                    'You need to be in the same voice channel as the bot to resume music.'
-                );
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
-            if (!player.paused) {
-                const embed = Utils.createInfoEmbed(
-                    'Music Not Paused',
-                    'The music is already playing.'
-                );
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
-            const success = await client.musicPlayer.pause(interaction.guildId, false);
-            
-            if (success) {
-                const embed = Utils.createSuccessEmbed(
-                    'Music Resumed',
-                    `▶️ Resumed **${Utils.truncate(player.current?.info?.title || 'Unknown Track', 50)}**`
-                );
-
-                await interaction.reply({ embeds: [embed] });
-
-                // Log the action
-                client.logger.music('resume', {
-                    guildId: interaction.guildId,
-                    userId: interaction.user.id,
-                    trackTitle: player.current?.info?.title
-                });
-            } else {
-                const embed = Utils.createErrorEmbed(
-                    'Resume Failed',
-                    'Unable to resume the music. Please try again.'
-                );
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-        } catch (error) {
-            client.logger.error('Error in resume command:', error);
-            const embed = Utils.createErrorEmbed(
-                'Command Error',
-                'An error occurred while resuming the music.'
-            );
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+        const player = client.musicPlayerManager.getPlayer(interaction.guild.id);
+        
+        if (!player) {
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ There is nothing playing in this server!')
+                ],
+                ephemeral: true
+            });
         }
+
+        // Check if user is in the same voice channel
+        if (!client.musicPlayerManager.isInSameVoiceChannel(interaction.member, player)) {
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ You need to be in the same voice channel as the bot to use this command!')
+                ],
+                ephemeral: true
+            });
+        }
+
+        // Check if player is paused
+        if (!player.paused) {
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ The player is not paused!')
+                ],
+                ephemeral: true
+            });
+        }
+
+        // Resume the player
+        player.resume();
+
+        return interaction.reply({
+            embeds: [new EmbedBuilder()
+                .setColor('#00ff00')
+                .setDescription('▶️ Resumed playback.')
+            ]
+        });
     }
 };

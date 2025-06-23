@@ -9,6 +9,26 @@ module.exports = {
         client.logger.info(`✅ ${client.user.tag} is now online and ready!`);
         client.logger.info(`📊 Serving ${client.guilds.cache.size} guilds with ${client.users.cache.size} users`);
 
+        // Initialize Moonlink Manager
+        client.manager.init(client.user.id);
+        client.logger.info('🎵 Moonlink Manager initialized');
+        
+        // Log node status
+        setTimeout(() => {
+            try {
+                const nodeCount = client.manager.nodes.cache ? client.manager.nodes.cache.size : 0;
+                client.logger.info(`Moonlink nodes: ${nodeCount}`);
+                
+                if (client.manager.nodes.cache) {
+                    for (const [id, node] of client.manager.nodes.cache) {
+                        client.logger.info(`Node ${id}: connected=${node.connected}, host=${node.host}:${node.port}`);
+                    }
+                }
+            } catch (error) {
+                client.logger.error('Error checking node status:', error);
+            }
+        }, 2000);
+
         // Set bot status
         const activities = [
             { name: '🎵 Music for everyone!', type: ActivityType.Listening },
@@ -86,7 +106,7 @@ function startPeriodicTasks(client) {
 }
 
 function cleanupInactivePlayers(client) {
-    const players = client.musicPlayer.getAllPlayers();
+    const players = client.musicPlayerManager.getAllPlayers();
     let cleanedCount = 0;
 
     players.forEach(async (player) => {
@@ -96,7 +116,7 @@ function cleanupInactivePlayers(client) {
             const inactiveTime = Date.now() - lastActivity;
             
             if (inactiveTime > 10 * 60 * 1000) { // 10 minutes
-                await client.musicPlayer.destroy(player.guildId);
+                await client.musicPlayerManager.destroy(player.guildId);
                 cleanedCount++;
             }
         }

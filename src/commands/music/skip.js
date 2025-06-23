@@ -1,11 +1,10 @@
-const { SlashCommandBuilder } = require('discord.js');
-const Utils = require('../../utils/utils');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
 module.exports = {
     category: 'Music',
     data: new SlashCommandBuilder()
         .setName('skip')
-        .setDescription('Skip the current track or multiple tracks')
+        .setDescription('Skip the current track')
         .addIntegerOption(option =>
             option
                 .setName('amount')
@@ -16,92 +15,77 @@ module.exports = {
         ),
 
     async execute(interaction, client) {
-        try {
-            const player = client.musicPlayer.getPlayer(interaction.guildId);
+        const player = client.musicPlayerManager.getPlayer(interaction.guild.id);
+        
+        if (!player) {
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ There is nothing playing in this server!')
+                ],
+                ephemeral: true
+            });
+        }
+
+        // Check if user is in the same voice channel
+        if (!client.musicPlayerManager.isInSameVoiceChannel(interaction.member, player)) {
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ You need to be in the same voice channel as the bot to use this command!')
+                ],
+                ephemeral: true
+            });
+        }
+
+        // Check if there is a current track
+        if (!player.current) {
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ There is nothing playing right now!')
+                ],
+                ephemeral: true
+            });
+        }
+
+        const amount = interaction.options.getInteger('amount') || 1;
+        const currentTrack = player.current;
+
+        if (amount === 1) {
+            // Skip single track
+            player.skip();
             
-            if (!player || !player.current) {
-                const embed = Utils.createErrorEmbed(
-                    'Nothing Playing',
-                    'There is no track currently playing.'
-                );
-                return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#00ff00')
+                    .setDescription(`⏭️ Skipped: **${currentTrack.title}**`)
+                ]
+            });
+        } else {
+            // Skip multiple tracks
+            let skippedTracks = 1; // Current track
+            const skippedList = [currentTrack.title];
+
+            // Skip additional tracks from the queue
+            for (let i = 1; i < amount && player.queue.size > 0; i++) {
+                const nextTrack = player.queue.tracks[0];
+                player.queue.remove(0);
+                skippedList.push(nextTrack.title);
+                skippedTracks++;
             }
 
-            // Voice channel check
-            const voiceCheck = Utils.checkVoiceChannel(interaction.member);
-            if (!voiceCheck.inVoice || voiceCheck.channel.id !== player.voiceChannelId) {
-                const embed = Utils.createErrorEmbed(
-                    'Voice Channel Required',
-                    'You need to be in the same voice channel as the bot to skip tracks.'
-                );
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
+            // Skip the current track
+            player.skip();
 
-            const amount = interaction.options.getInteger('amount') || 1;
-            const currentTrack = player.current;
+            const embed = new EmbedBuilder()
+                .setColor('#00ff00')
+                .setTitle(`⏭️ Skipped ${skippedTracks} Track${skippedTracks > 1 ? 's' : ''}`)
+                .setDescription(skippedList.map((title, index) => 
+                    `${index + 1}. ${title}`
+                ).join('\n'));
 
-            if (amount === 1) {
-                // Skip single track
-                if (player.queue.length === 0 && player.loop === 'none') {
-                    // This is the last track
-                    await client.musicPlayer.destroy(interaction.guildId);
-                    const embed = Utils.createSuccessEmbed(
-                        'Track Skipped',
-                        `Skipped **${Utils.truncate(currentTrack.info.title, 50)}**\n\nQueue is now empty. Leaving voice channel.`
-                    );
-                    return interaction.reply({ embeds: [embed] });
-                } else {
-                    await client.musicPlayer.skip(interaction.guildId);
-                    const nextTrack = player.queue[0];
-                    const embed = Utils.createSuccessEmbed(
-                        'Track Skipped',
-                        `Skipped **${Utils.truncate(currentTrack.info.title, 50)}**${nextTrack ? `\n\nNext: **${Utils.truncate(nextTrack.info.title, 50)}**` : ''}`
-                    );
-                    return interaction.reply({ embeds: [embed] });
-                }
-            } else {
-                // Skip multiple tracks
-                if (amount > player.queue.length + 1) {
-                    const embed = Utils.createErrorEmbed(
-                        'Not Enough Tracks',
-                        `Cannot skip ${amount} tracks. Only ${player.queue.length + 1} tracks available (including current track).`
-                    );
-                    return interaction.reply({ embeds: [embed], ephemeral: true });
-                }
-
-                // Skip current track and remove additional tracks from queue
-                const skippedTracks = [currentTrack];
-                for (let i = 0; i < amount - 1; i++) {
-                    if (player.queue.length > 0) {
-                        skippedTracks.push(player.queue.shift());
-                    }
-                }
-
-                if (player.queue.length === 0 && player.loop === 'none') {
-                    // No more tracks after skipping
-                    await client.musicPlayer.destroy(interaction.guildId);
-                    const embed = Utils.createSuccessEmbed(
-                        'Tracks Skipped',
-                        `Skipped ${amount} tracks including **${Utils.truncate(currentTrack.info.title, 40)}**\n\nQueue is now empty. Leaving voice channel.`
-                    );
-                    return interaction.reply({ embeds: [embed] });
-                } else {
-                    await client.musicPlayer.skip(interaction.guildId);
-                    const nextTrack = player.queue[0];
-                    const embed = Utils.createSuccessEmbed(
-                        'Tracks Skipped',
-                        `Skipped ${amount} tracks including **${Utils.truncate(currentTrack.info.title, 40)}**${nextTrack ? `\n\nNow playing: **${Utils.truncate(nextTrack.info.title, 40)}**` : ''}`
-                    );
-                    return interaction.reply({ embeds: [embed] });
-                }
-            }
-        } catch (error) {
-            client.logger.error('Error in skip command:', error);
-            const embed = Utils.createErrorEmbed(
-                'Command Error',
-                'An error occurred while skipping the track.'
-            );
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed] });
         }
     }
 };

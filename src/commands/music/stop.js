@@ -1,61 +1,44 @@
-const { SlashCommandBuilder } = require('discord.js');
-const Utils = require('../../utils/utils');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
 module.exports = {
     category: 'Music',
     data: new SlashCommandBuilder()
         .setName('stop')
-        .setDescription('Stop the music and clear the queue'),
+        .setDescription('Stop playback and clear the queue'),
 
     async execute(interaction, client) {
-        try {
-            const player = client.musicPlayer.getPlayer(interaction.guildId);
-            
-            if (!player) {
-                const embed = Utils.createErrorEmbed(
-                    'No Active Player',
-                    'There is no music player active in this server.'
-                );
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
-            // Voice channel check
-            const voiceCheck = Utils.checkVoiceChannel(interaction.member);
-            if (!voiceCheck.inVoice || voiceCheck.channel.id !== player.voiceChannelId) {
-                const embed = Utils.createErrorEmbed(
-                    'Voice Channel Required',
-                    'You need to be in the same voice channel as the bot to stop music.'
-                );
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
-            const currentTrack = player.current;
-            const queueSize = player.queue.length;
-
-            // Destroy the player
-            await client.musicPlayer.destroy(interaction.guildId);
-
-            const embed = Utils.createSuccessEmbed(
-                'Music Stopped',
-                `⏹️ Stopped the music and cleared the queue${currentTrack ? `\n\nWas playing: **${Utils.truncate(currentTrack.info.title, 50)}**` : ''}${queueSize > 0 ? `\nRemoved ${queueSize} track${queueSize !== 1 ? 's' : ''} from queue` : ''}\n\nLeft the voice channel.`
-            );
-
-            await interaction.reply({ embeds: [embed] });
-
-            // Log the action
-            client.logger.music('stop', {
-                guildId: interaction.guildId,
-                userId: interaction.user.id,
-                trackTitle: currentTrack?.info.title,
-                queueSize
+        const player = client.musicPlayerManager.getPlayer(interaction.guild.id);
+        
+        if (!player) {
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ There is nothing playing in this server!')
+                ],
+                ephemeral: true
             });
-        } catch (error) {
-            client.logger.error('Error in stop command:', error);
-            const embed = Utils.createErrorEmbed(
-                'Command Error',
-                'An error occurred while stopping the music.'
-            );
-            return interaction.reply({ embeds: [embed], ephemeral: true });
         }
+
+        // Check if user is in the same voice channel
+        if (!client.musicPlayerManager.isInSameVoiceChannel(interaction.member, player)) {
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ You need to be in the same voice channel as the bot to use this command!')
+                ],
+                ephemeral: true
+            });
+        }
+
+        // Stop playback and clear queue
+        player.stop();
+        player.queue.clear();
+
+        return interaction.reply({
+            embeds: [new EmbedBuilder()
+                .setColor('#00ff00')
+                .setDescription('⏹️ Stopped playback and cleared the queue.')
+            ]
+        });
     }
 };
