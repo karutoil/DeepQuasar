@@ -134,12 +134,12 @@ class MusicBot {
 
         // Track events
         this.client.manager.on('trackStart', (player, track) => {
-            const channel = this.client.channels.cache.get(player.textChannelId);
+/*             const channel = this.client.channels.cache.get(player.textChannelId);
             if (channel) {
-                logger.info(`Now playing: ${track.title} in ${player.guildId}`);
+                // logger.info(`Now playing: ${track.title} in ${player.guildId}`);
                 // Send now playing message (optional - you can customize this)
                 // channel.send(`🎵 Now playing: **${track.title}**`);
-            }
+            } */
         });
 
         // Player connection events

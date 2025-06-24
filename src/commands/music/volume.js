@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const Guild = require('../../schemas/Guild');
 
 module.exports = {
     category: 'Music',
@@ -52,6 +53,17 @@ module.exports = {
 
         // Set new volume
         await player.setVolume(volumeLevel);
+
+        // Save volume to DB
+        try {
+            const guildData = await Guild.findByGuildId(interaction.guild.id);
+            if (guildData) {
+                guildData.musicSettings.defaultVolume = volumeLevel;
+                await guildData.save();
+            }
+        } catch (err) {
+            client.logger?.warn?.(`Failed to save volume for guild ${interaction.guild.id}:`, err);
+        }
 
         const volumeEmoji = volumeLevel === 0 ? '🔇' : 
                            volumeLevel < 30 ? '🔈' : 

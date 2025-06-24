@@ -51,6 +51,7 @@ module.exports = {
 
         const amount = interaction.options.getInteger('amount') || 1;
         const currentTrack = player.current;
+        const artist = currentTrack.author || currentTrack.artist || currentTrack.uploader || 'Unknown';
 
         if (amount === 1) {
             // Skip single track
@@ -59,7 +60,7 @@ module.exports = {
             return interaction.reply({
                 embeds: [new EmbedBuilder()
                     .setColor('#00ff00')
-                    .setDescription(`⏭️ Skipped: **${currentTrack.title}**`)
+                    .setDescription(`⏭️ Skipped: **${currentTrack.title}** by **${artist}**`)
                 ]
             });
         } else {

@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const User = require('../../schemas/User');
 
 module.exports = {
     category: 'Music',
@@ -68,7 +69,7 @@ module.exports = {
         }
 
         // Create or get player
-        const player = client.musicPlayerManager.createPlayer({
+        const player = await client.musicPlayerManager.createPlayer({
             guildId: interaction.guild.id,
             voiceChannelId: voiceChannel.id,
             textChannelId: interaction.channel.id,
@@ -277,6 +278,35 @@ module.exports = {
             await player.play();
         }
 
+        // After adding tracks to queue, save to user history
+        try {
+            let userData = await User.findOne({ userId: interaction.user.id });
+            if (!userData) {
+                userData = await User.create({
+                    userId: interaction.user.id,
+                    username: interaction.user.username,
+                    discriminator: interaction.user.discriminator
+                });
+            }
+            // Save each track (for playlist, save all; for single, save one)
+            const tracksToSave = Array.isArray(tracksToAdd) ? tracksToAdd : [tracksToAdd];
+            for (const track of tracksToSave) {
+                userData.addToHistory({
+                    title: track.title,
+                    artist: track.author || track.artist || track.uploader || 'Unknown',
+                    uri: track.uri || track.url,
+                    source: track.sourceName || track.source || track.origin || 'unknown',
+                    duration: track.duration || track.info?.length || 0
+                }, {
+                    id: interaction.guild.id,
+                    name: interaction.guild.name
+                });
+            }
+            await userData.save();
+        } catch (err) {
+            client.logger?.warn?.(`Failed to save play history for user ${interaction.user.id}:`, err);
+        }
+
         if (embed) {
             return interaction.editReply({ embeds: [embed] });
         }
@@ -284,24 +314,48 @@ module.exports = {
 
     async autocomplete(interaction, client) {
         const focusedValue = interaction.options.getFocused();
-        
         if (focusedValue.length < 2) {
             return interaction.respond([]);
         }
-
         try {
-            const searchResult = await client.musicPlayerManager.search({
-                query: focusedValue,
-                source: 'youtube',
-                requester: interaction.user.id
-            });
-
-            const choices = searchResult.tracks.slice(0, 25).map(track => ({
-                name: `${track.title} - ${track.author}`.slice(0, 100),
-                value: track.url || track.uri || track.identifier || track.title || 'unknown'
-            })).filter(choice => choice.value && choice.value !== 'unknown');
-
-            await interaction.respond(choices);
+            const UserModel = require('../../schemas/User');
+            const userData = await UserModel.findOne({ userId: interaction.user.id });
+            let historyChoices = [];
+            if (userData && userData.history && userData.history.tracks.length > 0) {
+                // Deduplicate by title+artist+uri
+                const seen = new Set();
+                historyChoices = userData.history.tracks
+                    .filter(track => track.title && track.title.toLowerCase().includes(focusedValue.toLowerCase()))
+                    .filter(track => {
+                        const key = `${track.title}|${track.artist}|${track.uri}`;
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    })
+                    .slice(0, 5)
+                    .map(track => ({
+                        name: `🕘 [History] ${track.title} - ${track.artist}`.slice(0, 100),
+                        value: track.uri || track.title
+                    }));
+            }
+            // Always fetch live suggestions
+            let searchChoices = [];
+            try {
+                const searchResult = await client.musicPlayerManager.search({
+                    query: focusedValue,
+                    source: 'youtube',
+                    requester: interaction.user.id
+                });
+                searchChoices = searchResult.tracks.slice(0, 10).map(track => ({
+                    name: `🔎 [Suggest] ${track.title} - ${track.author}`.slice(0, 100),
+                    value: track.url || track.uri || track.identifier || track.title || 'unknown'
+                })).filter(choice => choice.value && choice.value !== 'unknown');
+            } catch (e) {
+                client.logger.error('Autocomplete search error:', e);
+            }
+            // Combine, prioritizing history, but always showing both
+            const combined = [...historyChoices, ...searchChoices].slice(0, 25);
+            await interaction.respond(combined);
         } catch (error) {
             client.logger.error('Autocomplete error:', error);
             await interaction.respond([]);

@@ -149,7 +149,7 @@ async function updateBotStatistics(client) {
     try {
         const totalGuilds = client.guilds.cache.size;
         const totalUsers = client.users.cache.size;
-        const totalPlayers = client.musicPlayer.getPlayerCount();
+        const totalPlayers = client.musicPlayerManager.getPlayerCount();
 
         client.logger.info(`📊 Bot Statistics - Guilds: ${totalGuilds}, Users: ${totalUsers}, Active Players: ${totalPlayers}`);
 

@@ -34,9 +34,7 @@ module.exports = {
         // --- Robust duration/position handling ---
         let durationMs = typeof track.duration === 'number' ? track.duration : 0;
         // Use player.position for current playback position (updated by event), fallback to player.player?.position
-        let positionMs = (typeof player.time === 'number' && player.time > 0)
-            ? player.time
-            : (typeof player.player?.time === 'number' ? player.player.time : 0);
+        let positionMs = typeof player.current.position === 'number' ? player.current.position : 0;
         // Clamp position to duration
         if (durationMs > 0) positionMs = Math.min(positionMs, durationMs);
         // Format times

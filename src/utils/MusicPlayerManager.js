@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const Utils = require('./utils');
+const Guild = require('../schemas/Guild');
 
 /**
  * Music Player Manager for Moonlink.js
@@ -20,7 +21,7 @@ class MusicPlayerManager {
      * @param {boolean} options.autoPlay - Auto play next song
      * @returns {Object} Moonlink player instance
      */
-    createPlayer(options) {
+    async createPlayer(options) {
         const { guildId, voiceChannelId, textChannelId, autoPlay = true } = options;
         
         // Check if player already exists - Moonlink.js V4 PlayerManager
@@ -62,6 +63,16 @@ class MusicPlayerManager {
             autoPlay
         });
 
+        // Set volume from DB
+        try {
+            const guildData = await Guild.findByGuildId(guildId);
+            if (guildData && guildData.musicSettings && typeof guildData.musicSettings.defaultVolume === 'number') {
+                player.setVolume(guildData.musicSettings.defaultVolume);
+            }
+        } catch (err) {
+            this.client.logger?.warn?.(`Failed to load default volume for guild ${guildId}:`, err);
+        }
+
         return player;
     }
 
@@ -90,7 +101,25 @@ class MusicPlayerManager {
      */
     async search(options) {
         const { query, source = 'youtube', requester } = options;
-        
+        // Check if any nodes are available
+        if (!this.client.manager.nodes || !this.client.manager.nodes.size) {
+            this.client.logger.error('No Lavalink nodes are available for searching.');
+            return {
+                loadType: 'error',
+                error: 'No Lavalink nodes are available. Please try again later.',
+                tracks: []
+            };
+        }
+        // Optionally, check if at least one node is connected
+        const hasConnectedNode = Array.from(this.client.manager.nodes.values()).some(node => node.connected);
+        if (!hasConnectedNode) {
+            this.client.logger.error('No connected Lavalink nodes for searching.');
+            return {
+                loadType: 'error',
+                error: 'No connected Lavalink nodes. Please try again later.',
+                tracks: []
+            };
+        }
         try {
             const result = await this.client.manager.search({
                 query: query,  // Don't add prefixes, let Moonlink handle it
