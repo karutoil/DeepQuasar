@@ -120,9 +120,18 @@ class MusicPlayerManager {
                 tracks: []
             };
         }
+        let searchQuery = query;
+        // Only add prefix for search terms, not URLs
+        if (!this.isURL(query)) {
+            if (source === 'spotify') {
+                searchQuery = `spsearch:${query}`;
+            } else if (source === 'soundcloud') {
+                searchQuery = `scsearch:${query}`;
+            }
+        }
         try {
             const result = await this.client.manager.search({
-                query: query,  // Don't add prefixes, let Moonlink handle it
+                query: searchQuery,  // Add prefix for Spotify/SoundCloud search terms
                 source: source,  // Specify source separately
                 requester
             });
@@ -328,6 +337,45 @@ class MusicPlayerManager {
         }
         
         return url;
+    }
+
+    /**
+     * Search and play or queue tracks, connecting if needed
+     * @param {Object} options - Options for playback
+     * @param {string} options.guildId - Guild ID
+     * @param {string} options.voiceChannelId - Voice channel ID
+     * @param {string} options.textChannelId - Text channel ID
+     * @param {string} options.query - Search query
+     * @param {string} options.source - Search source (youtube, spotify, soundcloud, etc.)
+     * @param {string} options.requester - Requester user ID
+     * @returns {Object} Result with player and search result
+     */
+    async playOrQueue(options) {
+        const { guildId, voiceChannelId, textChannelId, query, source = 'youtube', requester } = options;
+        // Search for tracks
+        const searchResult = await this.search({ query, source, requester });
+        if (searchResult.loadType === 'error' || !searchResult.tracks?.length) {
+            return { error: searchResult.error || 'No tracks found', searchResult };
+        }
+        // Get or create player
+        const player = await this.createPlayer({ guildId, voiceChannelId, textChannelId });
+        // If player is not in a voice channel, set it (connect)
+        if (!player.voiceChannelId || player.voiceChannelId !== voiceChannelId) {
+            player.setVoiceChannel(voiceChannelId);
+        }
+        // Add tracks to queue
+        if (searchResult.loadType === 'PLAYLIST_LOADED') {
+            for (const track of searchResult.tracks) {
+                player.queue.add(track);
+            }
+        } else {
+            player.queue.add(searchResult.tracks[0]);
+        }
+        // Start playing if not already
+        if (!player.playing && !player.paused) {
+            player.play();
+        }
+        return { player, searchResult };
     }
 }
 

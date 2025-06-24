@@ -237,6 +237,10 @@ module.exports = {
                         { name: '🎵 Queue Position', value: queuePos.toString(), inline: true },
                         { name: '🔊 Volume', value: `${volume}%`, inline: true }
                     );
+                // Fix: If no valid URL, show plain text instead of a broken link
+                if (!track.uri && !track.url && !track.info?.uri) {
+                    embed.setDescription(`**${track.title || track.info?.title || 'Unknown Title'}**\n${track.author || track.info?.author || 'Unknown Artist'}`);
+                }
             }
 
             if (artwork) {
