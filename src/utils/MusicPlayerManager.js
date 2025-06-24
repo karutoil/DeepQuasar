@@ -101,8 +101,8 @@ class MusicPlayerManager {
      */
     async search(options) {
         const { query, source = 'youtube', requester } = options;
-        // Check if any nodes are available
-        if (!this.client.manager.nodes || !this.client.manager.nodes.size) {
+        // Use .cache for Moonlink.js v4
+        if (!this.client.manager.nodes.cache || this.client.manager.nodes.cache.size === 0) {
             this.client.logger.error('No Lavalink nodes are available for searching.');
             return {
                 loadType: 'error',
@@ -110,8 +110,8 @@ class MusicPlayerManager {
                 tracks: []
             };
         }
-        // Optionally, check if at least one node is connected
-        const hasConnectedNode = Array.from(this.client.manager.nodes.values()).some(node => node.connected);
+        // Check if at least one node is connected
+        const hasConnectedNode = Array.from(this.client.manager.nodes.cache.values()).some(node => node.connected);
         if (!hasConnectedNode) {
             this.client.logger.error('No connected Lavalink nodes for searching.');
             return {
