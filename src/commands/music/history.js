@@ -30,8 +30,8 @@ module.exports = {
         // Fetch user history
         let userData = await User.findByUserId(userId);
         // Debug log for userData and userData.history
-        console.log('DEBUG /history userData:', userData);
-        console.log('DEBUG /history userData.history:', userData?.history);
+        //console.log('DEBUG /history userData:', userData);
+        //console.log('DEBUG /history userData.history:', userData?.history);
         let history = toHistoryArray(userData?.history?.tracks);
         // Deduplicate by uri (show only one of the same song, most recent first)
         const seen = new Set();
@@ -96,8 +96,8 @@ module.exports = {
         // Helper to fetch and slice history fresh from DB
         async function getHistory() {
             const freshUser = await User.findByUserId(userId);
-            console.log('DEBUG /history freshUser:', freshUser);
-            console.log('DEBUG /history freshUser.history:', freshUser?.history);
+            //console.log('DEBUG /history freshUser:', freshUser);
+            //console.log('DEBUG /history freshUser.history:', freshUser?.history);
             let freshHistory = toHistoryArray(freshUser?.history?.tracks);
             const seen = new Set();
             freshHistory = freshHistory.filter(track => {
