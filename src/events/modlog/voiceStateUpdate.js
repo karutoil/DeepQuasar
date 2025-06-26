@@ -4,6 +4,17 @@ const ModLogManager = require('../../utils/ModLogManager');
 module.exports = {
     name: Events.VoiceStateUpdate,
     async execute(oldState, newState) {
+        // Handle temp VC system first
+        const client = oldState.client || newState.client;
+        if (client.tempVCManager) {
+            try {
+                await client.tempVCManager.handleVoiceStateUpdate(oldState, newState);
+            } catch (error) {
+                client.logger?.error('Error in temp VC voice state handler:', error);
+            }
+        }
+
+        // Continue with modlog handling
         const member = newState.member || oldState.member;
         if (!member || member.user.bot) return;
 

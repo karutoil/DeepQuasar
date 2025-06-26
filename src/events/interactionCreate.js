@@ -269,6 +269,12 @@ async function handleButtonInteraction(interaction, client) {
             return;
         }
 
+        // Handle temp VC buttons
+        if (customId.startsWith('tempvc_')) {
+            await handleTempVCButton(interaction, client);
+            return;
+        }
+
         if (customId === 'cancel_delete') {
             await interaction.update({
                 embeds: [Utils.createEmbed({
@@ -327,6 +333,12 @@ async function handleSelectMenuInteraction(interaction, client) {
 
         if (customId.startsWith('modlog_events_')) {
             await handleModLogEventToggle(interaction, client);
+            return;
+        }
+
+        // Handle temp VC select menus
+        if (customId.startsWith('tempvc_')) {
+            await handleTempVCSelectMenu(interaction, client);
             return;
         }
 
@@ -1216,6 +1228,12 @@ async function handleModalSubmit(interaction, client) {
             return;
         }
 
+        // Handle temp VC modals
+        if (customId.startsWith('tempvc_')) {
+            await handleTempVCModal(interaction, client);
+            return;
+        }
+
         // Handle other modals...
         
     } catch (error) {
@@ -1223,6 +1241,124 @@ async function handleModalSubmit(interaction, client) {
         if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({
                 embeds: [Utils.createErrorEmbed('Error', 'An error occurred while processing your submission.')],
+                ephemeral: true
+            });
+        }
+    }
+}
+
+// Temp VC interaction handlers
+async function handleTempVCButton(interaction, client) {
+    if (!client.tempVCManager) {
+        return interaction.reply({
+            content: '❌ Temp VC system is not available.',
+            ephemeral: true
+        });
+    }
+
+    try {
+        const customId = interaction.customId;
+        
+        // Handle delete confirmation
+        if (customId.includes('delete_confirm')) {
+            await client.tempVCManager.controlHandlers.handleDeleteConfirmation(interaction);
+            return;
+        }
+        
+        // Handle delete cancellation
+        if (customId.includes('delete_cancel')) {
+            await client.tempVCManager.controlHandlers.handleDeleteCancellation(interaction);
+            return;
+        }
+        
+        // Handle reset confirmation
+        if (customId.includes('reset_confirm')) {
+            await client.tempVCManager.controlHandlers.handleResetConfirmation(interaction);
+            return;
+        }
+        
+        // Handle reset cancellation
+        if (customId.includes('reset_cancel')) {
+            await client.tempVCManager.controlHandlers.handleResetCancellation(interaction);
+            return;
+        }
+        
+        // Handle unban confirmation
+        if (customId.includes('unban_confirm')) {
+            await client.tempVCManager.controlHandlers.handleUnbanConfirmation(interaction);
+            return;
+        }
+        
+        // Handle unban cancellation
+        if (customId.includes('unban_cancel')) {
+            await client.tempVCManager.controlHandlers.handleUnbanCancellation(interaction);
+            return;
+        }
+        
+        // Handle other control panel actions
+        await client.tempVCManager.handleControlPanelInteraction(interaction);
+        
+    } catch (error) {
+        client.logger.error('Error handling temp VC button:', error);
+        
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: '❌ An error occurred while processing your request.',
+                ephemeral: true
+            });
+        }
+    }
+}
+
+async function handleTempVCSelectMenu(interaction, client) {
+    if (!client.tempVCManager) {
+        return interaction.reply({
+            content: '❌ Temp VC system is not available.',
+            ephemeral: true
+        });
+    }
+
+    try {
+        const customId = interaction.customId;
+        
+        // Handle menu selection
+        if (customId.includes('menu_')) {
+            await client.tempVCManager.handleControlPanelInteraction(interaction);
+            return;
+        }
+        
+        // Handle other select menus
+        await client.tempVCManager.controlHandlers.handleSelectMenuInteraction(interaction);
+        
+    } catch (error) {
+        client.logger.error('Error handling temp VC select menu:', error);
+        
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: '❌ An error occurred while processing your selection.',
+                ephemeral: true
+            });
+        }
+    }
+}
+
+async function handleTempVCModal(interaction, client) {
+    if (!client.tempVCManager) {
+        return interaction.reply({
+            content: '❌ Temp VC system is not available.',
+            ephemeral: true
+        });
+    }
+
+    try {
+        await client.tempVCManager.controlHandlers.handleModalSubmission(interaction);
+        
+    } catch (error) {
+        client.logger.error('Error handling temp VC modal:', error);
+        
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: '❌ An error occurred while processing your submission.',
                 ephemeral: true
             });
         }

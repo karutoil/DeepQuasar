@@ -65,6 +65,10 @@ class MusicBot {
         // Initialize Ticket Manager
         this.client.ticketManager = new TicketManager(this.client);
 
+        // Initialize Temp VC Manager
+        const TempVCManager = require('./utils/TempVCManager');
+        this.client.tempVCManager = new TempVCManager(this.client);
+
         // Initialize Moonlink Manager
         this.setupMoonlink();
     }
