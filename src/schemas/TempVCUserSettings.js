@@ -37,6 +37,10 @@ const tempVCUserSettingsSchema = new mongoose.Schema({
         region: {
             type: String,
             default: null
+        },
+        blockedUsers: {
+            type: [String],
+            default: []
         }
     },
     

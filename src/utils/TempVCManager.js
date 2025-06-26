@@ -258,6 +258,12 @@ class TempVCManager {
                 });
             }
 
+            // Restore blocked users from persistent settings if available
+            let blockedUsers = [];
+            if (userSavedSettings && Array.isArray(userSavedSettings.blockedUsers)) {
+                blockedUsers = userSavedSettings.blockedUsers;
+            }
+
             // Create instance record
             const instance = await TempVCInstance.createInstance({
                 guildId: guild.id,
@@ -272,6 +278,11 @@ class TempVCManager {
                     hidden: channelSettings.hidden,
                     region: channelSettings.region
                 },
+                permissions: {
+                    allowedUsers: [],
+                    blockedUsers: blockedUsers,
+                    moderators: []
+                },
                 activity: {
                     memberCount: 1,
                     peakMemberCount: 1
@@ -281,6 +292,15 @@ class TempVCManager {
                     autoSave: userSettingsRecord ? userSettingsRecord.autoSave : true
                 }
             });
+
+            // Apply deny permissions for blocked users
+            for (const blockedId of blockedUsers) {
+                try {
+                    await tempChannel.permissionOverwrites.edit(blockedId, { Connect: false });
+                } catch (err) {
+                    this.client.logger.debug('Failed to set Connect deny for blocked user:', blockedId, err);
+                }
+            }
 
             // Update last used timestamp for persistent settings
             if (userSettingsRecord) {
@@ -371,6 +391,27 @@ class TempVCManager {
                 // Channel not found in cache, likely already deleted
                 this.client.logger.debug(`Temp VC not in cache (likely already deleted): ${instance.channelId}`);
             }
+
+            // --- Save blocked users to persistent settings before deleting instance ---
+            try {
+                if (instance && instance.ownerId && instance.permissions && Array.isArray(instance.permissions.blockedUsers)) {
+                    const userSettings = await TempVCUserSettings.findByUser(instance.guildId, instance.ownerId);
+                    if (userSettings) {
+                        userSettings.defaultSettings.blockedUsers = instance.permissions.blockedUsers;
+                        await userSettings.save();
+                    } else {
+                        // Create new settings if not exist
+                        await TempVCUserSettings.createOrUpdate(
+                            instance.guildId,
+                            instance.ownerId,
+                            { defaultSettings: { blockedUsers: instance.permissions.blockedUsers } }
+                        );
+                    }
+                }
+            } catch (err) {
+                this.client.logger.error('Failed to persist blocked users for temp VC:', err);
+            }
+            // --- End persist blocked users ---
 
             // Delete instance record
             await TempVCInstance.deleteOne({ _id: instance._id });
