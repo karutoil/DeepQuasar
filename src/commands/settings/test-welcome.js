@@ -7,16 +7,7 @@ module.exports = {
         .setName('test-welcome')
         .setDescription('Test the welcome system (Developer only)')
         .setDefaultMemberPermissions(null) // Hide from all users by default
-        .addStringOption(option =>
-            option
-                .setName('type')
-                .setDescription('Type of event to simulate')
-                .setRequired(true)
-                .addChoices(
-                    { name: 'Join', value: 'join' },
-                    { name: 'Leave', value: 'leave' }
-                )
-        ),
+        .setDMPermission(false),
 
     async execute(interaction) {
         // Check if user is bot owner/developer

@@ -3,7 +3,7 @@ const Utils = require('../../utils/utils');
 
 module.exports = {
     category: 'Settings',
-    permissions: [PermissionFlagsBits.ManageGuild],
+    permissions: [PermissionFlagsBits.Administrator],
     data: new SlashCommandBuilder()
         .setName('selfrole-setup')
         .setDescription('Quick setup wizard for self-roles')
@@ -46,10 +46,9 @@ module.exports = {
 
     async execute(interaction) {
         // Check permissions first
-        const permissionCheck = Utils.checkSelfrolePermissions(interaction);
-        if (!permissionCheck.hasPermission) {
+        if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator) && !Utils.isBotOwner(interaction) && !Utils.isServerOwner(interaction)) {
             return interaction.reply({
-                content: permissionCheck.reason,
+                content: '\u274c You need Administrator permissions or be the server owner to configure self-roles.',
                 ephemeral: true
             });
         }

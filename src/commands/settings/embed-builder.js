@@ -12,6 +12,7 @@ const {
     ChannelType
 } = require('discord.js');
 const EmbedTemplate = require('../../schemas/EmbedTemplate');
+const Utils = require('../../utils/utils');
 
 module.exports = {
     category: 'Settings',
@@ -27,10 +28,10 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        // Check permissions
-        if (!this.hasPermission(interaction.member, interaction.guild)) {
+        // Check permissions first
+        if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages) && !interaction.member.permissions.has(PermissionFlagsBits.Administrator) && !Utils.isBotOwner(interaction) && !Utils.isServerOwner(interaction)) {
             return interaction.reply({
-                content: '❌ **Access Denied**\n\nYou need one of the following permissions to use the embed builder:\n• `Manage Messages`\n• `Administrator`\n• Be the server owner',
+                content: '\u274c You need Manage Messages or Administrator permissions, or be the server owner to use embed commands.',
                 ephemeral: true
             });
         }
