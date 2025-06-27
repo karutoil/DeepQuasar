@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('disc
 const TempVCInstance = require('../../schemas/TempVCInstance');
 const TempVCUserSettings = require('../../schemas/TempVCUserSettings');
 const Utils = require('../../utils/utils');
+const ProfanityFilter = require('../../utils/ProfanityFilter');
 
 module.exports = {
     category: 'Voice',
@@ -192,6 +193,13 @@ module.exports = {
         }
 
         const newName = interaction.options.getString('name');
+        
+        if (ProfanityFilter.contains(newName)) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('Invalid Name', 'The channel name contains inappropriate language. Please choose another name.')],
+                ephemeral: true
+            });
+        }
         
         await channel.setName(newName);
         instance.currentName = newName;
@@ -735,6 +743,13 @@ module.exports = {
                     
                     // Apply saved custom name if available
                     if (userSettings.defaultSettings.customName) {
+                        if (ProfanityFilter.contains(userSettings.defaultSettings.customName)) {
+                            await interaction.editReply({
+                                embeds: [Utils.createErrorEmbed('Invalid Saved Name', 'Your saved channel name contains inappropriate language and cannot be loaded.')]
+                            });
+                            return;
+                        }
+
                         await channel.setName(userSettings.defaultSettings.customName);
                         instance.currentName = userSettings.defaultSettings.customName;
                     }

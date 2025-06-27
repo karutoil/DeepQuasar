@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, Act
 const TempVC = require('../../schemas/TempVC');
 const TempVCInstance = require('../../schemas/TempVCInstance');
 const Utils = require('../../utils/utils');
+const ProfanityFilter = require('../../utils/ProfanityFilter');
 
 module.exports = {
     category: 'Settings',
@@ -372,6 +373,15 @@ module.exports = {
         let changes = [];
 
         if (channelName !== null) {
+            // Strip placeholders to check the static parts of the template
+            const cleanChannelName = channelName.replace(/\{.*?\}/g, '');
+            if (ProfanityFilter.contains(cleanChannelName)) {
+                return interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Invalid Name', 'The channel name template contains inappropriate language. Please choose another name.')],
+                    ephemeral: true
+                });
+            }
+
             config.defaultSettings.channelName = channelName;
             changes.push(`**Channel Name:** ${channelName}`);
         }

@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const TempVC = require('../../schemas/TempVC');
 const Utils = require('../../utils/utils');
+const ProfanityFilter = require('../../utils/ProfanityFilter');
 
 module.exports = {
     category: 'Settings',
@@ -205,6 +206,15 @@ module.exports = {
             });
         }
 
+        // Check for profanity in the static parts of the template
+        const cleanTemplate = template.replace(/\{.*?\}/g, '');
+        if (ProfanityFilter.contains(cleanTemplate)) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('Invalid Template', 'The template contains inappropriate language.')],
+                ephemeral: true
+            });
+        }
+
         // Validate template
         const validation = this.validateTemplate(template);
         if (!validation.valid) {
@@ -289,6 +299,15 @@ module.exports = {
         let changes = [];
 
         if (newTemplate) {
+            // Check for profanity in the static parts of the template
+            const cleanNewTemplate = newTemplate.replace(/\{.*?\}/g, '');
+            if (ProfanityFilter.contains(cleanNewTemplate)) {
+                return interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Invalid Template', 'The new template contains inappropriate language.')],
+                    ephemeral: true
+                });
+            }
+
             // Validate template
             const validation = this.validateTemplate(newTemplate);
             if (!validation.valid) {

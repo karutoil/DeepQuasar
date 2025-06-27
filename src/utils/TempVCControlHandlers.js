@@ -1,6 +1,7 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, StringSelectMenuBuilder, UserSelectMenuBuilder, EmbedBuilder, PermissionFlagsBits, ButtonBuilder, ButtonStyle } = require('discord.js');
 const Utils = require('./utils');
 const TempVCInstance = require('../schemas/TempVCInstance');
+const ProfanityFilter = require('./ProfanityFilter');
 
 class TempVCControlHandlers {
     constructor(tempVCManager) {
@@ -682,6 +683,13 @@ class TempVCControlHandlers {
     async handleRenameModal(interaction, instance, channel) {
         const newName = interaction.fields.getTextInputValue('channel_name').trim();
         
+        if (ProfanityFilter.contains(newName)) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('Invalid Name', 'The channel name contains inappropriate language. Please choose another name.')],
+                ephemeral: true
+            });
+        }
+        
         if (newName.length < 1 || newName.length > 100) {
             return interaction.reply({
                 content: '❌ Channel name must be between 1 and 100 characters.',
@@ -697,8 +705,8 @@ class TempVCControlHandlers {
         await instance.autoSaveSettings();
 
         await interaction.reply({
-            content: `✅ Channel renamed to: **${newName}**`,
-            ephemeral: true
+            embeds: [Utils.createSuccessEmbed('Channel Renamed', `Channel renamed to: **${newName}**`)],
+            ephemeral: true,
         });
 
         await this.manager.updateControlPanel(instance, channel);
@@ -942,6 +950,8 @@ class TempVCControlHandlers {
                 // Ignore DM errors
             }
 
+            await this.manager.updateControlPanel(instance, channel);
+
         } catch (error) {
             this.client.logger.error('Error kicking member:', error);
             await interaction.update({
@@ -1008,6 +1018,8 @@ class TempVCControlHandlers {
             } catch (error) {
                 // Ignore DM errors
             }
+
+            await this.manager.updateControlPanel(instance, channel);
 
         } catch (error) {
             this.client.logger.error('Error banning member:', error);
@@ -1100,6 +1112,8 @@ class TempVCControlHandlers {
                 components: []
             });
 
+            await this.manager.updateControlPanel(instance, channel);
+
         } catch (error) {
             this.client.logger.error('Error banning users:', error);
             await interaction.update({
@@ -1138,6 +1152,8 @@ class TempVCControlHandlers {
                 content: `✅ **${userName}** has been unbanned from the channel.`,
                 components: []
             });
+
+            await this.manager.updateControlPanel(instance, channel);
 
         } catch (error) {
             this.client.logger.error('Error unbanning member:', error);
@@ -1207,6 +1223,8 @@ class TempVCControlHandlers {
                 content,
                 components: []
             });
+
+            await this.manager.updateControlPanel(instance, channel);
 
         } catch (error) {
             this.client.logger.error('Error unbanning users:', error);
