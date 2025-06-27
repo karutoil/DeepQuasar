@@ -127,6 +127,10 @@ class TempVCControlHandlers {
     async handleModalSubmission(interaction) {
         return menuHandler.handleModalSubmission(interaction, this.manager, this.client);
     }
+    async handleUnbanListPageNavigation(interaction, instance, channel) {
+        // Pass client from manager
+        return banUnbanHandlers.handleUnbanListPageNavigation(interaction, instance, channel, this.client);
+    }
 }
 
 module.exports = TempVCControlHandlers;

@@ -179,12 +179,12 @@ async function handleUnban(interaction, instance, channel, manager, client) {
                 .setCustomId(`tempvc_unban_confirm_${instance.channelId}_${userId}`)
                 .setLabel(`Unban ${userName}`)
                 .setEmoji('✅')
-                .setStyle(ButtonBuilder.Style.Success),
+                .setStyle(3), // Success style
             new ButtonBuilder()
                 .setCustomId(`tempvc_unban_cancel_${instance.channelId}`)
                 .setLabel('Cancel')
                 .setEmoji('❌')
-                .setStyle(ButtonBuilder.Style.Secondary)
+                .setStyle(2) // Secondary style
         );
         return interaction.reply({
             embeds: [embed],
@@ -192,15 +192,102 @@ async function handleUnban(interaction, instance, channel, manager, client) {
             ephemeral: true
         });
     }
+    const page = 1;
+    const pageSize = 10;
+    const totalPages = Math.ceil(bannedUserIds.length / pageSize) || 1;
+    const embed = await generateBannedMembersEmbed(bannedUserIds, client, page, pageSize);
+    const navRow = totalPages > 1 ? generatePaginationButtons(instance, page, totalPages) : null;
     const userSelectMenu = new UserSelectMenuBuilder()
         .setCustomId(`tempvc_unban_user_select_${instance.channelId}`)
         .setPlaceholder('Search and select a user to unban...')
         .setMaxValues(10)
         .setMinValues(1);
-    const row = new ActionRowBuilder().addComponents(userSelectMenu);
+    const selectRow = new ActionRowBuilder().addComponents(userSelectMenu);
+    const components = navRow ? [navRow, selectRow] : [selectRow];
     await interaction.reply({
-        content: `🔍 **Unban Member**\nSearch for and select a user to unban from this channel:\n\n*Found ${bannedUserIds.length} banned user(s). You can search for any user to unban.*`,
-        components: [row],
+        embeds: [embed],
+        components,
+        ephemeral: true
+    });
+}
+
+// Helper: Paginate array
+function paginate(array, page_size, page_number) {
+    // page_number is 1-based
+    return array.slice((page_number - 1) * page_size, page_number * page_size);
+}
+
+// Helper: Generate banned members embed with pagination
+async function generateBannedMembersEmbed(bannedUserIds, client, page, pageSize) {
+    const totalPages = Math.ceil(bannedUserIds.length / pageSize) || 1;
+    const pageBannedIds = paginate(bannedUserIds, pageSize, page);
+    const userTags = await Promise.all(
+        pageBannedIds.map(async (id) => {
+            try {
+                const user = await client.users.fetch(id);
+                return user.tag;
+            } catch {
+                return `User ID: ${id}`;
+            }
+        })
+    );
+    const description =
+        userTags.length > 0
+            ? userTags.map((tag, i) => `${(page - 1) * pageSize + i + 1}. ${tag}`).join('\n')
+            : 'No banned members.';
+    return new EmbedBuilder()
+        .setTitle('🔒 Banned Members')
+        .setDescription(description)
+        .setFooter({ text: `Page ${page}/${totalPages}` })
+        .setColor(0xED4245);
+}
+
+// Helper: Generate navigation buttons
+function generatePaginationButtons(instance, page, totalPages) {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`tempvc_unban_prevpage_${instance.channelId}_${page}`)
+            .setLabel('Previous')
+            .setStyle(ButtonBuilder.Style.Secondary)
+            .setDisabled(page <= 1),
+        new ButtonBuilder()
+            .setCustomId(`tempvc_unban_nextpage_${instance.channelId}_${page}`)
+            .setLabel('Next')
+            .setStyle(ButtonBuilder.Style.Secondary)
+            .setDisabled(page >= totalPages)
+    );
+}
+
+// Handler for pagination navigation
+async function handleUnbanListPageNavigation(interaction, instance, channel, client) {
+    // customId: tempvc_unban_prevpage_<channelId>_<page> or tempvc_unban_nextpage_<channelId>_<page>
+    const parts = interaction.customId.split('_');
+    const direction = parts[2]; // prevpage or nextpage
+    const channelId = parts[3];
+    let currentPage = parseInt(parts[4], 10);
+    const bannedUserIds = [];
+    for (const [id, overwrite] of channel.permissionOverwrites.cache) {
+        if (overwrite.type === 1 && overwrite.deny.has(PermissionFlagsBits.Connect)) {
+            bannedUserIds.push(id);
+        }
+    }
+    const pageSize = 10;
+    const totalPages = Math.ceil(bannedUserIds.length / pageSize) || 1;
+    let newPage = direction === 'prevpage' ? currentPage - 1 : currentPage + 1;
+    if (newPage < 1) newPage = 1;
+    if (newPage > totalPages) newPage = totalPages;
+    const embed = await generateBannedMembersEmbed(bannedUserIds, client, newPage, pageSize);
+    const navRow = totalPages > 1 ? generatePaginationButtons(instance, newPage, totalPages) : null;
+    const userSelectMenu = new UserSelectMenuBuilder()
+        .setCustomId(`tempvc_unban_user_select_${instance.channelId}`)
+        .setPlaceholder('Search and select a user to unban...')
+        .setMaxValues(10)
+        .setMinValues(1);
+    const selectRow = new ActionRowBuilder().addComponents(userSelectMenu);
+    const components = navRow ? [navRow, selectRow] : [selectRow];
+    await interaction.update({
+        embeds: [embed],
+        components,
         ephemeral: true
     });
 }
@@ -349,5 +436,6 @@ module.exports = {
     handleUnbanSelection,
     handleUnbanUserSelection,
     handleUnbanConfirmation,
-    handleUnbanCancellation
+    handleUnbanCancellation,
+    handleUnbanListPageNavigation
 };
