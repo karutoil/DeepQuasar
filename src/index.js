@@ -262,6 +262,61 @@ class MusicBot {
             // Set bot activity
             this.client.user.setActivity('🎵 Music for everyone!', { type: ActivityType.Listening });
 
+            // --- Temp VC Cleanup on Startup ---
+            try {
+                const TempVCInstance = require('./schemas/TempVCInstance');
+                const TempVCUserSettings = require('./schemas/TempVCUserSettings');
+                let cleanedUpCount = 0;
+                const tempVCs = await TempVCInstance.find({});
+                for (const instance of tempVCs) {
+                    const guild = this.client.guilds.cache.get(instance.guildId);
+                    if (!guild) continue;
+                    const channel = guild.channels.cache.get(instance.channelId);
+                    if (!channel || channel.type !== 2) continue; // 2 = GuildVoice
+                    if (channel.members.size === 0) {
+                        try {
+                            // Delete the channel
+                            await channel.delete('Auto-cleanup: empty temp VC on startup');
+                            // Persist blocked users if needed (as in deleteTempChannel)
+                            try {
+                                if (instance && instance.ownerId && instance.permissions && Array.isArray(instance.permissions.blockedUsers)) {
+                                    const userSettings = await TempVCUserSettings.findByUser(instance.guildId, instance.ownerId);
+                                    if (userSettings) {
+                                        userSettings.defaultSettings.blockedUsers = instance.permissions.blockedUsers;
+                                        await userSettings.save();
+                                    } else {
+                                        await TempVCUserSettings.createOrUpdate(
+                                            instance.guildId,
+                                            instance.ownerId,
+                                            { defaultSettings: { blockedUsers: instance.permissions.blockedUsers } }
+                                        );
+                                    }
+                                }
+                            } catch (err) {
+                                this.client.logger?.error
+                                    ? this.client.logger.error('Failed to persist blocked users for temp VC:', err)
+                                    : console.error('Failed to persist blocked users for temp VC:', err);
+                            }
+                            // Delete the instance record
+                            await TempVCInstance.deleteOne({ _id: instance._id });
+                            cleanedUpCount++;
+                        } catch (err) {
+                            this.client.logger?.warn
+                                ? this.client.logger.warn(`[TempVC] Failed to delete channel ${channel.id}: ${err}`)
+                                : null;
+                        }
+                    }
+                }
+                if (cleanedUpCount > 0) {
+                    logger.info(`[TempVC] Deleted ${cleanedUpCount} empty temp voice channel(s) on startup.`);
+                }
+            } catch (err) {
+                this.client.logger?.error
+                    ? this.client.logger.error(`[TempVC] Error during startup cleanup: ${err}`)
+                    : console.error(`[TempVC] Error during startup cleanup: ${err}`);
+            }
+            // --- End Temp VC Cleanup ---
+
             // Setup chatbot cleanup interval (every 5 minutes)
             setInterval(() => {
                 this.client.chatBot.cleanupCooldowns();

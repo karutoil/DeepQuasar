@@ -338,7 +338,7 @@ class TempVCManager {
                 await this.logChannelCreation(guild, config.advanced.logChannelId, member, tempChannel);
             }
 
-            this.client.logger.info(`Created temp VC: ${tempChannel.name} (${tempChannel.id}) for ${member.user.tag}${userSavedSettings ? ' (with saved settings)' : ''}`);
+            //this.client.logger.info(`Created temp VC: ${tempChannel.name} (${tempChannel.id}) for ${member.user.tag}${userSavedSettings ? ' (with saved settings)' : ''}`);
 
         } catch (error) {
             this.client.logger.error('Error creating temp channel:', error);
@@ -377,7 +377,7 @@ class TempVCManager {
                 // Delete the voice channel
                 try {
                     await channel.delete('Temp VC auto-delete');
-                    this.client.logger.info(`Deleted temp VC: ${instance.currentName} (${instance.channelId})`);
+                    //this.client.logger.info(`Deleted temp VC: ${instance.currentName} (${instance.channelId})`);
                 } catch (error) {
                     if (error.code === 10003) {
                         // Channel already deleted (Unknown Channel error)
@@ -552,32 +552,25 @@ class TempVCManager {
             .setFooter({ text: 'This message will update automatically when the channel changes' })
             .setTimestamp();
 
-        // Add permissions field if channel is locked or hidden
-        if (instance.settings.locked || instance.settings.hidden) {
-            const permissionsInfo = [];
-            
-            if (instance.permissions.allowedUsers.length > 0) {
-                permissionsInfo.push(`**Allowed:** ${instance.permissions.allowedUsers.length} user(s)`);
-            }
-            
-            if (instance.permissions.blockedUsers.length > 0) {
-                permissionsInfo.push(`**Denied:** ${instance.permissions.blockedUsers.length} user(s)`);
-            }
-            
-            if (instance.permissions.moderators.length > 0) {
-                permissionsInfo.push(`**Moderators:** ${instance.permissions.moderators.length} user(s)`);
-            }
-            
-            if (permissionsInfo.length === 0) {
-                permissionsInfo.push('No special permissions set');
-            }
-            
-            embed.addFields({
-                name: '🔒 Permissions',
-                value: permissionsInfo.join('\n'),
-                inline: true
-            });
+        // Always show permissions field, even if not locked/hidden
+        const permissionsInfo = [];
+        if (instance.permissions.allowedUsers.length > 0) {
+            permissionsInfo.push(`**Allowed:** ${instance.permissions.allowedUsers.length} user(s)`);
         }
+        if (instance.permissions.blockedUsers.length > 0) {
+            permissionsInfo.push(`**Banned:** ${instance.permissions.blockedUsers.length} user(s)`);
+        }
+        if (instance.permissions.moderators.length > 0) {
+            permissionsInfo.push(`**Moderators:** ${instance.permissions.moderators.length} user(s)`);
+        }
+        if (permissionsInfo.length === 0) {
+            permissionsInfo.push('No special permissions set');
+        }
+        embed.addFields({
+            name: '🔒 Permissions',
+            value: permissionsInfo.join('\n'),
+            inline: true
+        });
 
         return embed;
     }
