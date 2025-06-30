@@ -106,6 +106,7 @@ class MusicBot {
             },
             options: {
                 autoPlay: true,
+                disableNativeSources: true,
             }
         });
 
