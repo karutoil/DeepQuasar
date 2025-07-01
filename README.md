@@ -73,6 +73,12 @@ A modern, feature-rich Discord bot perfect for any server. Play music, chat with
 
 ---
 
+## 📚 Commands
+
+- **[Commands](docs/COMMANDS.md)**
+
+---
+
 ## 📚 Documentation
 
 - **[Setup Guide](docs/SETUP_GUIDE.md)**
