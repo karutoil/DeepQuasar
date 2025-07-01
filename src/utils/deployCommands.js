@@ -99,16 +99,27 @@ async function deployCommands(client) {
         return true;
 
     } catch (error) {
-        client.logger.error('❌ Error deploying commands:', error);
-        
+        client.logger.error('❌ Error deploying commands:');
+
+        // Log more detailed error information from the Discord API
+        if (error.rawError) {
+            client.logger.error('Discord API Response:', JSON.stringify(error.rawError, null, 2));
+        } else {
+            client.logger.error(error);
+        }
+
         if (error.status === 401) {
             client.logger.error('Invalid bot token. Please check your DISCORD_TOKEN in .env');
         } else if (error.status === 403) {
-            client.logger.error('Bot lacks permissions. Make sure the bot is invited with proper permissions.');
+            client.logger.error('Bot lacks permissions. Ensure it was invited with the "applications.commands" scope.');
         } else if (error.status === 404) {
             client.logger.error('Application not found. Please check your CLIENT_ID in .env');
+        } else if (error.status === 429) {
+            const retryAfter = error.rawError?.retry_after ?? 'unknown';
+            client.logger.error(`Rate limited by Discord. Please wait ${retryAfter} seconds and try again.`);
+        } else if (error.status >= 500) {
+            client.logger.error('Discord server error. This is an issue on Discord\'s end. Please try again later.');
         }
-        
         return false;
     }
 }

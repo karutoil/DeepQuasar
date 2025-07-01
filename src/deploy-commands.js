@@ -102,16 +102,27 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
         }
 
     } catch (error) {
-        console.error('Error deploying commands:', error);
-        
+        console.error('❌ Error deploying commands:');
+
+        // Log more detailed error information from the Discord API
+        if (error.rawError) {
+            console.error('Discord API Response:', JSON.stringify(error.rawError, null, 2));
+        } else {
+            console.error(error);
+        }
+
         if (error.status === 401) {
             console.error('\n❌ Invalid bot token. Please check your DISCORD_TOKEN in .env');
         } else if (error.status === 403) {
-            console.error('\n❌ Bot lacks permissions. Make sure the bot is invited with proper permissions.');
+            console.error('\n❌ Bot lacks permissions. Ensure it was invited with the "applications.commands" scope.');
         } else if (error.status === 404) {
             console.error('\n❌ Application not found. Please check your CLIENT_ID in .env');
+        } else if (error.status === 429) {
+            const retryAfter = error.rawError?.retry_after ?? 'unknown';
+            console.error(`\n❌ Rate limited by Discord. Please wait ${retryAfter} seconds and try again.`);
+        } else if (error.status >= 500) {
+            console.error('\n❌ Discord server error. This is an issue on Discord\'s end. Please try again later.');
         }
-        
         process.exit(1);
     }
 })();
