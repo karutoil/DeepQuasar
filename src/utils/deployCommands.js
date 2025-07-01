@@ -61,15 +61,14 @@ async function deployCommands(client) {
             // Deploy to specific guild (for development)
             client.logger.info(`Deploying commands to guild: ${guildId}`);
             
-            // Clear existing guild commands first
-            await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] });
-            client.logger.info('✅ Cleared existing guild commands');
-            
-            // Deploy new commands
-            data = await rest.put(
+            data = await rest.put( // Deploy new commands
                 Routes.applicationGuildCommands(clientId, guildId),
                 { body: commands }
             );
+
+        // Clear existing guild commands first
+        await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] });
+        client.logger.info('✅ Cleared existing guild commands');
         } else {
             // Deploy globally (for production)
             client.logger.info('Deploying commands globally...');

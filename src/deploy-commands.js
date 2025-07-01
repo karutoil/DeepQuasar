@@ -55,6 +55,18 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
         let data;
 
+        // Clear existing commands before deploying new ones
+        if (guildId) {
+            console.log(`Clearing existing commands for guild: ${guildId}`);
+            await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] });
+        } else {
+            console.log('Clearing existing global commands...');
+            await rest.put(Routes.applicationCommands(clientId), { body: [] });
+        }
+
+        console.log('✅ Successfully cleared existing commands.');
+
+        // Deploy new commands
         if (guildId) {
             // Deploy to specific guild (for development)
             console.log(`Deploying commands to guild: ${guildId}`);
