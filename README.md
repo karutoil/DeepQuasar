@@ -1,108 +1,39 @@
-# Discord Music & AI Bot
+# DeepQuasar
 
-A modern, feature-rich Discord bot perfect for any server. Play music, chat with AI, manage your community, and keep everything organized with comprehensive logging.
+**A modern, feature-rich Discord bot perfect for any server. Play music, chat with AI, manage your community, and keep everything organized with comprehensive logging.**
+
+---
 
 ## ✨ Key Features
 
-### 🎵 **Music System**
-- **Multi-Platform Support**: YouTube, Spotify, SoundCloud, Apple Music, direct URLs, and playlists
-- **Smart Queue Management**: Add, remove, shuffle, loop tracks and playlists
-- **Audio Enhancement**: Bass boost, speed control, nightcore, vaporwave, 8D, karaoke, vibrato, tremolo, and more
-- **History & Now Playing**: View play history, detailed now playing info, and queue display
-- **Advanced Controls**: Seek, skip multiple, pause, resume, stop, volume (0-200)
-- **Premium Features**: Higher volume limits, larger queues, advanced filters
+DeepQuasar is a powerful and versatile Discord bot designed to enhance your server with a wide range of features. Here are some of the key features that make DeepQuasar stand out:
 
-### 🧠 **AI Chatbot**
-- **Universal Compatibility**: Works with OpenAI, Claude, local LLMs, and other providers
-- **Direct Chat**: `/ask` command for instant AI conversations
-- **Smart Responses**: Configurable response chance, mention detection
-- **Channel Control**: Whitelist/blacklist specific channels
-- **Advanced Settings**: Custom prompts, temperature, max tokens, cooldowns, and more
+- **🎵 Music System:** Play music from YouTube, Spotify, SoundCloud, and more. Create and manage playlists, and enjoy high-quality audio with advanced filters and effects.
+- **🤖 AI Chatbot:** Integrate with OpenAI, Claude, or local AI to bring intelligent conversation to your server. Customize your chatbot's personality and responses to fit your community.
+- **🛡️ Moderation & Logging:** Keep your server safe and secure with a comprehensive moderation system. Log all server events and create custom rules to automate moderation tasks.
+- **⚙️ Server Management:** A full suite of tools to help you manage your server, including autoroles, self-roles, welcome messages, a ticket system, and temporary voice channels.
+- **🎨 Content Creation:** Create professional-looking Discord embeds with an intuitive embed builder, and keep your channels clean with an automated cleanup system.
 
-### 🛡️ **Moderation & Logging**
-- **Complete Coverage**: 40+ event types monitored
-- **Flexible Setup**: Log different events to different channels
-- **Rich Information**: Audit log integration with detailed embeds
-- **Easy Management**: Simple commands to configure everything
+## 🚀 Getting Started
 
-### ⚙️ **Server Management**
-- **AutoRole System**: Automatic role assignment for new members
-- **Self-Role System**: Button-based role assignment with advanced options
-- **Welcome & Leave System**: Customizable welcome/farewell messages, invite tracking, DM support
-- **Ticket System**: Interactive panels, private channels, modal forms, auto-close, rate limiting, tagging, assignment, and more
-- **Temporary Voice Channels (TempVC)**: Join-to-create, auto-delete, smart permissions, control panel, renaming, user limits, and more
-- **Embed Builder**: Interactive, live preview, templates, and advanced customization
-- **Cleanup System**: Advanced message and channel cleanup, user/bot filtering, safety confirmations
-- **Permission Control**: DJ roles, channel restrictions, command cooldowns
-- **Customizable Settings**: Per-server configuration for all features
-- **Easy Reset**: Restore default settings anytime
+Ready to get started with DeepQuasar? Our comprehensive documentation will guide you through the process, from initial setup to advanced configuration.
 
-## 🚀 Quick Setup (Self-Hosting)
-
-### **Prerequisites**
-- Node.js 18+ 
-- MongoDB database
-- Discord Application with Bot Token
-
-### **Installation Steps**
-
-1. **Clone and Install**
-   ```bash
-   git clone <your-repo-url>
-   cd discord-music-bot
-   npm install
-   ```
-
-2. **Configure Environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your Discord token, MongoDB URL, etc.
-   ```
-
-3. **Start Lavalink (Music Server)**
-   ```bash
-   cd lavalink
-   java -jar Lavalink.jar
-   ```
-
-4. **Deploy Commands & Start Bot**
-   ```bash
-   npm run deploy-commands
-   npm start
-   ```
-
----
+**[Go to the Documentation](./docs/README.md)**
 
 ## 📚 Commands
 
-- **[Commands](docs/COMMANDS.md)**
+DeepQuasar has a wide range of commands to help you manage your server and interact with the bot. You can find a full list of commands in the documentation.
 
----
-
-## 📚 Documentation
-
-- **[Setup Guide](docs/SETUP_GUIDE.md)**
-- **[Feature Guide](docs/FEATURES.md)**
-- **[FAQ](docs/FAQ.md)**
-- **[Embed Builder](docs/EMBED_BUILDER.md)**
-- **[Cleanup System](docs/CLEANUP_SYSTEM.md)**
-- **[AI Chatbot](docs/CHATBOT_MODULE.md)**
-- **[Modlog System](docs/MODLOG_DOCUMENTATION.md)**
-- **[AutoRole System](docs/AUTOROLE_SYSTEM.md)**
-- **[Welcome System](docs/WELCOME_SYSTEM.md)**
-- **[Ticket System](docs/TICKET_SYSTEM_DOCUMENTATION.md)**
-- **[Self-Role System](docs/SELFROLE_DOCUMENTATION.md)**
-- **[TempVC System](docs/TEMPVC_SYSTEM.md)**
-- **[Premium Features](docs/PREMIUM.md)**
-
----
+**[View Commands](./docs/COMMANDS.md)**
 
 ## 🧪 Testing
-See the `test/` folder for available tests and validation scripts.
+
+If you're interested in contributing to DeepQuasar, you can find a suite of tests in the `test/` directory. These tests will help you ensure that your changes are working as expected.
 
 ## 💬 Support
-For help, join our support Discord or open a GitHub issue.
+
+If you need help with DeepQuasar, you can join our support Discord or open a GitHub issue. Our community is always happy to help.
 
 ---
 
-*This README covers all major features and modules. For detailed usage, see the docs above.*
+*This README provides a high-level overview of DeepQuasar. For more detailed information, please refer to the documentation.*
