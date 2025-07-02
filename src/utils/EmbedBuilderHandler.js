@@ -1,323 +1,712 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } = require('discord.js');
 const EmbedTemplate = require('../schemas/EmbedTemplate');
+const Utils = require('./utils');
 
 class EmbedBuilderHandler {
-    static async handleModalSubmit(interaction) {
+    constructor() {
+        // Cache for embed builder sessions with automatic cleanup
+        this.sessions = new Map();
+        this.sessionTimeout = 15 * 60 * 1000; // 15 minutes
+        
+        // Cleanup expired sessions every 5 minutes
+        setInterval(() => this.cleanupExpiredSessions(), 5 * 60 * 1000);
+    }
+
+    /**
+     * Get or create a session for a user
+     */
+    getSession(userId) {
+        if (!this.sessions.has(userId)) {
+            this.sessions.set(userId, {
+                embedData: this.createEmptyEmbedData(),
+                messageContent: '',
+                lastActivity: Date.now(),
+                messageRef: null
+            });
+        }
+        
+        const session = this.sessions.get(userId);
+        session.lastActivity = Date.now();
+        
+        // Ensure fields array is always properly initialized
+        if (!Array.isArray(session.embedData.fields)) {
+            session.embedData.fields = [];
+        }
+        
+        return session;
+    }
+
+    /**
+     * Update session data
+     */
+    updateSession(userId, updates) {
+        const session = this.getSession(userId);
+        Object.assign(session, updates);
+        session.lastActivity = Date.now();
+    }
+
+    /**
+     * Clean up expired sessions
+     */
+    cleanupExpiredSessions() {
+        const now = Date.now();
+        for (const [userId, session] of this.sessions.entries()) {
+            if (now - session.lastActivity > this.sessionTimeout) {
+                this.sessions.delete(userId);
+            }
+        }
+    }
+
+    /**
+     * Create empty embed data structure
+     */
+    createEmptyEmbedData() {
+        return {
+            title: null,
+            description: null,
+            url: null,
+            color: null,
+            timestamp: false,
+            author: { name: null, iconURL: null, url: null },
+            thumbnail: { url: null },
+            image: { url: null },
+            footer: { text: null, iconURL: null },
+            fields: []
+        };
+    }
+
+    /**
+     * Handle modal submissions
+     */
+    async handleModalSubmit(interaction) {
         if (!interaction.customId.startsWith('embed_modal_')) return false;
 
-        const embedBuilder = require('../commands/settings/embed-builder');
         const modalType = interaction.customId.replace('embed_modal_', '');
-
-        // Get the current embed data from the original interaction
-        const embedData = interaction.client.embedBuilderSessions?.get(interaction.user.id) || {
-            title: null, description: null, url: null, color: null, timestamp: false,
-            author: { name: null, iconURL: null, url: null },
-            thumbnail: { url: null }, image: { url: null },
-            footer: { text: null, iconURL: null }, fields: []
-        };
-        let messageContent = interaction.client.embedBuilderMessageContent?.get(interaction.user.id) || '';
+        const session = this.getSession(interaction.user.id);
 
         try {
+            let updateSuccess = false;
+
             switch (modalType) {
                 case 'title':
-                    embedData.title = interaction.fields.getTextInputValue('text_input') || null;
+                    session.embedData.title = interaction.fields.getTextInputValue('text_input') || null;
+                    updateSuccess = true;
                     break;
+
                 case 'description':
-                    embedData.description = interaction.fields.getTextInputValue('text_input') || null;
+                    session.embedData.description = interaction.fields.getTextInputValue('text_input') || null;
+                    updateSuccess = true;
                     break;
+
                 case 'url':
-                    const urlValue = interaction.fields.getTextInputValue('text_input') || null;
-                    if (urlValue && !embedBuilder.isValidUrl(urlValue)) {
-                        // Reply with error and instructions to retry
+                    const url = interaction.fields.getTextInputValue('text_input') || null;
+                    if (url && !this.isValidUrl(url)) {
                         await interaction.reply({
-                            content: '❌ **Invalid URL Format**\n\n' +
-                                   `The URL "${urlValue}" is not valid.\n\n` +
-                                   '**URLs must include the protocol:**\n' +
-                                   '• `https://example.com`\n' +
-                                   '• `http://example.com`\n' +
-                                   '• `https://www.example.com/page`\n\n' +
-                                   '**Please click the "URL" button again and include http:// or https://**',
+                            embeds: [Utils.createErrorEmbed('Invalid URL', 'Please provide a valid HTTP/HTTPS URL.')],
                             ephemeral: true
                         });
                         return true;
                     }
-                    embedData.url = urlValue;
+                    session.embedData.url = url;
+                    updateSuccess = true;
                     break;
+
                 case 'message_content':
-                    messageContent = interaction.fields.getTextInputValue('text_input') || '';
+                    session.messageContent = interaction.fields.getTextInputValue('text_input') || '';
+                    updateSuccess = true;
                     break;
+
                 case 'thumbnail':
-                    if (!embedData.thumbnail) embedData.thumbnail = {};
                     const thumbnailUrl = interaction.fields.getTextInputValue('text_input') || null;
-                    if (thumbnailUrl && !embedBuilder.isValidUrl(thumbnailUrl)) {
+                    if (thumbnailUrl && !this.isValidImageUrl(thumbnailUrl)) {
                         await interaction.reply({
-                            content: '❌ **Invalid Thumbnail URL Format**\n\n' +
-                                   `The URL "${thumbnailUrl}" is not valid.\n\n` +
-                                   '**Image URLs must include the protocol:**\n' +
-                                   '• `https://example.com/image.png`\n' +
-                                   '• `http://example.com/image.jpg`\n' +
-                                   '• `https://cdn.discordapp.com/attachments/...`\n\n' +
-                                   '**Please click the "Thumbnail" button again and include http:// or https://**',
+                            embeds: [Utils.createErrorEmbed('Invalid Image URL', 'Please provide a valid image URL (PNG, JPG, JPEG, GIF, WebP).')],
                             ephemeral: true
                         });
                         return true;
                     }
-                    embedData.thumbnail.url = thumbnailUrl;
+                    session.embedData.thumbnail.url = thumbnailUrl;
+                    updateSuccess = true;
                     break;
+
                 case 'image':
-                    if (!embedData.image) embedData.image = {};
                     const imageUrl = interaction.fields.getTextInputValue('text_input') || null;
-                    if (imageUrl && !embedBuilder.isValidUrl(imageUrl)) {
+                    if (imageUrl && !this.isValidImageUrl(imageUrl)) {
                         await interaction.reply({
-                            content: '❌ **Invalid Image URL Format**\n\n' +
-                                   `The URL "${imageUrl}" is not valid.\n\n` +
-                                   '**Image URLs must include the protocol:**\n' +
-                                   '• `https://example.com/image.png`\n' +
-                                   '• `http://example.com/image.jpg`\n' +
-                                   '• `https://cdn.discordapp.com/attachments/...`\n\n' +
-                                   '**Please click the "Image" button again and include http:// or https://**',
+                            embeds: [Utils.createErrorEmbed('Invalid Image URL', 'Please provide a valid image URL (PNG, JPG, JPEG, GIF, WebP).')],
                             ephemeral: true
                         });
                         return true;
                     }
-                    embedData.image.url = imageUrl;
+                    session.embedData.image.url = imageUrl;
+                    updateSuccess = true;
                     break;
+
                 case 'color':
                     const colorInput = interaction.fields.getTextInputValue('color_input');
-                    embedData.color = embedBuilder.parseColor(colorInput);
+                    const color = this.parseColor(colorInput);
+                    if (colorInput && color === null) {
+                        await interaction.reply({
+                            embeds: [Utils.createErrorEmbed('Invalid Color', 'Please provide a valid hex color (e.g., #FF0000, FF0000) or color name.')],
+                            ephemeral: true
+                        });
+                        return true;
+                    }
+                    session.embedData.color = color;
+                    updateSuccess = true;
                     break;
+
                 case 'author':
-                    if (!embedData.author) embedData.author = {};
-                    const authorName = interaction.fields.getTextInputValue('author_name') || null;
-                    const authorIcon = interaction.fields.getTextInputValue('author_icon') || null;
-                    const authorUrl = interaction.fields.getTextInputValue('author_url') || null;
+                    session.embedData.author.name = interaction.fields.getTextInputValue('author_name') || null;
+                    const authorIconURL = interaction.fields.getTextInputValue('author_icon') || null;
+                    const authorURL = interaction.fields.getTextInputValue('author_url') || null;
                     
-                    // Validate author icon URL
-                    if (authorIcon && !embedBuilder.isValidUrl(authorIcon)) {
+                    if (authorIconURL && !this.isValidImageUrl(authorIconURL)) {
                         await interaction.reply({
-                            content: '❌ **Invalid Author Icon URL Format**\n\n' +
-                                   `The icon URL "${authorIcon}" is not valid.\n\n` +
-                                   '**Image URLs must include the protocol:**\n' +
-                                   '• `https://example.com/icon.png`\n' +
-                                   '• `http://example.com/icon.jpg`\n' +
-                                   '• `https://cdn.discordapp.com/attachments/...`\n\n' +
-                                   '**Please click the "Author" button again and include http:// or https://**',
+                            embeds: [Utils.createErrorEmbed('Invalid Icon URL', 'Author icon must be a valid image URL.')],
                             ephemeral: true
                         });
                         return true;
                     }
                     
-                    // Validate author URL
-                    if (authorUrl && !embedBuilder.isValidUrl(authorUrl)) {
+                    if (authorURL && !this.isValidUrl(authorURL)) {
                         await interaction.reply({
-                            content: '❌ **Invalid Author URL Format**\n\n' +
-                                   `The URL "${authorUrl}" is not valid.\n\n` +
-                                   '**URLs must include the protocol:**\n' +
-                                   '• `https://example.com`\n' +
-                                   '• `http://example.com`\n' +
-                                   '• `https://www.example.com/page`\n\n' +
-                                   '**Please click the "Author" button again and include http:// or https://**',
+                            embeds: [Utils.createErrorEmbed('Invalid URL', 'Author URL must be a valid HTTP/HTTPS URL.')],
                             ephemeral: true
                         });
                         return true;
                     }
-                    
-                    embedData.author.name = authorName;
-                    embedData.author.iconURL = authorIcon;
-                    embedData.author.url = authorUrl;
+
+                    session.embedData.author.iconURL = authorIconURL;
+                    session.embedData.author.url = authorURL;
+                    updateSuccess = true;
                     break;
+
                 case 'footer':
-                    if (!embedData.footer) embedData.footer = {};
-                    const footerText = interaction.fields.getTextInputValue('footer_text') || null;
-                    const footerIcon = interaction.fields.getTextInputValue('footer_icon') || null;
+                    session.embedData.footer.text = interaction.fields.getTextInputValue('footer_text') || null;
+                    const footerIconURL = interaction.fields.getTextInputValue('footer_icon') || null;
                     
-                    // Validate footer icon URL
-                    if (footerIcon && !embedBuilder.isValidUrl(footerIcon)) {
+                    if (footerIconURL && !this.isValidImageUrl(footerIconURL)) {
                         await interaction.reply({
-                            content: '❌ **Invalid Footer Icon URL Format**\n\n' +
-                                   `The icon URL "${footerIcon}" is not valid.\n\n` +
-                                   '**Image URLs must include the protocol:**\n' +
-                                   '• `https://example.com/icon.png`\n' +
-                                   '• `http://example.com/icon.jpg`\n' +
-                                   '• `https://cdn.discordapp.com/attachments/...`\n\n' +
-                                   '**Please click the "Footer" button again and include http:// or https://**',
+                            embeds: [Utils.createErrorEmbed('Invalid Icon URL', 'Footer icon must be a valid image URL.')],
                             ephemeral: true
                         });
                         return true;
                     }
-                    
-                    embedData.footer.text = footerText;
-                    embedData.footer.iconURL = footerIcon;
+
+                    session.embedData.footer.iconURL = footerIconURL;
+                    updateSuccess = true;
                     break;
+
                 case 'add_field':
                     const fieldName = interaction.fields.getTextInputValue('field_name');
                     const fieldValue = interaction.fields.getTextInputValue('field_value');
-                    const fieldInlineStr = interaction.fields.getTextInputValue('field_inline') || 'false';
-                    const fieldInline = fieldInlineStr.toLowerCase() === 'true';
-                    
-                    if (!embedData.fields) embedData.fields = [];
-                    
-                    if (embedData.fields.length >= 25) {
-                        return interaction.reply({
-                            content: '❌ Maximum of 25 fields allowed per embed.',
-                            ephemeral: true
-                        });
+                    const fieldInline = interaction.fields.getTextInputValue('field_inline')?.toLowerCase() === 'true';
+
+                    // Ensure fields array exists
+                    if (!Array.isArray(session.embedData.fields)) {
+                        session.embedData.fields = [];
                     }
                     
-                    embedData.fields.push({
+                    if (session.embedData.fields.length >= 25) {
+                        await interaction.reply({
+                            embeds: [Utils.createErrorEmbed('Field Limit Reached', 'Embeds can have a maximum of 25 fields.')],
+                            ephemeral: true
+                        });
+                        return true;
+                    }
+
+                    session.embedData.fields.push({
                         name: fieldName,
                         value: fieldValue,
                         inline: fieldInline
                     });
+                    updateSuccess = true;
                     break;
+
                 case 'edit_field':
-                    const editIndex = parseInt(interaction.client.embedBuilderEditIndex?.get(interaction.user.id) || '0');
-                    const editName = interaction.fields.getTextInputValue('field_name');
-                    const editValue = interaction.fields.getTextInputValue('field_value');
-                    const editInlineStr = interaction.fields.getTextInputValue('field_inline') || 'false';
-                    const editInline = editInlineStr.toLowerCase() === 'true';
-                    
-                    if (!embedData.fields) embedData.fields = [];
-                    
-                    if (embedData.fields[editIndex]) {
-                        embedData.fields[editIndex] = {
-                            name: editName,
-                            value: editValue,
-                            inline: editInline
+                    const editIndex = parseInt(interaction.customId.split('_').pop());
+                    // Ensure fields array exists
+                    if (!Array.isArray(session.embedData.fields)) {
+                        session.embedData.fields = [];
+                    }
+                    if (editIndex >= 0 && editIndex < session.embedData.fields.length) {
+                        session.embedData.fields[editIndex] = {
+                            name: interaction.fields.getTextInputValue('field_name'),
+                            value: interaction.fields.getTextInputValue('field_value'),
+                            inline: interaction.fields.getTextInputValue('field_inline')?.toLowerCase() === 'true'
                         };
+                        updateSuccess = true;
                     }
                     break;
+
                 case 'save_template':
                     const templateName = interaction.fields.getTextInputValue('template_name');
-                    const templateDesc = interaction.fields.getTextInputValue('template_description') || '';
+                    const templateDescription = interaction.fields.getTextInputValue('template_description') || '';
+                    const templateCategory = interaction.fields.getTextInputValue('template_category') || 'General';
                     
-                    await this.saveTemplate(interaction, templateName, templateDesc, embedData, messageContent);
+                    await this.saveTemplate(interaction, templateName, templateDescription, templateCategory, session.embedData, session.messageContent);
                     return true;
             }
 
-            // Store updated data
-            if (!interaction.client.embedBuilderSessions) {
-                interaction.client.embedBuilderSessions = new Map();
+            if (updateSuccess) {
+                // Acknowledge the interaction without sending a visible response
+                await interaction.deferUpdate();
+                
+                // Update the embed builder display
+                setTimeout(() => this.updateEmbedBuilder(interaction, session), 100);
             }
-            if (!interaction.client.embedBuilderMessageContent) {
-                interaction.client.embedBuilderMessageContent = new Map();
-            }
-            
-            interaction.client.embedBuilderSessions.set(interaction.user.id, embedData);
-            interaction.client.embedBuilderMessageContent.set(interaction.user.id, messageContent);
 
-            // Acknowledge the modal submission first
-            await interaction.reply({
-                content: '✅ Updated successfully!',
-                ephemeral: true
-            });
-
-            // Update the embed builder immediately after acknowledging
-            setTimeout(async () => {
-                await this.updateEmbedBuilder(interaction, embedData, messageContent);
-            }, 500);
-            
             return true;
         } catch (error) {
             console.error('Modal submit error:', error);
             await interaction.reply({
-                content: '❌ An error occurred while processing your input.',
+                embeds: [Utils.createErrorEmbed('Error', 'An error occurred while processing your input.')],
                 ephemeral: true
             }).catch(() => {});
             return true;
         }
     }
 
-    static async handleSelectMenu(interaction) {
+    /**
+     * Handle select menu interactions
+     */
+    async handleSelectMenu(interaction) {
         if (!interaction.customId.startsWith('embed_select_')) return false;
 
-        const embedBuilder = require('../commands/settings/embed-builder');
         const selectType = interaction.customId.replace('embed_select_', '');
-        const embedData = interaction.client.embedBuilderSessions?.get(interaction.user.id) || {
-            title: null, description: null, url: null, color: null, timestamp: false,
-            author: { name: null, iconURL: null, url: null },
-            thumbnail: { url: null }, image: { url: null },
-            footer: { text: null, iconURL: null }, fields: []
-        };
-        const messageContent = interaction.client.embedBuilderMessageContent?.get(interaction.user.id) || '';
+        const session = this.getSession(interaction.user.id);
 
         try {
             switch (selectType) {
                 case 'edit_field':
                     const editIndex = parseInt(interaction.values[0]);
-                    if (!embedData.fields) embedData.fields = [];
-                    const field = embedData.fields[editIndex];
-                    
-                    if (!field) {
-                        return interaction.reply({
-                            content: '❌ Field not found.',
-                            ephemeral: true
-                        });
+                    // Ensure fields array exists
+                    if (!Array.isArray(session.embedData.fields)) {
+                        session.embedData.fields = [];
                     }
-
-                    // Store the edit index for the modal
-                    if (!interaction.client.embedBuilderEditIndex) {
-                        interaction.client.embedBuilderEditIndex = new Map();
+                    if (editIndex >= 0 && editIndex < session.embedData.fields.length) {
+                        await this.showEditFieldModal(interaction, session.embedData.fields[editIndex], editIndex);
                     }
-                    interaction.client.embedBuilderEditIndex.set(interaction.user.id, editIndex);
-
-                    await this.showEditFieldModal(interaction, field);
                     break;
-                    
+
                 case 'remove_field':
                     const removeIndex = parseInt(interaction.values[0]);
-                    if (!embedData.fields) embedData.fields = [];
-                    embedData.fields.splice(removeIndex, 1);
-                    
-                    interaction.client.embedBuilderSessions.set(interaction.user.id, embedData);
-                    
-                    await interaction.update({
-                        content: '✅ Field removed!',
-                        components: []
-                    });
-                    
-                    // Update the main embed builder
-                    setTimeout(async () => {
-                        await this.updateEmbedBuilder(interaction, embedData, messageContent);
-                    }, 1000);
+                    // Ensure fields array exists
+                    if (!Array.isArray(session.embedData.fields)) {
+                        session.embedData.fields = [];
+                    }
+                    if (removeIndex >= 0 && removeIndex < session.embedData.fields.length) {
+                        session.embedData.fields.splice(removeIndex, 1);
+                        // Acknowledge the interaction without sending a visible response
+                        await interaction.deferUpdate();
+                        // Update the embed display immediately
+                        setTimeout(() => this.updateEmbedBuilder(interaction, session), 100);
+                    }
                     break;
-                    
+
                 case 'channel':
                     const channelId = interaction.values[0];
                     const channel = interaction.guild.channels.cache.get(channelId);
-                    
-                    if (!channel) {
-                        return interaction.reply({
-                            content: '❌ Channel not found.',
-                            ephemeral: true
-                        });
+                    if (channel) {
+                        await this.sendEmbedToChannel(interaction, channel, session.embedData, session.messageContent);
                     }
-
-                    await this.sendEmbedToChannel(interaction, channel, embedData, messageContent);
                     break;
-                    
+
                 case 'load_template':
                     const templateId = interaction.values[0];
                     await this.loadTemplate(interaction, templateId);
                     break;
             }
-            
+
             return true;
         } catch (error) {
             console.error('Select menu error:', error);
             await interaction.reply({
-                content: '❌ An error occurred while processing your selection.',
+                embeds: [Utils.createErrorEmbed('Error', 'An error occurred while processing your selection.')],
                 ephemeral: true
             }).catch(() => {});
             return true;
         }
     }
 
-    static async showEditFieldModal(interaction, field) {
+    /**
+     * Update the embed builder display
+     */
+    async updateEmbedBuilder(interaction, session) {
+        try {
+            // Try to find and update the original message
+            if (session.messageRef) {
+                const embed = this.createPreviewEmbed(session.embedData);
+                const components = await this.createBuilderComponents(interaction.guild.id);
+
+                await session.messageRef.edit({
+                    content: this.createBuilderContent(session.messageContent),
+                    embeds: [embed],
+                    components: components
+                });
+                return;
+            }
+
+            // Fallback: Search for the message
+            const messages = await interaction.channel.messages.fetch({ limit: 50 });
+            const embedBuilderMessage = messages.find(msg => 
+                msg.author.id === interaction.client.user.id &&
+                msg.content.includes('Embed Builder') &&
+                msg.components?.length > 0
+            );
+
+            if (embedBuilderMessage) {
+                session.messageRef = embedBuilderMessage;
+                await this.updateEmbedBuilder(interaction, session);
+            }
+        } catch (error) {
+            console.error('Error updating embed builder:', error);
+        }
+    }
+
+    /**
+     * Create preview embed
+     */
+    createPreviewEmbed(embedData) {
+        const embed = new EmbedBuilder();
+
+        if (embedData.title) embed.setTitle(embedData.title);
+        if (embedData.description) embed.setDescription(embedData.description);
+        if (embedData.url && this.isValidUrl(embedData.url)) embed.setURL(embedData.url);
+        if (embedData.color !== null) embed.setColor(embedData.color);
+        if (embedData.timestamp) embed.setTimestamp();
+        
+        if (embedData.author?.name) {
+            const authorObj = { name: embedData.author.name };
+            if (embedData.author.iconURL && this.isValidImageUrl(embedData.author.iconURL)) {
+                authorObj.iconURL = embedData.author.iconURL;
+            }
+            if (embedData.author.url && this.isValidUrl(embedData.author.url)) {
+                authorObj.url = embedData.author.url;
+            }
+            embed.setAuthor(authorObj);
+        }
+
+        if (embedData.thumbnail?.url && this.isValidImageUrl(embedData.thumbnail.url)) {
+            embed.setThumbnail(embedData.thumbnail.url);
+        }
+
+        if (embedData.image?.url && this.isValidImageUrl(embedData.image.url)) {
+            embed.setImage(embedData.image.url);
+        }
+
+        if (embedData.footer?.text) {
+            const footerObj = { text: embedData.footer.text };
+            if (embedData.footer.iconURL && this.isValidImageUrl(embedData.footer.iconURL)) {
+                footerObj.iconURL = embedData.footer.iconURL;
+            }
+            embed.setFooter(footerObj);
+        }
+
+        if (embedData.fields?.length > 0) {
+            // Ensure fields is an array and filter out invalid fields
+            const fieldsArray = Array.isArray(embedData.fields) ? embedData.fields : [];
+            const validFields = fieldsArray.filter(field => 
+                field && 
+                typeof field === 'object' &&
+                typeof field.name === 'string' && 
+                field.name.trim().length > 0 && 
+                field.name.length <= 256 &&
+                typeof field.value === 'string' && 
+                field.value.trim().length > 0 &&
+                field.value.length <= 1024
+            );
+            
+            if (validFields.length > 0) {
+                embed.addFields(validFields);
+            }
+        }
+
+        // If embed is empty, show placeholder
+        if (!this.hasEmbedContent(embedData)) {
+            embed.setTitle('Embed Preview')
+                .setDescription('*Your embed preview will appear here*\n\nStart building your embed using the buttons below.')
+                .setColor(0x2F3136);
+        }
+
+        return embed;
+    }
+
+    /**
+     * Check if embed has content
+     */
+    hasEmbedContent(embedData) {
+        return !!(
+            embedData.title ||
+            embedData.description ||
+            embedData.author?.name ||
+            embedData.footer?.text ||
+            embedData.image?.url ||
+            embedData.thumbnail?.url ||
+            embedData.fields?.length > 0
+        );
+    }
+
+    /**
+     * Create builder content text
+     */
+    createBuilderContent(messageContent) {
+        const lines = ['**Embed Builder**'];
+        
+        if (messageContent) {
+            lines.push(`**Message Content:** ${Utils.truncate(messageContent, 100)}`);
+        }
+        
+        lines.push('**Preview:**');
+        return lines.join('\n');
+    }
+
+    /**
+     * Create builder components
+     */
+    async createBuilderComponents(guildId) {
+        const templates = await EmbedTemplate.findByGuild(guildId).limit(5);
+        
+        const row1 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('embed_title')
+                    .setLabel('Title')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('embed_description')
+                    .setLabel('Description')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('embed_url')
+                    .setLabel('URL')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('embed_color')
+                    .setLabel('Color')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('embed_timestamp')
+                    .setLabel('Timestamp')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+        const row2 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('embed_author')
+                    .setLabel('Author')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('embed_thumbnail')
+                    .setLabel('Thumbnail')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('embed_image')
+                    .setLabel('Image')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('embed_footer')
+                    .setLabel('Footer')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('embed_message_content')
+                    .setLabel('Message')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+        const row3 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('embed_add_field')
+                    .setLabel('Add Field')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('embed_edit_field')
+                    .setLabel('Edit Field')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('embed_remove_field')
+                    .setLabel('Remove Field')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('embed_clear_fields')
+                    .setLabel('Clear Fields')
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId('embed_clear_all')
+                    .setLabel('Clear All')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
+        const row4 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('embed_export_json')
+                    .setLabel('Export JSON')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('embed_send')
+                    .setLabel('Send Embed')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId('embed_save_template')
+                    .setLabel('Save Template')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('embed_load_template')
+                    .setLabel('Load Template')
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(templates.length === 0),
+                new ButtonBuilder()
+                    .setCustomId('embed_cancel')
+                    .setLabel('Cancel')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
+        return [row1, row2, row3, row4];
+    }
+
+    /**
+     * Save template
+     */
+    async saveTemplate(interaction, name, description, category, embedData, messageContent) {
+        try {
+            const existingTemplate = await EmbedTemplate.findOne({
+                guildId: interaction.guild.id,
+                name: name
+            });
+
+            if (existingTemplate) {
+                await interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Template Exists', `A template named "${name}" already exists.`)],
+                    ephemeral: true
+                });
+                return;
+            }
+
+            const template = new EmbedTemplate({
+                guildId: interaction.guild.id,
+                name: name,
+                description: description,
+                category: category,
+                createdBy: interaction.user.id,
+                embedData: this.cleanEmbedData(embedData),
+                messageContent: messageContent
+            });
+
+            await template.save();
+
+            await interaction.reply({
+                embeds: [Utils.createSuccessEmbed('Template Saved', `Template "${name}" saved successfully!`)],
+                ephemeral: true
+            });
+        } catch (error) {
+            console.error('Error saving template:', error);
+            await interaction.reply({
+                embeds: [Utils.createErrorEmbed('Save Failed', 'An error occurred while saving the template.')],
+                ephemeral: true
+            });
+        }
+    }
+
+    /**
+     * Load template
+     */
+    async loadTemplate(interaction, templateId) {
+        try {
+            const template = await EmbedTemplate.findOne({
+                _id: templateId,
+                guildId: interaction.guild.id
+            });
+
+            if (!template) {
+                await interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Template Not Found', 'The selected template was not found.')],
+                    ephemeral: true
+                });
+                return;
+            }
+
+            const session = this.getSession(interaction.user.id);
+            session.embedData = { ...template.embedData };
+            
+            // Ensure fields array is properly initialized and validated
+            if (session.embedData.fields && Array.isArray(session.embedData.fields)) {
+                // Filter out any invalid fields from the template
+                session.embedData.fields = session.embedData.fields.filter(field => 
+                    field && 
+                    typeof field.name === 'string' && 
+                    field.name.trim().length > 0 && 
+                    typeof field.value === 'string' && 
+                    field.value.trim().length > 0
+                );
+            } else {
+                session.embedData.fields = [];
+            }
+            
+            session.messageContent = template.messageContent || '';
+
+            await template.incrementUsage();
+
+            // Acknowledge the interaction without sending a visible response
+            await interaction.deferUpdate();
+            
+            // Update the main embed builder immediately
+            setTimeout(() => this.updateEmbedBuilder(interaction, session), 100);
+        } catch (error) {
+            console.error('Error loading template:', error);
+            await interaction.reply({
+                embeds: [Utils.createErrorEmbed('Load Failed', 'An error occurred while loading the template.')],
+                ephemeral: true
+            });
+        }
+    }
+
+    /**
+     * Send embed to channel
+     */
+    async sendEmbedToChannel(interaction, channel, embedData, messageContent) {
+        try {
+            if (!this.hasEmbedContent(embedData) && !messageContent) {
+                await interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Empty Embed', 'Cannot send an empty embed. Please add some content first.')],
+                    ephemeral: true
+                });
+                return;
+            }
+
+            const embed = this.createPreviewEmbed(embedData);
+            const messageData = { embeds: [embed] };
+            
+            if (messageContent) {
+                messageData.content = messageContent;
+            }
+
+            await channel.send(messageData);
+
+            await interaction.reply({
+                embeds: [Utils.createSuccessEmbed('Embed Sent', `Embed sent to ${channel} successfully!`)],
+                ephemeral: true
+            });
+        } catch (error) {
+            console.error('Error sending embed:', error);
+            await interaction.reply({
+                embeds: [Utils.createErrorEmbed('Send Failed', 'An error occurred while sending the embed.')],
+                ephemeral: true
+            });
+        }
+    }
+
+    /**
+     * Show edit field modal
+     */
+    async showEditFieldModal(interaction, field, index) {
         const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
         
         const modal = new ModalBuilder()
-            .setCustomId('embed_modal_edit_field')
+            .setCustomId(`embed_modal_edit_field_${index}`)
             .setTitle('Edit Field');
 
         const nameInput = new TextInputBuilder()
@@ -356,249 +745,103 @@ class EmbedBuilderHandler {
         await interaction.showModal(modal);
     }
 
-    static async updateEmbedBuilder(interaction, embedData, messageContent) {
-        const embedBuilder = require('../commands/settings/embed-builder');
+    /**
+     * Clean embed data by removing null/empty values
+     */
+    cleanEmbedData(embedData) {
+        const cleaned = { ...embedData };
         
-        try {
-            // First try to use the stored message reference
-            const storedMessage = interaction.client.embedBuilderMessages?.get(interaction.user.id);
-            
-            if (storedMessage) {
-                //console.log('Using stored message reference to update embed builder');
-
-                const embed = embedBuilder.createPreviewEmbed(embedData);
-                const components = embedBuilder.createBuilderComponents();
-
-                await storedMessage.edit({
-                    content: `**🎨 Embed Builder**\n${messageContent ? `**Message Content:** ${messageContent}\n` : ''}**Preview:**`,
-                    embeds: [embed],
-                    components: components
-                });
-                
-                //console.log('Successfully updated embed builder using stored reference');
-                return;
-            }
-
-            // Fallback: Find the original embed builder message
-            console.log('Stored message not found, searching for embed builder message...');
-            const messages = await interaction.channel.messages.fetch({ limit: 100 });
-            
-            // First try: Look for recent messages with embed builder content
-            let embedBuilderMessage = messages.find(msg => 
-                msg.author.id === interaction.client.user.id && 
-                msg.content.includes('🎨 Embed Builder') &&
-                msg.components && msg.components.length > 0 &&
-                msg.components[0].components.some(button => button.customId?.startsWith('embed_'))
+        // Clean fields array first - remove invalid fields
+        if (cleaned.fields && Array.isArray(cleaned.fields)) {
+            cleaned.fields = cleaned.fields.filter(field => 
+                field && 
+                typeof field.name === 'string' && 
+                field.name.trim().length > 0 && 
+                typeof field.value === 'string' && 
+                field.value.trim().length > 0
             );
-
-            // Second try: Look for any message with embed builder buttons (even if content doesn't match)
-            if (!embedBuilderMessage) {
-                embedBuilderMessage = messages.find(msg => 
-                    msg.author.id === interaction.client.user.id && 
-                    msg.components && msg.components.length > 0 &&
-                    msg.components[0].components.some(button => button.customId?.startsWith('embed_'))
-                );
+            
+            // Remove fields array if empty
+            if (cleaned.fields.length === 0) {
+                delete cleaned.fields;
             }
-
-            if (embedBuilderMessage) {
-                console.log('Found embed builder message to update:', embedBuilderMessage.id);
-                
-                const embed = embedBuilder.createPreviewEmbed(embedData);
-                const components = embedBuilder.createBuilderComponents();
-
-                await embedBuilderMessage.edit({
-                    content: `**🎨 Embed Builder**\n${messageContent ? `**Message Content:** ${messageContent}\n` : ''}**Preview:**`,
-                    embeds: [embed],
-                    components: components
+        }
+        
+        // Remove null/empty properties
+        Object.keys(cleaned).forEach(key => {
+            if (cleaned[key] === null || cleaned[key] === undefined || cleaned[key] === '') {
+                delete cleaned[key];
+            } else if (typeof cleaned[key] === 'object' && !Array.isArray(cleaned[key])) {
+                // Clean nested objects
+                Object.keys(cleaned[key]).forEach(nestedKey => {
+                    if (cleaned[key][nestedKey] === null || cleaned[key][nestedKey] === undefined || cleaned[key][nestedKey] === '') {
+                        delete cleaned[key][nestedKey];
+                    }
                 });
                 
-                console.log('Successfully updated embed builder message');
-            } else {
-                console.warn('Could not find original embed builder message to update');
-                console.log('Available messages:', messages.first(5).map(m => ({ 
-                    id: m.id, 
-                    content: m.content.slice(0, 50), 
-                    hasComponents: !!m.components?.length,
-                    author: m.author.username
-                })));
+                // Remove empty objects
+                if (Object.keys(cleaned[key]).length === 0) {
+                    delete cleaned[key];
+                }
             }
-        } catch (error) {
-            console.error('Error updating embed builder:', error);
+        });
+
+        return cleaned;
+    }
+
+    /**
+     * Parse color input
+     */
+    parseColor(colorStr) {
+        if (!colorStr) return null;
+        
+        colorStr = colorStr.trim();
+        
+        // Handle hex colors
+        if (colorStr.startsWith('#')) {
+            colorStr = colorStr.slice(1);
+        }
+        
+        if (/^[0-9A-Fa-f]{6}$/.test(colorStr)) {
+            return parseInt(colorStr, 16);
+        }
+        
+        // Handle named colors
+        const namedColors = {
+            red: 0xFF0000,
+            green: 0x00FF00,
+            blue: 0x0000FF,
+            yellow: 0xFFFF00,
+            orange: 0xFFA500,
+            purple: 0x800080,
+            pink: 0xFFC0CB,
+            black: 0x000000,
+            white: 0xFFFFFF,
+            discord: 0x5865F2
+        };
+        
+        return namedColors[colorStr.toLowerCase()] || null;
+    }
+
+    /**
+     * Validate URL
+     */
+    isValidUrl(string) {
+        try {
+            const url = new URL(string);
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch (_) {
+            return false;
         }
     }
 
-    static async saveTemplate(interaction, name, description, embedData, messageContent) {
-        try {
-            const existingTemplate = await EmbedTemplate.findOne({
-                guildId: interaction.guild.id,
-                name: name
-            });
-
-            if (existingTemplate) {
-                return interaction.reply({
-                    content: '❌ A template with that name already exists. Please choose a different name.',
-                    ephemeral: true
-                });
-            }
-
-            const template = new EmbedTemplate({
-                guildId: interaction.guild.id,
-                name: name,
-                description: description,
-                createdBy: interaction.user.id,
-                embedData: embedData,
-                messageContent: messageContent
-            });
-
-            await template.save();
-
-            await interaction.reply({
-                content: `✅ Template "${name}" saved successfully!`,
-                ephemeral: true
-            });
-        } catch (error) {
-            console.error('Error saving template:', error);
-            await interaction.reply({
-                content: '❌ An error occurred while saving the template.',
-                ephemeral: true
-            });
-        }
-    }
-
-    static async loadTemplate(interaction, templateId) {
-        try {
-            const template = await EmbedTemplate.findOne({
-                _id: templateId,
-                guildId: interaction.guild.id
-            });
-
-            if (!template) {
-                return interaction.reply({
-                    content: '❌ Template not found.',
-                    ephemeral: true
-                });
-            }
-
-            // Store the loaded template data
-            if (!interaction.client.embedBuilderSessions) {
-                interaction.client.embedBuilderSessions = new Map();
-            }
-            if (!interaction.client.embedBuilderMessageContent) {
-                interaction.client.embedBuilderMessageContent = new Map();
-            }
-
-            interaction.client.embedBuilderSessions.set(interaction.user.id, template.embedData);
-            interaction.client.embedBuilderMessageContent.set(interaction.user.id, template.messageContent);
-
-            await interaction.update({
-                content: `✅ Template "${template.name}" loaded!`,
-                components: []
-            });
-
-            // Update the main embed builder
-            setTimeout(async () => {
-                await this.updateEmbedBuilder(interaction, template.embedData, template.messageContent);
-            }, 1000);
-        } catch (error) {
-            console.error('Error loading template:', error);
-            await interaction.reply({
-                content: '❌ An error occurred while loading the template.',
-                ephemeral: true
-            });
-        }
-    }
-
-    static async sendEmbedToChannel(interaction, channel, embedData, messageContent) {
-        try {
-            const embedBuilder = require('../commands/settings/embed-builder');
-            const embed = new EmbedBuilder();
-
-            // Build the embed with URL validation
-            if (embedData.title) embed.setTitle(embedData.title);
-            if (embedData.description) embed.setDescription(embedData.description);
-            
-            // Validate URL before setting
-            if (embedData.url && embedBuilder.isValidUrl(embedData.url)) {
-                try {
-                    embed.setURL(embedData.url);
-                } catch (error) {
-                    // Invalid URL, skip setting it
-                }
-            }
-            
-            if (embedData.color) embed.setColor(embedData.color);
-            if (embedData.timestamp) embed.setTimestamp();
-            
-            if (embedData.author && embedData.author.name) {
-                const authorData = { name: embedData.author.name };
-                
-                if (embedData.author.iconURL && embedBuilder.isValidUrl(embedData.author.iconURL)) {
-                    authorData.iconURL = embedData.author.iconURL;
-                }
-                
-                if (embedData.author.url && embedBuilder.isValidUrl(embedData.author.url)) {
-                    authorData.url = embedData.author.url;
-                }
-                
-                embed.setAuthor(authorData);
-            }
-            
-            if (embedData.thumbnail && embedData.thumbnail.url && embedBuilder.isValidUrl(embedData.thumbnail.url)) {
-                try {
-                    embed.setThumbnail(embedData.thumbnail.url);
-                } catch (error) {
-                    // Invalid URL, skip setting it
-                }
-            }
-            
-            if (embedData.image && embedData.image.url && embedBuilder.isValidUrl(embedData.image.url)) {
-                try {
-                    embed.setImage(embedData.image.url);
-                } catch (error) {
-                    // Invalid URL, skip setting it
-                }
-            }
-            
-            if (embedData.footer && embedData.footer.text) {
-                const footerData = { text: embedData.footer.text };
-                
-                if (embedData.footer.iconURL && embedBuilder.isValidUrl(embedData.footer.iconURL)) {
-                    footerData.iconURL = embedData.footer.iconURL;
-                }
-                
-                embed.setFooter(footerData);
-            }
-
-            if (embedData.fields && embedData.fields.length > 0) {
-                embed.addFields(embedData.fields);
-            }
-
-            // Check if embed has content
-            if (!embed.data.title && !embed.data.description && !embed.data.fields?.length && 
-                !embed.data.author && !embed.data.image && !embed.data.thumbnail && !messageContent) {
-                return interaction.update({
-                    content: '❌ Cannot send empty embed. Please add some content first.',
-                    components: []
-                });
-            }
-
-            const messageData = { embeds: [embed] };
-            if (messageContent) messageData.content = messageContent;
-
-            await channel.send(messageData);
-
-            await interaction.update({
-                content: `✅ Embed sent to ${channel}!`,
-                components: []
-            });
-        } catch (error) {
-            console.error('Error sending embed:', error);
-            await interaction.update({
-                content: '❌ An error occurred while sending the embed.',
-                components: []
-            });
-        }
+    /**
+     * Validate image URL
+     */
+    isValidImageUrl(string) {
+        if (!this.isValidUrl(string)) return false;
+        return /\.(png|jpg|jpeg|gif|webp)$/i.test(string);
     }
 }
 
-module.exports = EmbedBuilderHandler;
+module.exports = new EmbedBuilderHandler();
