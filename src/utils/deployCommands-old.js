@@ -1,7 +1,4 @@
 const { SmartDeploymentService } = require('./smartDeploy');
-const { REST, Routes } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
 
 async function deployCommands(client) {
     try {
@@ -30,6 +27,10 @@ async function deployCommands(client) {
 }
 
 async function legacyDeployCommands(client) {
+    const { REST, Routes } = require('discord.js');
+    const fs = require('fs');
+    const path = require('path');
+    
     const commands = [];
     const foldersPath = path.join(__dirname, '../commands');
 
@@ -88,14 +89,14 @@ async function legacyDeployCommands(client) {
             // Deploy to specific guild (for development)
             client.logger.info(`Deploying commands to guild: ${guildId}`);
             
-            // Clear existing guild commands first
-            await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] });
-            client.logger.info('✅ Cleared existing guild commands');
-            
             data = await rest.put( // Deploy new commands
                 Routes.applicationGuildCommands(clientId, guildId),
                 { body: commands }
             );
+
+        // Clear existing guild commands first
+        await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] });
+        client.logger.info('✅ Cleared existing guild commands');
         } else {
             // Deploy globally (for production)
             client.logger.info('Deploying commands globally...');
