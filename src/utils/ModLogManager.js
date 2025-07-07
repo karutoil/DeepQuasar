@@ -156,7 +156,7 @@ class ModLogManager {
     /**
      * Log an event to the appropriate channel
      */
-    static async logEvent(guild, eventType, embedOptions) {
+    static async logEvent(guild, eventType, embedOptions, executor) {
         try {
             const modLog = await ModLog.findOne({ guildId: guild.id });
             if (!modLog || !modLog.isEventEnabled(eventType)) {
@@ -193,6 +193,10 @@ class ModLogManager {
             if (embedOptions.thumbnail) embed.setThumbnail(embedOptions.thumbnail);
             if (embedOptions.image) embed.setImage(embedOptions.image);
             if (embedOptions.author) embed.setAuthor(embedOptions.author);
+
+            if (executor) {
+                embed.addFields({ name: 'Responsible User', value: this.formatUser(executor), inline: true });
+            }
 
             await channel.send({ embeds: [embed] });
         } catch (error) {

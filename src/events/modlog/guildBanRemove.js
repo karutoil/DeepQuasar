@@ -29,15 +29,7 @@ module.exports = {
         };
 
         if (auditLogEntry) {
-            embed.fields.push(
-                {
-                    name: '👮 Unbanned By',
-                    value: ModLogManager.formatUser(auditLogEntry.executor),
-                    inline: true
-                }
-            );
-
-            if (auditLogEntry.reason) {
+            if (auditLogEntry?.reason) {
                 embed.fields.push({
                     name: '📝 Reason',
                     value: auditLogEntry.reason,
@@ -46,6 +38,6 @@ module.exports = {
             }
         }
 
-        await ModLogManager.logEvent(ban.guild, 'memberUnban', embed);
+        await ModLogManager.logEvent(ban.guild, 'memberUnban', embed, auditLogEntry?.executor);
     }
 };

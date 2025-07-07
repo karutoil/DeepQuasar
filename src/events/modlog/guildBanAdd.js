@@ -34,13 +34,7 @@ module.exports = {
         };
 
         if (auditLogEntry) {
-            embed.fields.push({
-                name: '👮 Banned By',
-                value: ModLogManager.formatUser(auditLogEntry.executor),
-                inline: true
-            });
-
-            if (auditLogEntry.reason && auditLogEntry.reason !== ban.reason) {
+            if (auditLogEntry?.reason && auditLogEntry.reason !== ban.reason) {
                 embed.fields.push({
                     name: '📝 Audit Log Reason',
                     value: auditLogEntry.reason,
@@ -49,6 +43,6 @@ module.exports = {
             }
         }
 
-        await ModLogManager.logEvent(ban.guild, 'memberBan', embed);
+        await ModLogManager.logEvent(ban.guild, 'memberBan', embed, auditLogEntry?.executor);
     }
 };

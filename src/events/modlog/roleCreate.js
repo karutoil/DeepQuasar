@@ -57,22 +57,14 @@ module.exports = {
             });
         }
 
-        if (auditLogEntry) {
+        if (auditLogEntry?.reason) {
             embed.fields.push({
-                name: '👮 Created By',
-                value: ModLogManager.formatUser(auditLogEntry.executor),
+                name: '📝 Reason',
+                value: auditLogEntry.reason,
                 inline: true
             });
-
-            if (auditLogEntry.reason) {
-                embed.fields.push({
-                    name: '📝 Reason',
-                    value: auditLogEntry.reason,
-                    inline: true
-                });
-            }
         }
 
-        await ModLogManager.logEvent(role.guild, 'roleCreate', embed);
+        await ModLogManager.logEvent(role.guild, 'roleCreate', embed, auditLogEntry?.executor);
     }
 };

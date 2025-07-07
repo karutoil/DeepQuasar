@@ -4,6 +4,12 @@ const ModLogManager = require('../../utils/ModLogManager');
 module.exports = {
     name: Events.GuildMemberAdd,
     async execute(member) {
+        const auditLogEntry = await ModLogManager.getAuditLogEntry(
+            member.guild, 
+            AuditLogEvent.BotAdd, 
+            member.user
+        );
+
         // Handle modlog for member join
         const embed = {
             title: 'Member Joined',
@@ -28,6 +34,17 @@ module.exports = {
             thumbnail: member.user.displayAvatarURL({ dynamic: true })
         };
 
-        await ModLogManager.logEvent(member.guild, 'memberJoin', embed);
+        if (auditLogEntry) {
+            // Only add reason if it exists and is not null/undefined
+            if (auditLogEntry.reason) {
+                embed.fields.push({
+                    name: '📝 Reason',
+                    value: auditLogEntry.reason,
+                    inline: true
+                });
+            }
+        }
+
+        await ModLogManager.logEvent(member.guild, 'memberJoin', embed, auditLogEntry?.executor);
     }
 };

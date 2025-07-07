@@ -101,22 +101,14 @@ module.exports = {
             ]
         };
 
-        if (auditLogEntry) {
+        if (auditLogEntry?.reason) {
             embed.fields.push({
-                name: '👮 Updated By',
-                value: ModLogManager.formatUser(auditLogEntry.executor),
+                name: '📝 Reason',
+                value: auditLogEntry.reason,
                 inline: true
             });
-
-            if (auditLogEntry.reason) {
-                embed.fields.push({
-                    name: '📝 Reason',
-                    value: auditLogEntry.reason,
-                    inline: true
-                });
-            }
         }
 
-        await ModLogManager.logEvent(newRole.guild, 'roleUpdate', embed);
+        await ModLogManager.logEvent(newRole.guild, 'roleUpdate', embed, auditLogEntry?.executor);
     }
 };

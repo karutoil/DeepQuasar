@@ -1,4 +1,4 @@
-const { Events } = require('discord.js');
+const { Events, AuditLogEvent } = require('discord.js');
 const ModLogManager = require('../../utils/ModLogManager');
 
 module.exports = {
@@ -32,6 +32,7 @@ module.exports = {
                 inline: true
             }
         ];
+        let auditLogEntry = null;
 
         // User joined a voice channel
         if (!oldState.channel && newState.channel) {
@@ -68,6 +69,12 @@ module.exports = {
                     value: `${newState.channel.name} (${newState.channel.id})`,
                     inline: true
                 }
+            );
+            // Fetch audit log for member move
+            auditLogEntry = await ModLogManager.getAuditLogEntry(
+                member.guild,
+                AuditLogEvent.MemberMove,
+                member.user
             );
         }
         // User's voice state changed (mute, deafen, etc.)
@@ -109,6 +116,12 @@ module.exports = {
                     inline: false
                 }
             );
+            // Fetch audit log for member update (mute/deafen)
+            auditLogEntry = await ModLogManager.getAuditLogEntry(
+                member.guild,
+                AuditLogEvent.MemberUpdate,
+                member.user
+            );
         } else {
             return; // No relevant changes
         }
@@ -120,6 +133,14 @@ module.exports = {
             thumbnail: member.user.displayAvatarURL({ dynamic: true })
         };
 
-        await ModLogManager.logEvent(member.guild, 'voiceStateUpdate', embed);
+        if (auditLogEntry?.reason) {
+            embed.fields.push({
+                name: '📝 Reason',
+                value: auditLogEntry.reason,
+                inline: true
+            });
+        }
+
+        await ModLogManager.logEvent(member.guild, 'voiceStateUpdate', embed, auditLogEntry?.executor);
     }
 };

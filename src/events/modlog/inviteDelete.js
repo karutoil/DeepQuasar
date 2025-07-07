@@ -42,22 +42,14 @@ module.exports = {
             ]
         };
 
-        if (auditLogEntry) {
+        if (auditLogEntry?.reason) {
             embed.fields.push({
-                name: '👮 Deleted By',
-                value: ModLogManager.formatUser(auditLogEntry.executor),
+                name: '📝 Reason',
+                value: auditLogEntry.reason,
                 inline: true
             });
-
-            if (auditLogEntry.reason) {
-                embed.fields.push({
-                    name: '📝 Reason',
-                    value: auditLogEntry.reason,
-                    inline: true
-                });
-            }
         }
 
-        await ModLogManager.logEvent(invite.guild, 'inviteDelete', embed);
+        await ModLogManager.logEvent(invite.guild, 'inviteDelete', embed, auditLogEntry?.executor);
     }
 };

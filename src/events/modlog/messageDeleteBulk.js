@@ -39,20 +39,12 @@ module.exports = {
             ]
         };
 
-        if (auditLogEntry) {
+        if (auditLogEntry?.reason) {
             embed.fields.push({
-                name: '👮 Deleted By',
-                value: ModLogManager.formatUser(auditLogEntry.executor),
+                name: '📝 Reason',
+                value: auditLogEntry.reason,
                 inline: true
             });
-
-            if (auditLogEntry.reason) {
-                embed.fields.push({
-                    name: '📝 Reason',
-                    value: auditLogEntry.reason,
-                    inline: true
-                });
-            }
         }
 
         // Add sample messages if available
@@ -68,6 +60,6 @@ module.exports = {
             });
         }
 
-        await ModLogManager.logEvent(channel.guild, 'messageBulkDelete', embed);
+        await ModLogManager.logEvent(channel.guild, 'messageBulkDelete', embed, auditLogEntry?.executor);
     }
 };

@@ -38,22 +38,14 @@ module.exports = {
             thumbnail: emoji.url
         };
 
-        if (auditLogEntry) {
+        if (auditLogEntry?.reason) {
             embed.fields.push({
-                name: '👮 Created By',
-                value: ModLogManager.formatUser(auditLogEntry.executor),
+                name: '📝 Reason',
+                value: auditLogEntry.reason,
                 inline: true
             });
-
-            if (auditLogEntry.reason) {
-                embed.fields.push({
-                    name: '📝 Reason',
-                    value: auditLogEntry.reason,
-                    inline: true
-                });
-            }
         }
 
-        await ModLogManager.logEvent(emoji.guild, 'emojiCreate', embed);
+        await ModLogManager.logEvent(emoji.guild, 'emojiCreate', embed, auditLogEntry?.executor);
     }
 };

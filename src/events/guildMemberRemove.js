@@ -16,68 +16,68 @@ module.exports = {
             await WelcomeSystem.handleMemberLeave(member, client);
 
             // Handle modlog
-            const ModLogManager = require('../utils/ModLogManager');
+            // const ModLogManager = require('../utils/ModLogManager');
             
-            // Check if it was a kick or leave
-            const auditLogEntry = await ModLogManager.getAuditLogEntry(
-                member.guild, 
-                AuditLogEvent.MemberKick, 
-                member.user
-            );
+            // // Check if it was a kick or leave
+            // const auditLogEntry = await ModLogManager.getAuditLogEntry(
+            //     member.guild, 
+            //     AuditLogEvent.MemberKick, 
+            //     member.user
+            // );
 
-            const isKick = auditLogEntry !== null;
-            const eventType = isKick ? 'memberKick' : 'memberLeave';
+            // const isKick = auditLogEntry !== null;
+            // const eventType = isKick ? 'memberKick' : 'memberLeave';
             
-            const embed = {
-                title: isKick ? 'Member Kicked' : 'Member Left',
-                description: `${member.user.tag} ${isKick ? 'was kicked from' : 'left'} the server`,
-                fields: [
-                    {
-                        name: '👤 User',
-                        value: ModLogManager.formatUser(member.user),
-                        inline: true
-                    },
-                    {
-                        name: '📅 Joined Server',
-                        value: member.joinedAt ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:F>` : 'Unknown',
-                        inline: true
-                    },
-                    {
-                        name: '🆔 User ID',
-                        value: member.user.id,
-                        inline: true
-                    }
-                ],
-                thumbnail: member.user.displayAvatarURL({ dynamic: true })
-            };
+            // const embed = {
+            //     title: isKick ? 'Member Kicked' : 'Member Left',
+            //     description: `${member.user.tag} ${isKick ? 'was kicked from' : 'left'} the server`,
+            //     fields: [
+            //         {
+            //             name: '👤 User',
+            //             value: ModLogManager.formatUser(member.user),
+            //             inline: true
+            //         },
+            //         {
+            //             name: '📅 Joined Server',
+            //             value: member.joinedAt ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:F>` : 'Unknown',
+            //             inline: true
+            //         },
+            //         {
+            //             name: '🆔 User ID',
+            //             value: member.user.id,
+            //             inline: true
+            //         }
+            //     ],
+            //     thumbnail: member.user.displayAvatarURL({ dynamic: true })
+            // };
 
-            if (isKick && auditLogEntry) {
-                embed.fields.push(
-                    {
-                        name: '👮 Kicked By',
-                        value: ModLogManager.formatUser(auditLogEntry.executor),
-                        inline: true
-                    },
-                    {
-                        name: '📝 Reason',
-                        value: auditLogEntry.reason || 'No reason provided',
-                        inline: true
-                    }
-                );
-            }
+            // if (isKick && auditLogEntry) {
+            //     embed.fields.push(
+            //         {
+            //             name: '👮 Kicked By',
+            //             value: ModLogManager.formatUser(auditLogEntry.executor),
+            //             inline: true
+            //         },
+            //         {
+            //             name: '📝 Reason',
+            //             value: auditLogEntry.reason || 'No reason provided',
+            //             inline: true
+            //         }
+            //     );
+            // }
 
-            // Calculate time in server
-            if (member.joinedAt) {
-                const timeInServer = Date.now() - member.joinedTimestamp;
-                const days = Math.floor(timeInServer / (1000 * 60 * 60 * 24));
-                embed.fields.push({
-                    name: '⏱️ Time in Server',
-                    value: `${days} days`,
-                    inline: true
-                });
-            }
+            // // Calculate time in server
+            // if (member.joinedAt) {
+            //     const timeInServer = Date.now() - member.joinedTimestamp;
+            //     const days = Math.floor(timeInServer / (1000 * 60 * 60 * 24));
+            //     embed.fields.push({
+            //         name: '⏱️ Time in Server',
+            //         value: `${days} days`,
+            //         inline: true
+            //     });
+            // }
 
-            await ModLogManager.logEvent(member.guild, eventType, embed);
+            // await ModLogManager.logEvent(member.guild, eventType, embed);
 
         } catch (error) {
             client.logger.error(`Error handling guildMemberRemove for ${member.user.tag}:`, error);

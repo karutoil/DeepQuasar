@@ -55,14 +55,14 @@ module.exports = {
             });
         }
 
-        if (auditLogEntry && auditLogEntry.executor.id !== invite.inviter?.id) {
+        if (auditLogEntry?.executor.id !== invite.inviter?.id && auditLogEntry?.reason) {
             embed.fields.push({
-                name: '👮 Created By (Audit)',
-                value: ModLogManager.formatUser(auditLogEntry.executor),
+                name: '📝 Reason',
+                value: auditLogEntry.reason,
                 inline: true
             });
         }
 
-        await ModLogManager.logEvent(invite.guild, 'inviteCreate', embed);
+        await ModLogManager.logEvent(invite.guild, 'inviteCreate', embed, auditLogEntry?.executor);
     }
 };

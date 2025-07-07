@@ -37,19 +37,12 @@ module.exports = {
             thumbnail: member.user.displayAvatarURL({ dynamic: true })
         };
 
-        if (isKick && auditLogEntry) {
-            embed.fields.push(
-                {
-                    name: '👮 Kicked By',
-                    value: ModLogManager.formatUser(auditLogEntry.executor),
-                    inline: true
-                },
-                {
-                    name: '📝 Reason',
-                    value: auditLogEntry.reason || 'No reason provided',
-                    inline: true
-                }
-            );
+        if (isKick && auditLogEntry?.reason) {
+            embed.fields.push({
+                name: '📝 Reason',
+                value: auditLogEntry.reason || 'No reason provided',
+                inline: true
+            });
         }
 
         // Calculate time in server
@@ -63,6 +56,6 @@ module.exports = {
             });
         }
 
-        await ModLogManager.logEvent(member.guild, eventType, embed);
+        await ModLogManager.logEvent(member.guild, eventType, embed, auditLogEntry?.executor);
     }
 };

@@ -5,20 +5,28 @@ module.exports = {
     name: Events.GuildMemberUpdate,
     async execute(oldMember, newMember) {
         const changes = [];
-        
+        let auditLogEntry = null;
+        let eventType = 'memberUpdate'; // Default event type
+
         // Check nickname changes
         if (oldMember.nickname !== newMember.nickname) {
             changes.push({
                 name: '📝 Nickname',
-                value: `**Before:** ${oldMember.nickname || 'None'}\n**After:** ${newMember.nickname || 'None'}`,
+                value: `**Before:** ${oldMember.nickname || 'None'}\n**After:** ${newMember.nickname || 'None'} `,
                 inline: true
             });
+            // Fetch audit log for nickname change
+            auditLogEntry = await ModLogManager.getAuditLogEntry(
+                newMember.guild,
+                AuditLogEvent.MemberUpdate, // Type for nickname change
+                newMember.user
+            );
         }
 
         // Check role changes
         const oldRoles = oldMember.roles.cache.filter(role => role.id !== newMember.guild.id);
         const newRoles = newMember.roles.cache.filter(role => role.id !== newMember.guild.id);
-        
+
         const addedRoles = newRoles.filter(role => !oldRoles.has(role.id));
         const removedRoles = oldRoles.filter(role => !newRoles.has(role.id));
 
@@ -28,6 +36,13 @@ module.exports = {
                 value: addedRoles.map(role => role.toString()).join(', '),
                 inline: true
             });
+            // Fetch audit log for role change
+            // Prioritize role update audit log if roles changed
+            auditLogEntry = await ModLogManager.getAuditLogEntry(
+                newMember.guild,
+                AuditLogEvent.MemberRoleUpdate, // Type for role changes
+                newMember.user
+            );
         }
 
         if (removedRoles.size > 0) {
@@ -36,17 +51,23 @@ module.exports = {
                 value: removedRoles.map(role => role.toString()).join(', '),
                 inline: true
             });
+            // Fetch audit log for role change
+            // Prioritize role update audit log if roles changed
+            auditLogEntry = await ModLogManager.getAuditLogEntry(
+                newMember.guild,
+                AuditLogEvent.MemberRoleUpdate, // Type for role changes
+                newMember.user
+            );
         }
 
         // Check timeout changes
         if (oldMember.communicationDisabledUntil !== newMember.communicationDisabledUntil) {
-            const eventType = newMember.communicationDisabledUntil ? 'memberTimeout' : 'memberUpdate';
-            
             if (newMember.communicationDisabledUntil) {
                 // Member was timed out
-                const auditLogEntry = await ModLogManager.getAuditLogEntry(
-                    newMember.guild, 
-                    AuditLogEvent.MemberUpdate, 
+                eventType = 'memberTimeout'; // Specific event type for timeout
+                auditLogEntry = await ModLogManager.getAuditLogEntry(
+                    newMember.guild,
+                    AuditLogEvent.MemberUpdate, // Type for timeout
                     newMember.user
                 );
 
@@ -73,13 +94,8 @@ module.exports = {
                     thumbnail: newMember.user.displayAvatarURL({ dynamic: true })
                 };
 
-                if (auditLogEntry) {
+                if (auditLogEntry?.reason) {
                     embed.fields.push(
-                        {
-                            name: '👮 Timed Out By',
-                            value: ModLogManager.formatUser(auditLogEntry.executor),
-                            inline: true
-                        },
                         {
                             name: '📝 Reason',
                             value: auditLogEntry.reason || 'No reason provided',
@@ -88,8 +104,8 @@ module.exports = {
                     );
                 }
 
-                await ModLogManager.logEvent(newMember.guild, eventType, embed);
-                return;
+                await ModLogManager.logEvent(newMember.guild, eventType, embed, auditLogEntry?.executor);
+                return; // Return early as timeout is a distinct event
             } else if (oldMember.communicationDisabledUntil) {
                 // Timeout was removed
                 changes.push({
@@ -97,18 +113,17 @@ module.exports = {
                     value: '**Before:** Timed out\n**After:** Timeout removed',
                     inline: true
                 });
+                // For timeout removal, we still look for MemberUpdate audit log
+                auditLogEntry = await ModLogManager.getAuditLogEntry(
+                    newMember.guild,
+                    AuditLogEvent.MemberUpdate,
+                    newMember.user
+                );
             }
         }
 
         // Only log if there are changes to log
         if (changes.length === 0) return;
-
-        // Try to get audit log info for other changes
-        const auditLogEntry = await ModLogManager.getAuditLogEntry(
-            newMember.guild, 
-            AuditLogEvent.MemberUpdate, 
-            newMember.user
-        );
 
         const embed = {
             title: 'Member Updated',
@@ -129,22 +144,14 @@ module.exports = {
             thumbnail: newMember.user.displayAvatarURL({ dynamic: true })
         };
 
-        if (auditLogEntry) {
+        if (auditLogEntry?.reason) {
             embed.fields.push({
-                name: '👮 Updated By',
-                value: ModLogManager.formatUser(auditLogEntry.executor),
+                name: '📝 Reason',
+                value: auditLogEntry.reason,
                 inline: true
             });
-
-            if (auditLogEntry.reason) {
-                embed.fields.push({
-                    name: '📝 Reason',
-                    value: auditLogEntry.reason,
-                    inline: true
-                });
-            }
         }
 
-        await ModLogManager.logEvent(newMember.guild, 'memberUpdate', embed);
+        await ModLogManager.logEvent(newMember.guild, eventType, embed, auditLogEntry?.executor);
     }
 };

@@ -59,22 +59,14 @@ module.exports = {
             });
         }
 
-        if (auditLogEntry && auditLogEntry.executor.id !== message.author?.id) {
+        if (auditLogEntry?.executor.id !== message.author?.id && auditLogEntry?.reason) {
             embed.fields.push({
-                name: '👮 Deleted By',
-                value: ModLogManager.formatUser(auditLogEntry.executor),
+                name: '📝 Reason',
+                value: auditLogEntry.reason,
                 inline: true
             });
-
-            if (auditLogEntry.reason) {
-                embed.fields.push({
-                    name: '📝 Reason',
-                    value: auditLogEntry.reason,
-                    inline: true
-                });
-            }
         }
 
-        await ModLogManager.logEvent(message.guild, 'messageDelete', embed);
+        await ModLogManager.logEvent(message.guild, 'messageDelete', embed, auditLogEntry?.executor);
     }
 };
