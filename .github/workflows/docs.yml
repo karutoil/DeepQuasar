@@ -29,4 +29,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/.vitepress/dist # The directory where VitePress builds the site
-          cname: docs.deepquasar.com # Optional: If you have a custom domain
+          #cname: docs.deepquasar.com # Optional: If you have a custom domain
