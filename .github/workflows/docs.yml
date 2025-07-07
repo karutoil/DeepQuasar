@@ -16,17 +16,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Use a Node.js version compatible with VitePress
+          node-version: '20' # Use a Node.js version compatible with Starlight
 
       - name: Install dependencies
         run: npm install
+        working-directory: ./docs-starlight
 
-      - name: Build VitePress site
-        run: npm run docs:build
+      - name: Build Starlight site
+        run: npm run build
+        working-directory: ./docs-starlight
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/.vitepress/dist # The directory where VitePress builds the site
+          publish_dir: docs-starlight/dist # The directory where Starlight builds the site
           #cname: docs.deepquasar.com # Optional: If you have a custom domain
