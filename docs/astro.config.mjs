@@ -96,8 +96,9 @@ export default defineConfig({
 							label: 'TempVC Commands',
 							collapsed: true,
 							items: [
-								{ label: 'tempvc-list', link: '/commands/tempvc-list' },
 								{ label: 'vc', link: '/commands/vc' },
+								{ label: 'tempvc', link: '/commands/tempvc' },
+								{ label: 'tempvc-list', link: '/commands/tempvc-list' },
 							],
 						},
 						{
