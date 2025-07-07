@@ -81,6 +81,9 @@ ecosystem.config.js
 # Docker
 .docker/
 
+# Astro generated files
+.astro/
+
 # VitePress generated files
 docs/.vitepress/dist/
 docs/.vitepress/.temp/
