@@ -137,7 +137,7 @@ const tempVCSchema = new mongoose.Schema({
         panelStyle: {
             type: String,
             enum: ['buttons', 'select', 'both'],
-            default: 'buttons'
+            default: 'select'
         }
     }
 }, {
