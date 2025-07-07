@@ -80,3 +80,8 @@ ecosystem.config.js
 
 # Docker
 .docker/
+
+# VitePress generated files
+docs/.vitepress/dist/
+docs/.vitepress/.temp/
+docs/.vitepress/cache/

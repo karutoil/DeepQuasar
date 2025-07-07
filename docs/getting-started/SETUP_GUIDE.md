@@ -79,7 +79,7 @@ This guide will walk you through setting up your own Discord Music & AI Bot from
 
 4. **Configure Environment Variables**
    Edit `.env` file with your details:
-   ```env
+   ```sh
    # Discord
    DISCORD_TOKEN=your_bot_token_here
    CLIENT_ID=your_bot_client_id_here

@@ -61,13 +61,13 @@ npm run test:chatbot && npm run test:structure && npm run test:youtube
 
 ### Environment Variables
 Most tests require these environment variables:
-```env
+```sh
 DISCORD_TOKEN=your_discord_bot_token
 MONGODB_URI=mongodb://localhost:27017/discord-music-bot
 ```
 
 ### Optional for API Tests
-```env
+```sh
 OPENAI_API_KEY=your_openai_key
 TEST_API_KEY=your_test_api_key
 TEST_API_URL=https://api.example.com/v1

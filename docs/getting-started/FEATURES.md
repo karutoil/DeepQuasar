@@ -232,7 +232,7 @@ Create professional Discord embeds with an interactive interface:
 - **Template System**: Save and reuse embed designs
 
 **Perfect for**: Announcements, rules, welcome messages, information panels
-**Learn More**: [Complete Embed Builder Guide](EMBED_BUILDER.md)
+**Learn More**: [Complete Embed Builder Guide](../features/content-creation/EMBED_BUILDER)
 
 ### Message Cleanup System  
 Powerful message management and channel cleanup:
@@ -242,7 +242,7 @@ Powerful message management and channel cleanup:
 - **`/cleanup all <channel>`** - Complete channel reset (⚠️ destructive)
 
 **Perfect for**: Spam removal, bot command cleanup, channel maintenance
-**Learn More**: [Complete Cleanup System Guide](CLEANUP_SYSTEM.md)
+**Learn More**: [Complete Cleanup System Guide](../features/content-creation/CLEANUP_SYSTEM.md)
 
 ---
 
