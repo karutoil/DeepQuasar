@@ -76,7 +76,7 @@ function main() {
             .sort((a, b) => a.name.localeCompare(b.name));
         output += generateMarkdownTable(commands) + '\n';
     });
-    fs.writeFileSync('COMMANDS.md', output);
+    fs.writeFileSync('/root/dev/dq/DeepQuasar/docs-starlight/src/content/docs/COMMANDS.md', output);
     console.log('COMMANDS.md generated!');
 }
 
