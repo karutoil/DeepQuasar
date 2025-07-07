@@ -46,4 +46,4 @@ There are several ways to use the `help` command:
 
 ## Related Advanced Guide Sections
 
-*   [All Commands](/commands)
+*   [All Commands](/DeepQuasar/commands)
