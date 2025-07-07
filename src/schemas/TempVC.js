@@ -25,6 +25,40 @@ const tempVCSchema = new mongoose.Schema({
         default: null
     },
     
+    // Overflow categories for when main category is full
+    overflowCategories: [{
+        categoryId: {
+            type: String,
+            required: true
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now
+        },
+        channelCount: {
+            type: Number,
+            default: 0
+        }
+    }],
+    
+    // Overflow settings
+    overflowSettings: {
+        maxOverflowCategories: {
+            type: Number,
+            default: 5,
+            min: 1,
+            max: 10
+        },
+        namingPattern: {
+            type: String,
+            default: '{name} ({number})'
+        },
+        autoCleanup: {
+            type: Boolean,
+            default: true
+        }
+    },
+    
     // Default channel settings
     defaultSettings: {
         channelName: {

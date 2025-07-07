@@ -9,6 +9,7 @@ class TempVCManager {
         this.client = client;
         this.cooldowns = new Map();
         this.activeCreations = new Set();
+        this.DISCORD_CATEGORY_LIMIT = 50; // Discord's channel limit per category
         
         // Initialize control handlers
         const TempVCControlHandlers = require('./TempVCControlHandlers');
@@ -194,10 +195,24 @@ class TempVCManager {
         this.activeCreations.add(userId);
 
         try {
-            const category = guild.channels.cache.get(config.tempVCCategoryId);
+            let category = guild.channels.cache.get(config.tempVCCategoryId);
             if (!category) {
                 this.client.logger.error(`Temp VC category not found: ${config.tempVCCategoryId}`);
                 return;
+            }
+
+            // Check category capacity and create overflow if needed
+            const capacityCheck = await this.checkCategoryCapacity(guild, config.tempVCCategoryId);
+            
+            if (capacityCheck.needsNewCategory) {
+                this.client.logger.warn(`Category ${category.name} is at capacity (${capacityCheck.currentCount}/${capacityCheck.maxCount}), creating overflow category...`);
+                
+                try {
+                    category = await this.createOverflowCategory(guild, category, config);
+                } catch (error) {
+                    this.client.logger.error('Failed to create overflow category, attempting to use existing category:', error);
+                    // Fall back to original category - let Discord handle the limit
+                }
             }
 
             // Get user activity
@@ -220,6 +235,16 @@ class TempVCManager {
                 hidden: config.defaultSettings.hidden,
                 region: config.defaultSettings.region
             };
+
+            // Check if category is at capacity
+            const categoryCapacity = await this.checkCategoryCapacity(guild, category.id);
+            if (categoryCapacity.needsNewCategory) {
+                // Create a new overflow category
+                const newCategory = await this.createOverflowCategory(guild, category, config);
+                
+                // Update category to new overflow category
+                category = newCategory;
+            }
 
             // Create the channel
             const tempChannel = await guild.channels.create({
@@ -970,6 +995,10 @@ class TempVCManager {
                 const guilds = await TempVC.find({ enabled: true });
                 
                 for (const config of guilds) {
+                    const guild = this.client.guilds.cache.get(config.guildId);
+                    if (!guild) continue;
+
+                    // Clean up inactive channels
                     const inactiveChannels = await TempVCInstance.findInactiveChannels(config.guildId, 1);
                     
                     for (const instance of inactiveChannels) {
@@ -977,6 +1006,9 @@ class TempVCManager {
                             await this.deleteTempChannel(instance);
                         }
                     }
+
+                    // Clean up empty overflow categories
+                    await this.cleanupOverflowCategories(guild, config);
                 }
             } catch (error) {
                 this.client.logger.error('Error in cleanup task:', error);
@@ -1042,6 +1074,129 @@ class TempVCManager {
         } catch (error) {
             this.client.logger.error('Error logging channel creation:', error);
         }
+    }
+
+    /**
+     * Check if category is approaching or at capacity
+     */
+    async checkCategoryCapacity(guild, categoryId) {
+        const category = guild.channels.cache.get(categoryId);
+        if (!category) return { hasSpace: false, needsNewCategory: true };
+
+        const channelsInCategory = guild.channels.cache.filter(channel => 
+            channel.parentId === categoryId && channel.type === ChannelType.GuildVoice
+        ).size;
+
+        return {
+            hasSpace: channelsInCategory < this.DISCORD_CATEGORY_LIMIT,
+            needsNewCategory: channelsInCategory >= this.DISCORD_CATEGORY_LIMIT - 1, // Leave 1 slot buffer
+            currentCount: channelsInCategory,
+            maxCount: this.DISCORD_CATEGORY_LIMIT
+        };
+    }
+
+    /**
+     * Create a new overflow category for temp VCs
+     */
+    async createOverflowCategory(guild, originalCategory, config) {
+        const overflowNumber = await this.getNextOverflowNumber(guild, originalCategory.name);
+        const newCategoryName = `${originalCategory.name} (${overflowNumber})`;
+
+        try {
+            const newCategory = await guild.channels.create({
+                name: newCategoryName,
+                type: ChannelType.GuildCategory,
+                permissionOverwrites: originalCategory.permissionOverwrites.cache.map(overwrite => ({
+                    id: overwrite.id,
+                    type: overwrite.type,
+                    allow: overwrite.allow.bitfield,
+                    deny: overwrite.deny.bitfield
+                })),
+                position: originalCategory.position + 1
+            });
+
+            // Update config to use new category as primary
+            config.tempVCCategoryId = newCategory.id;
+            config.overflowCategories = config.overflowCategories || [];
+            config.overflowCategories.push({
+                categoryId: newCategory.id,
+                createdAt: new Date(),
+                channelCount: 0
+            });
+            // Save without validation to allow overflowSettings beyond schema limits
+            await config.save({ validateBeforeSave: false });
+
+            this.client.logger.info(`Created overflow category: ${newCategoryName} (${newCategory.id})`);
+            return newCategory;
+        } catch (error) {
+            this.client.logger.error('Failed to create overflow category:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get the next overflow number for category naming
+     */
+    async getNextOverflowNumber(guild, baseName) {
+        const existingOverflows = guild.channels.cache.filter(channel => 
+            channel.type === ChannelType.GuildCategory && 
+            channel.name.startsWith(baseName)
+        );
+
+        let maxNumber = 1;
+        existingOverflows.forEach(category => {
+            const match = category.name.match(/\((\d+)\)$/);
+            if (match) {
+                const number = parseInt(match[1]);
+                if (number > maxNumber) {
+                    maxNumber = number;
+                }
+            }
+        });
+
+        return maxNumber + 1;
+    }
+
+    /**
+     * Clean up empty overflow categories
+     */
+    async cleanupOverflowCategories(guild, config) {
+        if (!config.overflowCategories || config.overflowCategories.length === 0) return;
+
+        for (const categoryData of config.overflowCategories) {
+            const category = guild.channels.cache.get(categoryData.categoryId);
+            if (!category) {
+                // Category doesn't exist anymore, remove from config
+                config.overflowCategories = config.overflowCategories.filter(
+                    cat => cat.categoryId !== categoryData.categoryId
+                );
+                continue;
+            }
+
+            const channelsInCategory = guild.channels.cache.filter(channel => 
+                channel.parentId === categoryData.categoryId && channel.type === ChannelType.GuildVoice
+            ).size;
+
+            // If category is empty and it's not the main category, delete it
+            if (channelsInCategory === 0 && categoryData.categoryId !== config.tempVCCategoryId) {
+                try {
+                    await category.delete('Empty overflow category cleanup');
+                    this.client.logger.info(`Deleted empty overflow category: ${category.name}`);
+                    
+                    // Remove from config
+                    config.overflowCategories = config.overflowCategories.filter(
+                        cat => cat.categoryId !== categoryData.categoryId
+                    );
+                } catch (error) {
+                    this.client.logger.error('Failed to delete empty overflow category:', error);
+                }
+            } else {
+                // Update channel count in config
+                categoryData.channelCount = channelsInCategory;
+            }
+        }
+
+        await config.save();
     }
 }
 

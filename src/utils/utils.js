@@ -202,7 +202,7 @@ class Utils {
         const guildData = await this.getGuildData(interaction.guildId);
 
         // Bot owner always has permission
-        if (interaction.client.config.bot.owners.includes(interaction.user.id)) {
+        if (interaction.client.application.owner?.id === interaction.user.id) {
             return { hasPermission: true };
         }
 
@@ -483,8 +483,7 @@ class Utils {
      * Check if user is bot owner
      */
     static isBotOwner(interaction) {
-        const config = require('../config/bot');
-        return config.bot.owners.includes(interaction.user.id);
+        return interaction.client.application.owner.id === interaction.user.id;
     }
 
     /**
