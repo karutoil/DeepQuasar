@@ -9,7 +9,7 @@ services:
     environment:
       MONGO_INITDB_DATABASE: discord-music-bot
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       # Create named volumes for better persistence
       - mongodb_data:/data/db
@@ -40,7 +40,7 @@ services:
       - YOUTUBE_REFRESH_TOKEN=${YOUTUBE_REFRESH_TOKEN:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
-      - "2333:2333"
+      - "127.0.0.1:2333:2333"
     volumes:
       # Link Lavalink config and plugins directly to host filesystem
       - ./lavalink/application.yml:/opt/Lavalink/application.yml:rw
