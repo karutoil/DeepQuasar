@@ -1,3 +1,4 @@
+const { ActivityType } = require('discord.js');
 const Utils = require('../utils/utils');
 const WelcomeSystem = require('../utils/WelcomeSystem');
 
@@ -22,7 +23,7 @@ module.exports = {
             await sendWelcomeMessage(guild, client);
 
             // Update bot activity
-            client.user.setActivity(`${client.guilds.cache.size} servers`, { type: 'WATCHING' });
+            client.user.setActivity(`${client.guilds.cache.size} servers`, { type: ActivityType.Watching });
 
         } catch (error) {
             client.logger.error(`Error handling guildCreate for ${guild.name}:`, error);

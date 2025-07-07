@@ -1,3 +1,4 @@
+const { ActivityType } = require('discord.js');
 const Guild = require('../schemas/Guild');
 
 module.exports = {
@@ -25,7 +26,7 @@ module.exports = {
             }
 
             // Update bot activity
-            client.user.setActivity(`${client.guilds.cache.size} servers`, { type: 'WATCHING' });
+            client.user.setActivity(`${client.guilds.cache.size} servers`, { type: ActivityType.Watching });
 
         } catch (error) {
             client.logger.error(`Error handling guildDelete for ${guild.name}:`, error);

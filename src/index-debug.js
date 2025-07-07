@@ -261,7 +261,7 @@ class MusicBot {
             logger.info('Bot started successfully');
 
             // Set bot activity
-            this.client.user.setActivity('🎵 Music for everyone!', { type: ActivityType.Listening });
+            this.client.user.setActivity('🔧 Debug mode - Starting up...', { type: ActivityType.Playing });
 
             // Setup chatbot cleanup interval (every 5 minutes)
             setInterval(() => {

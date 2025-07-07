@@ -269,6 +269,14 @@ class MusicPlayerManager {
     }
 
     /**
+     * Get the count of active players
+     * @returns {number} Number of active players
+     */
+    getPlayerCount() {
+        return this.getAllPlayers().size;
+    }
+
+    /**
      * Destroy all players
      */
     async destroyAllPlayers() {

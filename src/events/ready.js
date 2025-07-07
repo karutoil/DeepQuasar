@@ -31,10 +31,15 @@ module.exports = {
 
         // Set bot status
         const activities = [
-            { name: '🎵 Music for everyone!', type: ActivityType.Listening },
+            { name: '🎵 Music from YouTube & Spotify', type: ActivityType.Listening },
             { name: `${client.guilds.cache.size} servers`, type: ActivityType.Watching },
-            { name: 'slash commands', type: ActivityType.Listening },
-            { name: 'your favorite songs', type: ActivityType.Playing }
+            { name: `${client.users.cache.size} users`, type: ActivityType.Watching },
+            { name: '🤖 AI conversations', type: ActivityType.Listening },
+            { name: '🎫 Support tickets', type: ActivityType.Playing },
+            { name: '🔊 Temp voice channels', type: ActivityType.Playing },
+            { name: '🛡️ Server moderation', type: ActivityType.Watching },
+            { name: '⚙️ Auto-roles & welcome messages', type: ActivityType.Playing },
+            { name: '/help for commands', type: ActivityType.Listening }
         ];
 
         let activityIndex = 0;
@@ -105,22 +110,26 @@ function startPeriodicTasks(client) {
     }, 24 * 60 * 60 * 1000);
 }
 
-function cleanupInactivePlayers(client) {
+async function cleanupInactivePlayers(client) {
     const players = client.musicPlayerManager.getAllPlayers();
     let cleanedCount = 0;
 
-    players.forEach(async (player) => {
+    for (const [guildId, player] of players) {
         // Remove players that have been inactive for more than 10 minutes
-        if (!player.isPlaying && !player.isPaused && player.size === 0) {
+        if (!player.playing && !player.paused && player.queue.size === 0) {
             const lastActivity = player.lastActivity || Date.now();
             const inactiveTime = Date.now() - lastActivity;
             
             if (inactiveTime > 10 * 60 * 1000) { // 10 minutes
-                await client.musicPlayerManager.destroy(player.guildId);
-                cleanedCount++;
+                try {
+                    await player.destroy();
+                    cleanedCount++;
+                } catch (error) {
+                    client.logger.error(`Error destroying inactive player for guild ${guildId}:`, error);
+                }
             }
         }
-    });
+    }
 
     if (cleanedCount > 0) {
         client.logger.info(`Cleaned up ${cleanedCount} inactive players`);
