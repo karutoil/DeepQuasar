@@ -288,6 +288,16 @@ const guildSchema = new mongoose.Schema({
             mentionUser: {
                 type: Boolean,
                 default: true
+            },
+            customEmbed: {
+                enabled: {
+                    type: Boolean,
+                    default: false
+                },
+                embedData: {
+                    type: Object,
+                    default: null
+                }
             }
         },
         leave: {
@@ -326,6 +336,16 @@ const guildSchema = new mongoose.Schema({
             deleteAfter: {
                 type: Number,
                 default: 0 // 0 means don't delete
+            },
+            customEmbed: {
+                enabled: {
+                    type: Boolean,
+                    default: false
+                },
+                embedData: {
+                    type: Object,
+                    default: null
+                }
             }
         },
         dmWelcome: {
@@ -344,6 +364,16 @@ const guildSchema = new mongoose.Schema({
             embedColor: {
                 type: String,
                 default: '#5865F2'
+            },
+            customEmbed: {
+                enabled: {
+                    type: Boolean,
+                    default: false
+                },
+                embedData: {
+                    type: Object,
+                    default: null
+                }
             }
         }
     },

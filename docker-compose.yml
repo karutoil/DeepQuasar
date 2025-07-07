@@ -11,10 +11,9 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      # Link MongoDB data directly to host filesystem for easy backup
-      - ./data/mongodb:/data/db
-      - ./data/mongodb-config:/data/configdb
-      - ./Docker/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      # Create named volumes for better persistence
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
     networks:
       - discord-bot-network
     healthcheck:
@@ -108,4 +107,10 @@ networks:
   discord-bot-network:
     driver: bridge
 
-# Note: No named volumes - everything is linked to host filesystem for easy backup
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+# Named volumes ensure data persistence across container restarts

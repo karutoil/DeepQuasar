@@ -224,19 +224,22 @@ class EmbedBuilderHandler {
                     updateSuccess = true;
                     break;
 
-                case 'edit_field':
-                    const editIndex = parseInt(interaction.customId.split('_').pop());
-                    // Ensure fields array exists
-                    if (!Array.isArray(session.embedData.fields)) {
-                        session.embedData.fields = [];
-                    }
-                    if (editIndex >= 0 && editIndex < session.embedData.fields.length) {
-                        session.embedData.fields[editIndex] = {
-                            name: interaction.fields.getTextInputValue('field_name'),
-                            value: interaction.fields.getTextInputValue('field_value'),
-                            inline: interaction.fields.getTextInputValue('field_inline')?.toLowerCase() === 'true'
-                        };
-                        updateSuccess = true;
+                default:
+                    // Handle dynamic cases like edit_field_0, edit_field_1, etc.
+                    if (modalType.startsWith('edit_field_')) {
+                        const editIndex = parseInt(modalType.split('_').pop());
+                        // Ensure fields array exists
+                        if (!Array.isArray(session.embedData.fields)) {
+                            session.embedData.fields = [];
+                        }
+                        if (editIndex >= 0 && editIndex < session.embedData.fields.length) {
+                            session.embedData.fields[editIndex] = {
+                                name: interaction.fields.getTextInputValue('field_name'),
+                                value: interaction.fields.getTextInputValue('field_value'),
+                                inline: interaction.fields.getTextInputValue('field_inline')?.toLowerCase() === 'true'
+                            };
+                            updateSuccess = true;
+                        }
                     }
                     break;
 
@@ -373,32 +376,43 @@ class EmbedBuilderHandler {
 
         if (embedData.title) embed.setTitle(embedData.title);
         if (embedData.description) embed.setDescription(embedData.description);
-        if (embedData.url && this.isValidUrl(embedData.url)) embed.setURL(embedData.url);
-        if (embedData.color !== null) embed.setColor(embedData.color);
+        if (embedData.url) {
+            // Only set URL if it's valid and not a placeholder
+            if (this.isValidUrl(embedData.url) && !this.containsPlaceholders(embedData.url)) {
+                embed.setURL(embedData.url);
+            }
+        }
+        if (embedData.color !== null && embedData.color !== undefined) embed.setColor(embedData.color);
         if (embedData.timestamp) embed.setTimestamp();
         
         if (embedData.author?.name) {
             const authorObj = { name: embedData.author.name };
-            if (embedData.author.iconURL && this.isValidImageUrl(embedData.author.iconURL)) {
+            if (embedData.author.iconURL && this.isValidImageUrl(embedData.author.iconURL) && !this.containsPlaceholders(embedData.author.iconURL)) {
                 authorObj.iconURL = embedData.author.iconURL;
             }
-            if (embedData.author.url && this.isValidUrl(embedData.author.url)) {
+            if (embedData.author.url && this.isValidUrl(embedData.author.url) && !this.containsPlaceholders(embedData.author.url)) {
                 authorObj.url = embedData.author.url;
             }
             embed.setAuthor(authorObj);
         }
 
-        if (embedData.thumbnail?.url && this.isValidImageUrl(embedData.thumbnail.url)) {
-            embed.setThumbnail(embedData.thumbnail.url);
+        if (embedData.thumbnail?.url) {
+            // Only set thumbnail if it's a valid URL (not a placeholder)
+            if (this.isValidImageUrl(embedData.thumbnail.url) && !this.containsPlaceholders(embedData.thumbnail.url)) {
+                embed.setThumbnail(embedData.thumbnail.url);
+            }
         }
 
-        if (embedData.image?.url && this.isValidImageUrl(embedData.image.url)) {
-            embed.setImage(embedData.image.url);
+        if (embedData.image?.url) {
+            // Only set image if it's a valid URL (not a placeholder)
+            if (this.isValidImageUrl(embedData.image.url) && !this.containsPlaceholders(embedData.image.url)) {
+                embed.setImage(embedData.image.url);
+            }
         }
 
         if (embedData.footer?.text) {
             const footerObj = { text: embedData.footer.text };
-            if (embedData.footer.iconURL && this.isValidImageUrl(embedData.footer.iconURL)) {
+            if (embedData.footer.iconURL && this.isValidImageUrl(embedData.footer.iconURL) && !this.containsPlaceholders(embedData.footer.iconURL)) {
                 footerObj.iconURL = embedData.footer.iconURL;
             }
             embed.setFooter(footerObj);
@@ -746,6 +760,29 @@ class EmbedBuilderHandler {
     }
 
     /**
+     * Clear session data for a user
+     */
+    clearSession(userId) {
+        if (this.sessions.has(userId)) {
+            this.sessions.delete(userId);
+        }
+    }
+
+    /**
+     * Reset session data for a user (keeps session but resets embed data)
+     */
+    resetSession(userId) {
+        if (this.sessions.has(userId)) {
+            const session = this.sessions.get(userId);
+            session.embedData = this.createEmptyEmbedData();
+            session.messageContent = '';
+            session.lastActivity = Date.now();
+            // Keep messageRef and other context but clear embed data
+            delete session.welcomeContext;
+        }
+    }
+
+    /**
      * Clean embed data by removing null/empty values
      */
     cleanEmbedData(embedData) {
@@ -827,6 +864,11 @@ class EmbedBuilderHandler {
      * Validate URL
      */
     isValidUrl(string) {
+        // Empty strings are valid (no URL provided)
+        if (!string || string.trim() === '') return true;
+        // Allow placeholders in URLs
+        if (this.containsPlaceholders(string)) return true;
+        
         try {
             const url = new URL(string);
             return url.protocol === 'http:' || url.protocol === 'https:';
@@ -839,8 +881,30 @@ class EmbedBuilderHandler {
      * Validate image URL
      */
     isValidImageUrl(string) {
+        // Empty strings are valid (no image URL provided)
+        if (!string || string.trim() === '') return true;
+        // Allow placeholders in image URLs
+        if (this.containsPlaceholders(string)) return true;
+        // 'None' is not a valid URL
+        if (string === 'None') return false;
+        
         if (!this.isValidUrl(string)) return false;
-        return /\.(png|jpg|jpeg|gif|webp)$/i.test(string);
+        
+        // Allow Discord CDN URLs (they don't always have file extensions)
+        if (string.includes('cdn.discordapp.com') || string.includes('media.discordapp.net')) {
+            return true;
+        }
+        
+        // For other URLs, check for image file extensions
+        return /\.(png|jpg|jpeg|gif|webp)(\?.*)?$/i.test(string);
+    }
+
+    /**
+     * Check if string contains placeholder patterns
+     */
+    containsPlaceholders(string) {
+        // Check if string contains any placeholder patterns like {user.avatar}, {guild.icon}, etc.
+        return /\{[a-zA-Z_][a-zA-Z0-9_.]*\}/.test(string);
     }
 }
 

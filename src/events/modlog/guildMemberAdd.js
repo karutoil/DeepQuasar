@@ -1,14 +1,10 @@
 const { Events, AuditLogEvent } = require('discord.js');
 const ModLogManager = require('../../utils/ModLogManager');
-const WelcomeSystem = require('../../utils/WelcomeSystem');
 
 module.exports = {
     name: Events.GuildMemberAdd,
     async execute(member) {
-        // Handle welcome system first
-        await WelcomeSystem.handleMemberJoin(member, member.client);
-
-        // Then handle modlog
+        // Handle modlog for member join
         const embed = {
             title: 'Member Joined',
             description: `${member.user.tag} joined the server`,

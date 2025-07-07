@@ -21,10 +21,19 @@ A comprehensive welcome and leave message system for Discord bots with detailed 
 
 ### Advanced Features
 - 🔧 Flexible placeholder system for messages
+- 🎨 **Custom Embed Builder** with interactive interface
 - ⚙️ Per-server configuration
 - 🛡️ Permission-based command access
 - 🧪 Test functionality for setup validation
 - 📦 Database-driven configuration storage
+
+### Custom Embed Features
+- 🖌️ **Interactive Embed Builder** - Design custom embeds with live preview
+- 🔧 **Advanced Placeholders** - Extended placeholder system with additional options
+- 📝 **Rich Content** - Support for titles, descriptions, fields, images, and more
+- 🎯 **Context-Aware** - Different placeholders available for welcome vs. leave messages
+- 💾 **Easy Management** - Save, edit, or disable custom embeds anytime
+- 🔍 **Live Preview** - See exactly how your embed will look before saving
 
 ## Commands
 
@@ -93,6 +102,32 @@ Fine-tune leave message appearance and behavior.
 - `show-time-in-server` - Display time spent in server (true/false)
 - `delete-after` - Auto-delete message after X seconds (0 = never)
 
+### Custom Embed Commands
+
+#### `/welcome custom welcome`
+Launch the interactive custom welcome embed builder.
+
+**Features:**
+- 🎨 Visual embed designer with live preview
+- 📝 Rich text editing for title, description, fields
+- 🖼️ Image and thumbnail support
+- 🎯 Advanced placeholder system
+- 💾 Save and manage custom designs
+
+#### `/welcome custom leave`
+Create custom leave message embeds with the interactive builder.
+
+#### `/welcome custom dm`
+Design custom DM welcome embeds for private messages.
+
+**Custom Embed Builder Interface:**
+- **Title & Description** - Main embed content
+- **Author & Footer** - Additional branding sections
+- **Fields** - Organized information blocks (up to 25)
+- **Images** - Thumbnail and main image support
+- **Colors** - Custom color themes
+- **Placeholders** - Context-aware variable replacement
+
 ### Utility Commands
 
 #### `/welcome status`
@@ -115,17 +150,39 @@ View all available message placeholders and examples.
 - `{user.username}` - Username only
 - `{user.displayName}` - Display name in server
 - `{user.id}` - User ID
+- `{user.avatar}` - User avatar URL
+- `{user.banner}` - User banner URL
 
 ### Server Placeholders
 - `{guild.name}` - Server name
 - `{guild.memberCount}` - Current member count
 - `{guild.id}` - Server ID
+- `{guild.icon}` - Server icon URL
+- `{guild.banner}` - Server banner URL
+- `{guild.description}` - Server description
+- `{guild.boostLevel}` - Server boost level
+- `{guild.boostCount}` - Number of server boosts
+
+### Time Placeholders
+- `{time}` - Current time (formatted)
+- `{date}` - Current date (formatted)
+- `{timestamp}` - Discord timestamp (long format)
+- `{timestamp.short}` - Discord timestamp (short format)
+- `{account.created}` - Account creation timestamp
 
 ### Invite Placeholders (Welcome only)
 - `{inviter.tag}` - Who invited the user
 - `{inviter.mention}` - Mention who invited
 - `{invite.code}` - Invite code used
 - `{invite.uses}` - Number of times invite was used
+
+### Extended Placeholders
+- `{account.age}` - Account creation date (human-readable)
+- `{join.position}` - Member join position (#123)
+- `{join.date}` - When user joined server (timestamp)
+- `{time.in.server}` - Time spent in server (leave only)
+
+**Note:** All placeholders are available in both standard messages and custom embeds. Extended placeholders provide enhanced formatting and additional context.
 
 ## Example Configurations
 
@@ -150,6 +207,17 @@ View all available message placeholders and examples.
 ### DM Welcome
 ```
 /welcome setup dm enabled:true message:Welcome to {guild.name}! 🎉 Please read our rules and have fun!
+```
+
+### Custom Embed Welcome
+```
+/welcome custom welcome
+# Use the interactive builder to create a custom embed with:
+# - Title: "🎉 Welcome to {guild.name}!"
+# - Description: "Hello {user.mention}! You're member #{guild.memberCount}"
+# - Fields for account age, join position, and inviter info
+# - Custom colors and images
+# - Advanced placeholder support
 ```
 
 ## Permissions

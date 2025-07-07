@@ -1,5 +1,24 @@
 const mongoose = require('mongoose');
 
+// Helper function to check if a string contains placeholders
+function containsPlaceholders(string) {
+    return /\{[a-zA-Z_][a-zA-Z0-9_.]*\}/.test(string);
+}
+
+// Validator for URLs that allows placeholders
+function validateUrl(v) {
+    if (!v) return true;
+    if (containsPlaceholders(v)) return true;
+    return /^https?:\/\/.+/.test(v);
+}
+
+// Validator for image URLs that allows placeholders
+function validateImageUrl(v) {
+    if (!v) return true;
+    if (containsPlaceholders(v)) return true;
+    return /^https?:\/\/.+\.(png|jpg|jpeg|gif|webp)$/i.test(v);
+}
+
 const EmbedTemplateSchema = new mongoose.Schema({
     guildId: {
         type: String,
@@ -53,10 +72,7 @@ const EmbedTemplateSchema = new mongoose.Schema({
             maxlength: 500,
             trim: true,
             validate: {
-                validator: function(v) {
-                    if (!v) return true;
-                    return /^https?:\/\/.+/.test(v);
-                },
+                validator: validateUrl,
                 message: 'URL must be a valid HTTP/HTTPS URL'
             }
         },
@@ -80,10 +96,7 @@ const EmbedTemplateSchema = new mongoose.Schema({
                 maxlength: 500,
                 trim: true,
                 validate: {
-                    validator: function(v) {
-                        if (!v) return true;
-                        return /^https?:\/\/.+\.(png|jpg|jpeg|gif|webp)$/i.test(v);
-                    },
+                    validator: validateImageUrl,
                     message: 'Icon URL must be a valid image URL'
                 }
             },
@@ -92,10 +105,7 @@ const EmbedTemplateSchema = new mongoose.Schema({
                 maxlength: 500,
                 trim: true,
                 validate: {
-                    validator: function(v) {
-                        if (!v) return true;
-                        return /^https?:\/\/.+/.test(v);
-                    },
+                    validator: validateUrl,
                     message: 'URL must be a valid HTTP/HTTPS URL'
                 }
             }
@@ -106,10 +116,7 @@ const EmbedTemplateSchema = new mongoose.Schema({
                 maxlength: 500,
                 trim: true,
                 validate: {
-                    validator: function(v) {
-                        if (!v) return true;
-                        return /^https?:\/\/.+\.(png|jpg|jpeg|gif|webp)$/i.test(v);
-                    },
+                    validator: validateImageUrl,
                     message: 'Thumbnail URL must be a valid image URL'
                 }
             }
@@ -120,10 +127,7 @@ const EmbedTemplateSchema = new mongoose.Schema({
                 maxlength: 500,
                 trim: true,
                 validate: {
-                    validator: function(v) {
-                        if (!v) return true;
-                        return /^https?:\/\/.+\.(png|jpg|jpeg|gif|webp)$/i.test(v);
-                    },
+                    validator: validateImageUrl,
                     message: 'Image URL must be a valid image URL'
                 }
             }
@@ -139,10 +143,7 @@ const EmbedTemplateSchema = new mongoose.Schema({
                 maxlength: 500,
                 trim: true,
                 validate: {
-                    validator: function(v) {
-                        if (!v) return true;
-                        return /^https?:\/\/.+\.(png|jpg|jpeg|gif|webp)$/i.test(v);
-                    },
+                    validator: validateImageUrl,
                     message: 'Footer icon URL must be a valid image URL'
                 }
             }

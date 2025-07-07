@@ -1,13 +1,9 @@
 const { Events, AuditLogEvent } = require('discord.js');
 const ModLogManager = require('../../utils/ModLogManager');
-const WelcomeSystem = require('../../utils/WelcomeSystem');
 
 module.exports = {
     name: Events.GuildMemberRemove,
     async execute(member) {
-        // Handle welcome system first
-        await WelcomeSystem.handleMemberLeave(member, member.client);
-
         // Check if it was a kick or leave
         const auditLogEntry = await ModLogManager.getAuditLogEntry(
             member.guild, 

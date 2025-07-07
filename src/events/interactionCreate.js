@@ -195,8 +195,25 @@ async function handleButtonInteraction(interaction, client) {
     try {
         // Handle embed builder buttons
         if (customId.startsWith('embed_')) {
-            // This is handled in the embed builder command itself
-            return;
+            const embedCommand = client.commands.get('embed');
+            if (embedCommand && typeof embedCommand.handleBuilderInteraction === 'function') {
+                await embedCommand.handleBuilderInteraction(interaction);
+                return;
+            } else {
+                const errorEmbed = Utils.createErrorEmbed(
+                    'Handler Error',
+                    'Embed builder handler is not available.'
+                );
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return;
+            }
+        }
+
+        // Handle welcome embed builder buttons
+        if (customId.startsWith('welcome_embed_')) {
+            const WelcomeEmbedHandler = require('../utils/WelcomeEmbedHandler');
+            const handled = await WelcomeEmbedHandler.handleWelcomeEmbedInteraction(interaction);
+            if (handled) return;
         }
 
         // Handle queue pagination buttons (queue_prev_X, queue_next_X)
@@ -310,6 +327,13 @@ async function handleSelectMenuInteraction(interaction, client) {
         // Handle embed builder select menus
         if (customId.startsWith('embed_select_')) {
             const handled = await EmbedBuilderHandler.handleSelectMenu(interaction);
+            if (handled) return;
+        }
+
+        // Handle welcome embed builder select menus
+        if (customId.startsWith('welcome_select_')) {
+            const WelcomeEmbedHandler = require('../utils/WelcomeEmbedHandler');
+            const handled = await WelcomeEmbedHandler.handleWelcomeSelectMenu(interaction);
             if (handled) return;
         }
 
@@ -1195,6 +1219,13 @@ async function handleModalSubmit(interaction, client) {
         // Handle embed builder modals
         if (customId.startsWith('embed_modal_')) {
             const handled = await EmbedBuilderHandler.handleModalSubmit(interaction);
+            if (handled) return;
+        }
+
+        // Handle welcome embed builder modals
+        if (customId.startsWith('welcome_modal_')) {
+            const WelcomeEmbedHandler = require('../utils/WelcomeEmbedHandler');
+            const handled = await WelcomeEmbedHandler.handleWelcomeModalSubmit(interaction);
             if (handled) return;
         }
         
