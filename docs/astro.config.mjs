@@ -12,6 +12,9 @@ export default defineConfig({
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/karutoil/DeepQuasar' },
 				{ icon: 'discord', label: 'Discord', href: 'https://discord.karutoil.site/' }
 			],
+			editLink: {
+				baseUrl: 'https://github.com/karutoil/DeepQuasar/edit/main/docs/',
+			},
 			sidebar: [
 				{
 					label: 'Getting Started',
