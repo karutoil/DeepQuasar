@@ -130,6 +130,12 @@ export default defineConfig({
 						},
 					],
 				},
+				{
+					label: 'DEVELOPER REFERENCE',
+					collapsed: true,
+					// Autogenerate a group of links for the 'constellations' directory.
+					autogenerate: { directory: 'api-reference' },
+				},
 			],
 		}),
 	],
