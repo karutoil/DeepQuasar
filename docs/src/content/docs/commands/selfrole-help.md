@@ -12,10 +12,14 @@ This command provides comprehensive help and guidance for the self-role system. 
 ## How to Use
 
 *   **General Help:** To get a general overview of the self-role system, simply use the command without any options:
-    `/selfrole-help`
+    ```sh
+    /selfrole-help
+    ```
 
 *   **Topic-Specific Help:** To get detailed information on a specific aspect of the self-role system, use the `topic` option and select from the available choices:
-    `/selfrole-help topic:<topic_name>`
+    ```sh
+    /selfrole-help topic:<topic_name>
+    ```
 
 ### Options
 
@@ -33,9 +37,16 @@ This command provides comprehensive help and guidance for the self-role system. 
 
 ## Examples
 
-*   **Get general help for self-roles:** `/selfrole-help`
-*   **Get help on advanced features:** `/selfrole-help topic:advanced-features`
-*   **View examples of self-role setups:** `/selfrole-help topic:examples`
+```sh
+# Get general help for self-roles
+/selfrole-help
+
+# Get help on advanced features
+/selfrole-help topic:advanced-features
+
+# View examples of self-role setups
+/selfrole-help topic:examples
+```
 
 ## Related Advanced Guide Sections
 

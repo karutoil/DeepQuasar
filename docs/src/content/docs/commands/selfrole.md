@@ -38,7 +38,10 @@ Use the `/selfrole` command followed by a subcommand to manage your self-role me
             *   **Description:** A hex color code (e.g., `#ff0000`) for the embed's sidebar. Defaults to a standard blue if not provided.
             *   **Type:** String
             *   **Required:** No
-    *   **Usage:** `/selfrole create channel:#roles title:Pick Your Roles description:Select roles to access different parts of the server. color:#00ff00`
+    *   **Usage:** 
+        ```sh
+        /selfrole create channel:#roles title:"Pick Your Roles" description:"Select roles to access different parts of the server." color:#00ff00
+        ```
 
 *   `add-role`
     *   **Description:** Adds a new role button to an existing self-role message.
@@ -75,7 +78,10 @@ Use the `/selfrole` command followed by a subcommand to manage your self-role me
             *   **Type:** Integer
             *   **Required:** No
             *   **Constraints:** Minimum 0, Maximum 24.
-    *   **Usage:** `/selfrole add-role message-id:123456789012345678 role:@Gamer label:Gamer emoji:🎮 style:Primary description:Access gaming channels.`
+    *   **Usage:** 
+        ```sh
+        /selfrole add-role message-id:123456789012345678 role:@Gamer label:Gamer emoji:🎮 style:Primary description:"Access gaming channels."
+        ```
 
 *   `remove-role`
     *   **Description:** Removes a role button from an existing self-role message.
@@ -88,7 +94,10 @@ Use the `/selfrole` command followed by a subcommand to manage your self-role me
             *   **Description:** The role to remove from the message.
             *   **Type:** Role
             *   **Required:** Yes
-    *   **Usage:** `/selfrole remove-role message-id:123456789012345678 role:@OldRole`
+    *   **Usage:** 
+        ```sh
+        /selfrole remove-role message-id:123456789012345678 role:@OldRole
+        ```
 
 *   `edit`
     *   **Description:** Modifies the title, description, or color of an existing self-role message.
@@ -111,7 +120,10 @@ Use the `/selfrole` command followed by a subcommand to manage your self-role me
             *   **Description:** The new hex color code for the embed.
             *   **Type:** String
             *   **Required:** No
-    *   **Usage:** `/selfrole edit message-id:123456789012345678 title:Updated Roles description:New description here. color:#FF00FF`
+    *   **Usage:** 
+        ```sh
+        /selfrole edit message-id:123456789012345678 title:"Updated Roles" description:"New description here." color:#FF00FF
+        ```
 
 *   `settings`
     *   **Description:** Configures various settings for a self-role message, such as maximum roles per user, role removal, ephemeral responses, and logging.
@@ -137,11 +149,17 @@ Use the `/selfrole` command followed by a subcommand to manage your self-role me
             *   **Description:** A text channel where role assignments and removals from this message will be logged.
             *   **Type:** Channel (Text Channel)
             *   **Required:** No
-    *   **Usage:** `/selfrole settings message-id:123456789012345678 max-roles-per-user:3 allow-role-removal:False ephemeral-response:True log-channel:#role-logs`
+    *   **Usage:** 
+        ```sh
+        /selfrole settings message-id:123456789012345678 max-roles-per-user:3 allow-role-removal:False ephemeral-response:True log-channel:#role-logs
+        ```
 
 *   `list`
     *   **Description:** Displays a list of all self-role messages configured in your server, including their IDs, channels, and number of roles.
-    *   **Usage:** `/selfrole list`
+    *   **Usage:** 
+        ```sh
+        /selfrole list
+        ```
 
 *   `delete`
     *   **Description:** Deletes a self-role message from the channel and the bot's configuration.
@@ -150,7 +168,10 @@ Use the `/selfrole` command followed by a subcommand to manage your self-role me
             *   **Description:** The ID of the self-role message to delete.
             *   **Type:** String
             *   **Required:** Yes
-    *   **Usage:** `/selfrole delete message-id:123456789012345678`
+    *   **Usage:** 
+        ```sh
+        /selfrole delete message-id:123456789012345678
+        ```
 
 *   `stats`
     *   **Description:** Shows statistics for self-role messages, including total interactions, unique users, and popular roles. You can view stats for a specific message or for the entire server.
@@ -159,17 +180,23 @@ Use the `/selfrole` command followed by a subcommand to manage your self-role me
             *   **Description:** The ID of a specific self-role message to view statistics for. If omitted, server-wide statistics are shown.
             *   **Type:** String
             *   **Required:** No
-    *   **Usage:** `/selfrole stats message-id:123456789012345678`
+    *   **Usage:** 
+        ```sh
+        /selfrole stats message-id:123456789012345678
+        ```
 
 *   `cleanup`
     *   **Description:** Removes any invalid or deleted roles from all self-role messages in the server, helping to keep your configuration tidy.
-    *   **Usage:** `/selfrole cleanup`
+    *   **Usage:** 
+        ```sh
+        /selfrole cleanup
+        ```
 
 ## Examples
 
 ```sh
 # Create a new self-role message
-/selfrole create channel:#roles title:Server Roles description:Choose your roles here.
+/selfrole create channel:#roles title:"Server Roles" description:"Choose your roles here."
 
 # Add a "Member" role to a message
 /selfrole add-role message-id:123456789012345678 role:@Member label:Join style:Success

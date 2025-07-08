@@ -35,30 +35,47 @@ Use the `/autorole` command followed by a subcommand to manage the automatic rol
             *   **Description:** If set to `True`, the role will only be assigned to members who have passed Discord's verification gate (if enabled).
             *   **Type:** Boolean
             *   **Required:** No
-    *   **Usage:** `/autorole setup role:@NewMember delay:5 skip-bots:True`
+    *   **Usage:** 
+        ```sh
+        /autorole setup role:@NewMember delay:5 skip-bots:True
+        ```
 
 *   `disable`
     *   **Description:** Disables the autorole system for the server. Any pending role assignments will be cancelled.
-    *   **Usage:** `/autorole disable`
+    *   **Usage:** 
+        ```sh
+        /autorole disable
+        ```
 
 *   `status`
     *   **Description:** Displays the current configuration and status of the autorole system, including any potential issues (e.g., missing role, permission errors).
-    *   **Usage:** `/autorole status`
+    *   **Usage:** 
+        ```sh
+        /autorole status
+        ```
 
 *   `test`
     *   **Description:** Runs a test to verify if the autorole configuration is working correctly and identifies any issues.
-    *   **Usage:** `/autorole test`
+    *   **Usage:** 
+        ```sh
+        /autorole test
+        ```
 
 ## Examples
 
-*   **Set up autorole for new members with a 10-second delay:**
-    `/autorole setup role:@VerifiedMembers delay:10`
-*   **Disable the autorole system:**
-    `/autorole disable`
-*   **Check the current autorole configuration:**
-    `/autorole status`
-*   **Test the autorole setup:**
-    `/autorole test`
+```sh
+# Set up autorole for new members with a 10-second delay
+/autorole setup role:@VerifiedMembers delay:10
+
+# Disable the autorole system
+/autorole disable
+
+# Check the current autorole configuration
+/autorole status
+
+# Test the autorole setup
+/autorole test
+```
 
 ## Related Advanced Guide Sections
 

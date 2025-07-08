@@ -36,7 +36,10 @@ Use the `/cleanup` command followed by a subcommand to specify the type of clean
             *   **Description:** The channel where messages will be deleted. Defaults to the current channel if not specified.
             *   **Type:** Channel (Text or Announcement)
             *   **Required:** No
-    *   **Usage:** `/cleanup user user:@BadUser amount:20 channel:#general`
+    *   **Usage:** 
+        ```sh
+        /cleanup user user:@BadUser amount:20 channel:#general
+        ```
 
 *   `amount`
     *   **Description:** Deletes a specific number of the most recent messages in a channel.
@@ -50,7 +53,10 @@ Use the `/cleanup` command followed by a subcommand to specify the type of clean
             *   **Description:** The channel where messages will be deleted. Defaults to the current channel if not specified.
             *   **Type:** Channel (Text or Announcement)
             *   **Required:** No
-    *   **Usage:** `/cleanup amount count:50 channel:#spam-logs`
+    *   **Usage:** 
+        ```sh
+        /cleanup amount count:50 channel:#spam-logs
+        ```
 
 *   `all`
     *   **Description:** **WARNING:** This subcommand will delete the specified channel and recreate it with the exact same settings, effectively removing ALL message history. This action is irreversible.
@@ -63,7 +69,10 @@ Use the `/cleanup` command followed by a subcommand to specify the type of clean
             *   **Description:** You must set this to `True` to confirm that you understand all messages will be lost.
             *   **Type:** Boolean
             *   **Required:** Yes
-    *   **Usage:** `/cleanup all channel:#old-chat confirm:True`
+    *   **Usage:** 
+        ```sh
+        /cleanup all channel:#old-chat confirm:True
+        ```
 
 *   `bots`
     *   **Description:** Deletes a specified number of recent messages sent only by bots in a channel.
@@ -77,18 +86,26 @@ Use the `/cleanup` command followed by a subcommand to specify the type of clean
             *   **Description:** The channel where bot messages will be deleted. Defaults to the current channel if not specified.
             *   **Type:** Channel (Text or Announcement)
             *   **Required:** No
-    *   **Usage:** `/cleanup bots amount:30 channel:#bot-commands`
+    *   **Usage:** 
+        ```sh
+        /cleanup bots amount:30 channel:#bot-commands
+        ```
 
 ## Examples
 
-*   **Delete the last 10 messages from a user in the current channel:**
-    `/cleanup user user:@Spammer amount:10`
-*   **Clear the last 75 messages in #general:**
-    `/cleanup amount count:75 channel:#general`
-*   **Completely wipe all messages in #archive by recreating it:**
-    `/cleanup all channel:#archive confirm:True`
-*   **Remove the last 20 bot messages in the current channel:**
-    `/cleanup bots amount:20`
+```sh
+# Delete the last 10 messages from a user in the current channel
+/cleanup user user:@Spammer amount:10
+
+# Clear the last 75 messages in #general
+/cleanup amount count:75 channel:#general
+
+# Completely wipe all messages in #archive by recreating it
+/cleanup all channel:#archive confirm:True
+
+# Remove the last 20 bot messages in the current channel
+/cleanup bots amount:20
+```
 
 ## Related Advanced Guide Sections
 

@@ -13,11 +13,15 @@ This command provides a comprehensive overview of the bot's global statistics ac
 
 Simply use the command without any additional options:
 
-`/stats`
+```sh
+/stats
+```
 
 ## Examples
 
-*   `/stats`
+```sh
+/stats
+```
 
 ## What it Shows
 

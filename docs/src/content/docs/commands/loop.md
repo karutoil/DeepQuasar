@@ -26,10 +26,19 @@ To set a loop mode, use the `/loop` command followed by the `mode` option and se
 
 ## Examples
 
-*   **Set loop mode to track:** `/loop mode:track`
-*   **Loop the entire queue:** `/loop mode:queue`
-*   **Turn off looping:** `/loop mode:off`
-*   **Check current loop mode:** `/loop`
+```sh
+# Set loop mode to track
+/loop mode:track
+
+# Loop the entire queue
+/loop mode:queue
+
+# Turn off looping
+/loop mode:off
+
+# Check current loop mode
+/loop
+```
 
 ## Related Advanced Guide Sections
 

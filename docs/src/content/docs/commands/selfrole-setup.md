@@ -18,7 +18,7 @@ To set up a self-role message, use the `/selfrole-setup` command and provide the
 /selfrole-setup channel:#roles template:gaming
 
 # Create a custom self-role message for announcements
-/selfrole-setup channel:#announcements template:custom title:Get Notified! description:Click a button to get roles for server updates.
+/selfrole-setup channel:#announcements template:custom title:"Get Notified!" description:"Click a button to get roles for server updates."
 ```
 
 **Important Permissions:** You need `Administrator` permissions to use this command.
@@ -61,7 +61,7 @@ To set up a self-role message, use the `/selfrole-setup` command and provide the
 /selfrole-setup channel:#roles template:gaming
 
 # Create a custom self-role message for announcements
-/selfrole-setup channel:#announcements template:custom title:Get Notified! description:Click a button to get roles for server updates.
+/selfrole-setup channel:#announcements template:custom title:"Get Notified!" description:"Click a button to get roles for server updates."
 ```
 
 ## Related Advanced Guide Sections

@@ -30,9 +30,16 @@ To seek to a position, use the `/seek` command and provide the `position` option
 
 ## Examples
 
-*   **Seek to 1 minute and 45 seconds:** `/seek position:1:45`
-*   **Seek to 30 seconds:** `/seek position:30s`
-*   **Seek to 5 minutes and 10 seconds:** `/seek position:5m10s`
+```sh
+# Seek to 1 minute and 45 seconds
+/seek position:1:45
+
+# Seek to 30 seconds
+/seek position:30s
+
+# Seek to 5 minutes and 10 seconds
+/seek position:5m10s
+```
 
 ## Related Advanced Guide Sections
 

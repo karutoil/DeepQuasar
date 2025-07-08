@@ -13,13 +13,17 @@ This command is a diagnostic tool designed to help administrators and developers
 
 To view the debug information for the welcome system, simply use the command without any additional options:
 
-`/debug-welcome`
+```sh
+/debug-welcome
+```
 
 **Important:** This command requires `Manage Guild` permissions.
 
 ## Examples
 
-*   `/debug-welcome`
+```sh
+/debug-welcome
+```
 
 ## What it Shows
 

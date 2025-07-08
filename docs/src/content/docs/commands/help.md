@@ -47,9 +47,16 @@ There are several ways to use the `help` command:
 
 ## Examples
 
-*   **Get general help:** `/help`
-*   **View music commands:** `/help category:music`
-*   **Get detailed help for the `play` command:** `/help command:play`
+```sh
+# Get general help
+/help
+
+# View music commands
+/help category:music
+
+# Get detailed help for the play command
+/help command:play
+```
 
 ## Related Advanced Guide Sections
 

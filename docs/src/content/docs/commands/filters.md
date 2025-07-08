@@ -31,10 +31,19 @@ To apply a filter, use the `/filters` command followed by the `filter` option an
 
 ## Examples
 
-*   **Apply a bassboost filter:** `/filters filter:bassboost`
-*   **Activate the nightcore effect:** `/filters filter:nightcore`
-*   **Clear all active filters:** `/filters filter:clear`
-*   **Check active filters:** `/filters`
+```sh
+# Apply a bassboost filter
+/filters filter:bassboost
+
+# Activate the nightcore effect
+/filters filter:nightcore
+
+# Clear all active filters
+/filters filter:clear
+
+# Check active filters
+/filters
+```
 
 ## Related Advanced Guide Sections
 

@@ -12,10 +12,14 @@ This command allows you to control the playback volume of the music player. You 
 ## How to Use
 
 *   **View Current Volume:** To see the current volume level, simply use the command without any options:
-    `/volume`
+    ```sh
+    /volume
+    ```
 
 *   **Set New Volume:** To change the volume, use the `level` option and specify a value between 0 and 200.
-    `/volume level:<number>`
+    ```sh
+    /volume level:<number>
+    ```
 
 **Important:** You must be in the same voice channel as the bot to use this command.
 
@@ -29,10 +33,19 @@ This command allows you to control the playback volume of the music player. You 
 
 ## Examples
 
-*   **Check the current volume:** `/volume`
-*   **Set the volume to 75%:** `/volume level:75`
-*   **Set the volume to maximum (200%):** `/volume level:200`
-*   **Mute the bot:** `/volume level:0`
+```sh
+# Check the current volume
+/volume
+
+# Set the volume to 75%
+/volume level:75
+
+# Set the volume to maximum (200%)
+/volume level:200
+
+# Mute the bot
+/volume level:0
+```
 
 ## Related Advanced Guide Sections
 

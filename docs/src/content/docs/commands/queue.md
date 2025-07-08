@@ -13,11 +13,15 @@ This command allows you to view the list of songs currently in the music queue. 
 
 To view the current music queue, simply use the command without any options:
 
-`/queue`
+```sh
+/queue
+```
 
 If you want to view a specific page of the queue, use the `page` option:
 
-`/queue page:<number>`
+```sh
+/queue page:<number>
+```
 
 ## Options
 
@@ -29,8 +33,13 @@ If you want to view a specific page of the queue, use the `page` option:
 
 ## Examples
 
-*   **View the first page of the queue:** `/queue`
-*   **View the third page of the queue:** `/queue page:3`
+```sh
+# View the first page of the queue
+/queue
+
+# View the third page of the queue
+/queue page:3
+```
 
 ## What it Shows
 

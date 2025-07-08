@@ -13,11 +13,15 @@ This command calculates and displays the total number of lines of code within th
 
 Simply use the command without any additional options:
 
-`/linecount`
+```sh
+/linecount
+```
 
 ## Examples
 
-*   `/linecount`
+```sh
+/linecount
+```
 
 ## What it Shows
 

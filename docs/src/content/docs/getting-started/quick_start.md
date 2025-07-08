@@ -13,7 +13,7 @@ This guide will help you get DeepQuasar up and running in your Discord server as
 
 First, you need to invite the DeepQuasar bot to your Discord server. You can do this by clicking on the invitation link provided on our official website or by using the direct invite link.
 
-[**Invite DeepQuasar to your Server**](YOUR_BOT_INVITE_LINK_HERE)
+[**Invite DeepQuasar to your Server**](https://discord.com/oauth2/authorize?client_id=191337632972800000&permissions=3558715944086&integration_type=0&scope=applications.commands+bot)
 
 *   **Permissions:** Ensure the bot has the necessary permissions to function correctly. It's recommended to grant it administrator permissions initially, and then adjust them as needed.
 
@@ -30,19 +30,30 @@ To greet new members joining your server, you can set up a welcome message:
 3.  Customize your welcome message using placeholders like `{user.mention}` and `{guild.name}`.
 
     **Example:**
-    `/welcome setup welcome channel:#welcome message:Welcome {user.mention} to {guild.name}! We're glad to have you here.`
+    ```sh
+    /welcome setup welcome channel:#welcome message:"Welcome {user.mention} to {guild.name}! We're glad to have you here."
+    ```
 
 ### Enable Core Modules
 
-DeepQuasar's functionalities are organized into modules. You can enable them based on your server's needs. For a detailed guide on enabling specific modules like the AI Chatbot, AutoRole, or ModLog, refer to the [Enabling Bot Modules](/getting-started/modules) documentation.
+DeepQuasar's functionalities are organized into modules. You can enable them based on your server's needs. For a detailed guide on enabling specific modules like the AI Chatbot, AutoRole, or ModLog, refer to the [Enabling Bot Modules](DeepQuasar/getting-started/modules) documentation.
 
 ## Step 3: Explore Commands
 
 DeepQuasar offers a wide range of commands for various functionalities. You can explore them using the `/help` command.
 
-*   **General Help:** `/help`
-*   **Category-Specific Help:** `/help category:music`
-*   **Command-Specific Help:** `/help command:play`
+*   **General Help:** 
+    ```sh
+    /help
+    ```
+*   **Category-Specific Help:** 
+    ```sh
+    /help category:music
+    ```
+*   **Command-Specific Help:** 
+    ```sh
+    /help command:play
+    ```
 
 ## Step 4: Advanced Configuration (Optional)
 
@@ -55,4 +66,4 @@ Once you're familiar with the basic setup, you can dive into more advanced confi
 
 ---
 
-If you encounter any issues or have questions, please refer to our [FAQ](/getting-started/faq) or join our support server.
+If you encounter any issues or have questions, please refer to our [FAQ](./faq.md) or join our support server.

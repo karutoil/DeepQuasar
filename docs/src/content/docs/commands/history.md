@@ -13,15 +13,24 @@ This command allows you to view your personal music playback history and re-queu
 
 To access your music history, simply use the command without any options:
 
-`/history`
+```sh
+/history
+```
 
 Upon execution, the bot will display an embed with a paginated list of your recently played songs. You can navigate through pages using the "Back" and "Forward" buttons. A select menu will also be available, allowing you to pick a song from the current page to play.
 
 ## Examples
 
-*   **View your music history:** `/history`
-*   **Navigate through history pages:** Click the "⬅️ Back" or "Forward ➡️" buttons on the history embed.
-*   **Play a song from history:** Select a song from the dropdown menu on the history embed.
+```sh
+# View your music history
+/history
+
+# Navigate through history pages
+# Click the "⬅️ Back" or "Forward ➡️" buttons on the history embed.
+
+# Play a song from history
+# Select a song from the dropdown menu on the history embed.
+```
 
 ## Related Advanced Guide Sections
 

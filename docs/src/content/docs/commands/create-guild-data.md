@@ -13,11 +13,16 @@ This is a **debug command** primarily used by developers or administrators for t
 
 This command is typically hidden from regular users and is intended for administrative or debugging purposes. To use it, simply execute the command without any options:
 
-`/create-guild-data`
+```sh
+/create-guild-data
+```
 
 ## Examples
 
-*   **Force create/update guild data:** `/create-guild-data`
+```sh
+# Force create/update guild data
+/create-guild-data
+```
 
 ## Important Notes
 

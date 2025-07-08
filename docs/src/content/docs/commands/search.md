@@ -14,9 +14,9 @@ This command allows you to search for music across different platforms and selec
 To search for music, use the `/search` command and provide a `query`. You can optionally specify a `source` and `limit` the number of results.
 
 ```sh
-/search query:lofi hip hop radio
-/search query:Imagine Dragons Believer
-/search query:workout playlist source:spotify limit:5
+/search query:"lofi hip hop radio"
+/search query:"Imagine Dragons Believer"
+/search query:"workout playlist" source:spotify limit:5
 /search query:Lorn source:soundcloud
 ```
 
@@ -28,7 +28,7 @@ To search for music, use the `/search` command and provide a `query`. You can op
     *   **Description:** The keywords for your search, such as song name, artist, or album.
     *   **Type:** String
     *   **Required:** Yes
-    *   **Example:** `query:lofi hip hop radio`
+    *   **Example:** `query:"lofi hip hop radio"`
 
 *   `source`
     *   **Description:** The music platform to search on. If not specified, it defaults to YouTube.
@@ -47,8 +47,8 @@ To search for music, use the `/search` command and provide a `query`. You can op
 ## Examples
 
 ```sh
-/search query:Imagine Dragons Believer
-/search query:workout playlist source:spotify limit:5
+/search query:"Imagine Dragons Believer"
+/search query:"workout playlist" source:spotify limit:5
 /search query:Lorn source:soundcloud
 ```
 

@@ -44,11 +44,22 @@ To play music, use the `/play` command and provide a `query`. You can also speci
 
 ## Examples
 
-*   **Play a song by name:** `/play query:Bohemian Rhapsody`
-*   **Play a YouTube video by URL:** `/play query:https://www.youtube.com/watch?v=fJ9rUzIMcZQ`
-*   **Search for music on SoundCloud:** `/play query:lofi beats source:soundcloud`
-*   **Add a song to the front of the queue:** `/play query:My Favorite Song next:True`
-*   **Add a shuffled Spotify playlist:** `/play query:https://open.spotify.com/playlist/... shuffle:True`
+```sh
+# Play a song by name
+/play query:"Bohemian Rhapsody"
+
+# Play a YouTube video by URL
+/play query:https://www.youtube.com/watch?v=fJ9rUzIMcZQ
+
+# Search for music on SoundCloud
+/play query:"lofi beats" source:soundcloud
+
+# Add a song to the front of the queue
+/play query:"My Favorite Song" next:True
+
+# Add a shuffled Spotify playlist
+/play query:https://open.spotify.com/playlist/... shuffle:True
+```
 
 ## Related Advanced Guide Sections
 

@@ -15,13 +15,13 @@ Use the `/welcome` command followed by a subcommand group or a direct subcommand
 
 ```sh
 # Set up a welcome message in #welcome-new-members
-/welcome setup welcome channel:#welcome-new-members message:Welcome {user.mention} to {guild.name}!
+/welcome setup welcome channel:#welcome-new-members message:"Welcome {user.mention} to {guild.name}!"
 
 # Set up a leave message in #farewells
-/welcome setup leave channel:#farewells message:{user.tag} has left the server.
+/welcome setup leave channel:#farewells message:"{user.tag} has left the server."
 
 # Set up a DM welcome message
-/welcome setup dm enabled:True message:Welcome to our community!
+/welcome setup dm enabled:True message:"Welcome to our community!"
 
 # Configure welcome messages to use embeds with a green color
 /welcome config welcome embed:True color:#00FF00 show-account-age:True
@@ -166,7 +166,7 @@ Use the `/welcome` command followed by a subcommand group or a direct subcommand
 
 ```sh
 # Set up a welcome message in #general
-/welcome setup welcome channel:#general message:Welcome {user.mention} to {guild.name}!
+/welcome setup welcome channel:#general message:"Welcome {user.mention} to {guild.name}!"
 
 # Configure welcome messages to use embeds with a green color
 /welcome config welcome embed:True color:#00FF00

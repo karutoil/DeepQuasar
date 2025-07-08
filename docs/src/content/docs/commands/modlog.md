@@ -24,19 +24,31 @@ Use the `/modlog` command followed by a subcommand to manage the moderation logg
             *   **Description:** The text channel where modlog events will be sent by default.
             *   **Type:** Channel (Text Channel)
             *   **Required:** Yes
-    *   **Usage:** `/modlog setup channel:#mod-logs`
+    *   **Usage:** 
+        ```sh
+        /modlog setup channel:#mod-logs
+        ```
 
 *   `disable`
     *   **Description:** Disables the entire moderation logging system for the server. No events will be logged until it's re-enabled.
-    *   **Usage:** `/modlog disable`
+    *   **Usage:** 
+        ```sh
+        /modlog disable
+        ```
 
 *   `status`
     *   **Description:** Displays the current status of the modlog system, including whether it's enabled, the default channel, and a summary of enabled events by category.
-    *   **Usage:** `/modlog status`
+    *   **Usage:** 
+        ```sh
+        /modlog status
+        ```
 
 *   `configure`
     *   **Description:** Provides an interactive menu to configure individual event settings. You can choose categories like Member Events, Message Events, etc., and then toggle specific events on or off.
-    *   **Usage:** `/modlog configure`
+    *   **Usage:** 
+        ```sh
+        /modlog configure
+        ```
 
 *   `setchannel`
     *   **Description:** Allows you to set a specific channel for a particular event type, overriding the default log channel for that event.
@@ -49,7 +61,10 @@ Use the `/modlog` command followed by a subcommand to manage the moderation logg
             *   **Description:** The specific text channel for this event. Leave empty to revert to the default log channel.
             *   **Type:** Channel (Text Channel)
             *   **Required:** No
-    *   **Usage:** `/modlog setchannel event:memberJoin channel:#join-logs`
+    *   **Usage:** 
+        ```sh
+        /modlog setchannel event:memberJoin channel:#join-logs
+        ```
 
 *   `toggle`
     *   **Description:** Toggles a specific event type on or off within the modlog system.
@@ -58,18 +73,26 @@ Use the `/modlog` command followed by a subcommand to manage the moderation logg
             *   **Description:** The type of event to toggle (e.g., `messageDelete`, `roleCreate`). Autocomplete is available.
             *   **Type:** String (Autocomplete)
             *   **Required:** Yes
-    *   **Usage:** `/modlog toggle event:messageDelete`
+    *   **Usage:** 
+        ```sh
+        /modlog toggle event:messageDelete
+        ```
 
 ## Examples
 
-*   **Set up modlog to #server-logs:**
-    `/modlog setup channel:#server-logs`
-*   **Check the current modlog status:**
-    `/modlog status`
-*   **Enable logging for deleted messages:**
-    `/modlog toggle event:messageDelete`
-*   **Send member join logs to a separate channel:**
-    `/modlog setchannel event:memberJoin channel:#new-members`
+```sh
+# Set up modlog to #server-logs
+/modlog setup channel:#server-logs
+
+# Check the current modlog status
+/modlog status
+
+# Enable logging for deleted messages
+/modlog toggle event:messageDelete
+
+# Send member join logs to a separate channel
+/modlog setchannel event:memberJoin channel:#new-members
+```
 
 ## Related Advanced Guide Sections
 

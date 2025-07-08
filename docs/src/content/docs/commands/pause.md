@@ -13,13 +13,17 @@ This command allows you to pause the currently playing song in the voice channel
 
 To pause the music, simply use the command without any additional options:
 
-`/pause`
+```sh
+/pause
+```
 
 **Important:** You must be in the same voice channel as the bot to use this command.
 
 ## Examples
 
-*   `/pause`
+```sh
+/pause
+```
 
 ## Related Advanced Guide Sections
 

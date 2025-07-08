@@ -32,7 +32,10 @@ Use the `/tempvc` command followed by a subcommand to manage the temporary voice
             *   **Description:** An optional text channel where logs related to temporary voice channel creation and deletion will be sent.
             *   **Type:** Channel (Text Channel)
             *   **Required:** No
-    *   **Usage:** `/tempvc setup join-channel:#create-vc category:Temporary VCs log-channel:#tempvc-logs`
+    *   **Usage:** 
+        ```sh
+        /tempvc setup join-channel:#create-vc category:"Temporary VCs" log-channel:#tempvc-logs
+        ```
 
 *   `toggle`
     *   **Description:** Enables or disables the entire temporary voice channel system.
@@ -41,11 +44,17 @@ Use the `/tempvc` command followed by a subcommand to manage the temporary voice
             *   **Description:** Set to `True` to enable the system, `False` to disable it.
             *   **Type:** Boolean
             *   **Required:** Yes
-    *   **Usage:** `/tempvc toggle enabled:True`
+    *   **Usage:** 
+        ```sh
+        /tempvc toggle enabled:True
+        ```
 
 *   `config`
     *   **Description:** Displays the current configuration of the temporary voice channel system, including channels, default settings, permissions, and advanced options.
-    *   **Usage:** `/tempvc config`
+    *   **Usage:** 
+        ```sh
+        /tempvc config
+        ```
 
 *   `settings`
     *   **Description:** Configures the default settings for newly created temporary voice channels.
@@ -72,7 +81,10 @@ Use the `/tempvc` command followed by a subcommand to manage the temporary voice
             *   **Description:** If `True`, new channels will be hidden by default, meaning they are not visible to everyone.
             *   **Type:** Boolean
             *   **Required:** No
-    *   **Usage:** `/tempvc settings channel-name:{user}'s VC user-limit:10 bitrate:96 locked:False`
+    *   **Usage:** 
+        ```sh
+        /tempvc settings channel-name:"{user}'s VC" user-limit:10 bitrate:96 locked:False
+        ```
 
 *   `permissions`
     *   **Description:** Configures who is allowed to create temporary voice channels.
@@ -95,7 +107,10 @@ Use the `/tempvc` command followed by a subcommand to manage the temporary voice
             *   **Type:** String (Choices)
             *   **Required:** No
             *   **Choices:** `Allow`, `Deny`, `Clear`
-    *   **Usage:** `/tempvc permissions mode:role role:@Creator action:allow`
+    *   **Usage:** 
+        ```sh
+        /tempvc permissions mode:role role:@Creator action:allow
+        ```
 
 *   `advanced`
     *   **Description:** Configures advanced settings for the temporary voice channel system.
@@ -128,20 +143,29 @@ Use the `/tempvc` command followed by a subcommand to manage the temporary voice
             *   **Type:** String (Choices)
             *   **Required:** No
             *   **Choices:** `Buttons`, `Select Menu`, `Both`
-    *   **Usage:** `/tempvc advanced max-channels:2 cooldown:5 auto-delete:True delete-delay:10`
+    *   **Usage:** 
+        ```sh
+        /tempvc advanced max-channels:2 cooldown:5 auto-delete:True delete-delay:10
+        ```
 
 ## Examples
 
-*   **Set up the TempVC system:**
-    `/tempvc setup join-channel:#create-a-vc category:Voice Channels log-channel:#vc-logs`
-*   **Enable the TempVC system:**
-    `/tempvc toggle enabled:True`
-*   **Set default user limit for new VCs to 5:**
-    `/tempvc settings user-limit:5`
-*   **Allow only users with the "VIP" role to create VCs:**
-    `/tempvc permissions mode:role role:@VIP action:allow`
-*   **Configure advanced settings for auto-deletion and control panel:**
-    `/tempvc advanced auto-delete:True delete-delay:5 control-panel:True panel-style:buttons`
+```sh
+# Set up the TempVC system
+/tempvc setup join-channel:#create-a-vc category:"Voice Channels" log-channel:#vc-logs
+
+# Enable the TempVC system
+/tempvc toggle enabled:True
+
+# Set default user limit for new VCs to 5
+/tempvc settings user-limit:5
+
+# Allow only users with the "VIP" role to create VCs
+/tempvc permissions mode:role role:@VIP action:allow
+
+# Configure advanced settings for auto-deletion and control panel
+/tempvc advanced auto-delete:True delete-delay:5 control-panel:True panel-style:buttons
+```
 
 ## Related Advanced Guide Sections
 

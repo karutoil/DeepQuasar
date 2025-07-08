@@ -9,15 +9,16 @@ export default defineConfig({
 		starlight({
 			title: 'DeepQuasar',
 			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/yourusername/DeepQuasar' },
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/karutoil/DeepQuasar' },
 				{ icon: 'discord', label: 'Discord', href: 'https://discord.karutoil.site/' }
 			],
 			sidebar: [
 				{
 					label: 'Getting Started',
 					items: [
-						{ label: 'Quick Start', link: '/getting-started/quick-start' },
+						{ label: 'Quick Start', link: '/getting-started/quick_start' },
 						{ label: 'Modules', link: '/getting-started/modules' },
+						{ label: 'FAQ', link: '/getting-started/faq' },
 					],
 				},
 				{

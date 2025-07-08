@@ -19,7 +19,10 @@ Use the `/tempvc-templates` command followed by a subcommand to manage your nami
 
 *   `list`
     *   **Description:** Displays a list of all custom naming templates currently configured for temporary voice channels in your server.
-    *   **Usage:** `/tempvc-templates list`
+    *   **Usage:** 
+        ```sh
+        /tempvc-templates list
+        ```
 
 *   `add`
     *   **Description:** Adds a new custom naming template.
@@ -39,7 +42,10 @@ Use the `/tempvc-templates` command followed by a subcommand to manage your nami
             *   **Type:** String
             *   **Required:** No
             *   **Constraints:** Maximum 200 characters.
-    *   **Usage:** `/tempvc-templates add name:GamingChannel template:{user}'s Gaming Lounge description:Channel for gaming sessions.`
+    *   **Usage:** 
+        ```sh
+        /tempvc-templates add name:GamingChannel template:"{user}'s Gaming Lounge" description:"Channel for gaming sessions."
+        ```
 
 *   `remove`
     *   **Description:** Removes an existing naming template.
@@ -48,7 +54,10 @@ Use the `/tempvc-templates` command followed by a subcommand to manage your nami
             *   **Description:** The name of the template to remove. Autocomplete is available.
             *   **Type:** String (Autocomplete)
             *   **Required:** Yes
-    *   **Usage:** `/tempvc-templates remove name:GamingChannel`
+    *   **Usage:** 
+        ```sh
+        /tempvc-templates remove name:GamingChannel
+        ```
 
 *   `edit`
     *   **Description:** Modifies an existing naming template.
@@ -67,7 +76,10 @@ Use the `/tempvc-templates` command followed by a subcommand to manage your nami
             *   **Type:** String
             *   **Required:** No
             *   **Constraints:** Maximum 200 characters.
-    *   **Usage:** `/tempvc-templates edit name:GamingChannel template:{user}'s {activity} Zone`
+    *   **Usage:** 
+        ```sh
+        /tempvc-templates edit name:GamingChannel template:"{user}'s {activity} Zone"
+        ```
 
 *   `preview`
     *   **Description:** Shows how a given template string would look when applied to a temporary voice channel name, using sample data for placeholders.
@@ -80,22 +92,33 @@ Use the `/tempvc-templates` command followed by a subcommand to manage your nami
             *   **Description:** A sample activity name to use for the `{activity}` placeholder in the preview.
             *   **Type:** String
             *   **Required:** No
-    *   **Usage:** `/tempvc-templates preview template:{user}'s Channel activity:Valorant`
+    *   **Usage:** 
+        ```sh
+        /tempvc-templates preview template:"{user}'s Channel" activity:Valorant
+        ```
 
 *   `placeholders`
     *   **Description:** Displays a list of all available placeholders that can be used in temporary voice channel naming templates.
-    *   **Usage:** `/tempvc-templates placeholders`
+    *   **Usage:** 
+        ```sh
+        /tempvc-templates placeholders
+        ```
 
 ## Examples
 
-*   **List all custom naming templates:**
-    `/tempvc-templates list`
-*   **Add a new template for music channels:**
-    `/tempvc-templates add name:MusicRoom template:{user}'s Music Room description:A channel for listening to music.`
-*   **Preview a template with a specific activity:**
-    `/tempvc-templates preview template:Playing {activity} with {user} activity:Minecraft`
-*   **View all available placeholders:**
-    `/tempvc-templates placeholders`
+```sh
+# List all custom naming templates
+/tempvc-templates list
+
+# Add a new template for music channels
+/tempvc-templates add name:MusicRoom template:"{user}'s Music Room" description:"A channel for listening to music."
+
+# Preview a template with a specific activity
+/tempvc-templates preview template:"Playing {activity} with {user}" activity:Minecraft
+
+# View all available placeholders
+/tempvc-templates placeholders
+```
 
 ## Related Advanced Guide Sections
 

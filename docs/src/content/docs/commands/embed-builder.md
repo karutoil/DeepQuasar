@@ -19,7 +19,10 @@ Use the `/embed` command followed by a subcommand to either launch the interacti
 
 *   `builder`
     *   **Description:** Launches an interactive session where you can construct an embed step-by-step using buttons and modals. You can set the title, description, color, add fields, images, and more.
-    *   **Usage:** `/embed builder`
+    *   **Usage:** 
+        ```sh
+        /embed builder
+        ```
 
 *   `templates`
     *   **Description:** Manages your saved embed templates. You can list, delete, or search for templates.
@@ -37,16 +40,27 @@ Use the `/embed` command followed by a subcommand to either launch the interacti
             *   **Type:** String
             *   **Required:** No (required for `delete` and `search` actions)
     *   **Usage:**
-        *   `/embed templates action:list`
-        *   `/embed templates action:delete query:My Announcement`
-        *   `/embed templates action:search query:welcome`
+        ```sh
+        /embed templates action:list
+        /embed templates action:delete query:"My Announcement"
+        /embed templates action:search query:welcome
+        ```
 
 ## Examples
 
-*   **Start building a new embed:** `/embed builder`
-*   **List all saved embed templates:** `/embed templates action:list`
-*   **Delete a template named "Event Invite":** `/embed templates action:delete query:Event Invite`
-*   **Search for templates containing "rule":** `/embed templates action:search query:rule`
+```sh
+# Start building a new embed
+/embed builder
+
+# List all saved embed templates
+/embed templates action:list
+
+# Delete a template named "Event Invite"
+/embed templates action:delete query:"Event Invite"
+
+# Search for templates containing "rule"
+/embed templates action:search query:rule
+```
 
 ## Related Advanced Guide Sections
 

@@ -13,13 +13,17 @@ This command immediately stops the music playback and clears all songs from the 
 
 To stop the music and clear the queue, simply use the command without any additional options:
 
-`/stop`
+```sh
+/stop
+```
 
 **Important:** You must be in the same voice channel as the bot to use this command.
 
 ## Examples
 
-*   `/stop`
+```sh
+/stop
+```
 
 ## Related Advanced Guide Sections
 

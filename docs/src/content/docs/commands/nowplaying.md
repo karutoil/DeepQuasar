@@ -13,11 +13,15 @@ This command displays detailed information about the song that is currently play
 
 Simply use the command without any additional options:
 
-`/nowplaying`
+```sh
+/nowplaying
+```
 
 ## Examples
 
-*   `/nowplaying`
+```sh
+/nowplaying
+```
 
 ## What it Shows
 

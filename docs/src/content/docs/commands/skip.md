@@ -13,11 +13,15 @@ This command allows you to skip the currently playing track or multiple tracks i
 
 To skip the current song, simply use the command without any options:
 
-`/skip`
+```sh
+/skip
+```
 
 To skip multiple songs, use the `amount` option:
 
-`/skip amount:<number>`
+```sh
+/skip amount:<number>
+```
 
 **Important:** You must be in the same voice channel as the bot to use this command.
 
@@ -31,8 +35,13 @@ To skip multiple songs, use the `amount` option:
 
 ## Examples
 
-*   **Skip the current song:** `/skip`
-*   **Skip the next 3 songs:** `/skip amount:3`
+```sh
+# Skip the current song
+/skip
+
+# Skip the next 3 songs
+/skip amount:3
+```
 
 ## Related Advanced Guide Sections
 
