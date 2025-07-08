@@ -36,7 +36,7 @@ To greet new members joining your server, you can set up a welcome message:
 
 ### Enable Core Modules
 
-DeepQuasar's functionalities are organized into modules. You can enable them based on your server's needs. For a detailed guide on enabling specific modules like the AI Chatbot, AutoRole, or ModLog, refer to the [Enabling Bot Modules](DeepQuasar/getting-started/modules) documentation.
+DeepQuasar's functionalities are organized into modules. You can enable them based on your server's needs. For a detailed guide on enabling specific modules like the AI Chatbot, AutoRole, or ModLog, refer to the [Enabling Bot Modules](/getting-started/modules) documentation.
 
 ## Step 3: Explore Commands
 
