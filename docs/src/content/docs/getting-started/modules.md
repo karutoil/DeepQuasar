@@ -24,7 +24,7 @@ To enable or disable the AI Chatbot module for your server:
     ```sh
     /chatbot toggle enabled:True
     ```
-*   For more details, refer to the [chatbot command documentation](/DeepQuasar/commands/chatbot).
+*   For more details, refer to the [chatbot command documentation](/commands/chatbot).
 
 ### 🛡️ AutoRole System
 
@@ -35,7 +35,7 @@ To set up and enable automatic role assignment for new members:
     ```sh
     /autorole setup role:@NewMember delay:5
     ```
-*   For more details, refer to the [autorole command documentation](/DeepQuasar/commands/autorole).
+*   For more details, refer to the [autorole command documentation](/commands/autorole).
 
 ### 📝 Embed Builder
 
@@ -46,7 +46,7 @@ The embed builder is a utility for creating rich embeds. While not a module that
     ```sh
     /embed builder
     ```
-*   For more details, refer to the [embed command documentation](/DeepQuasar/commands/embed-builder).
+*   For more details, refer to the [embed command documentation](/commands/embed-builder).
 
 ### 📜 Moderation Logging (ModLog)
 
@@ -57,7 +57,7 @@ To set up and enable comprehensive moderation logging for your server:
     ```sh
     /modlog setup channel:#mod-logs
     ```
-*   For more details, refer to the [modlog command documentation](/DeepQuasar/commands/modlog).
+*   For more details, refer to the [modlog command documentation](/commands/modlog).
 
 ### 🏷️ SelfRole System
 
@@ -68,7 +68,7 @@ To create and manage self-assignable roles using interactive buttons:
     ```sh
     /selfrole create channel:#roles title:"Pick Your Roles" description:"Select roles to access different parts of the server."
     ```
-*   For more details, refer to the [selfrole command documentation](/DeepQuasar/commands/selfrole) and [selfrole-setup documentation](/DeepQuasar/commands/selfrole-setup).
+*   For more details, refer to the [selfrole command documentation](/commands/selfrole) and [selfrole-setup documentation](/commands/selfrole-setup).
 
 ### 🎟️ Ticket System
 
@@ -79,7 +79,7 @@ To set up the ticket system for support or other inquiries:
     ```sh
     /tickets setup
     ```
-*   For more details, refer to the [tickets command documentation](/DeepQuasar/commands/tickets).
+*   For more details, refer to the [tickets command documentation](/commands/tickets).
 
 ### 🔊 Temporary Voice Channels (TempVC)
 
@@ -90,7 +90,7 @@ To enable and configure the system for automatically created temporary voice cha
     ```sh
     /tempvc setup join-channel:#create-a-vc category:"Voice Channels"
     ```
-*   For more details, refer to the [tempvc command documentation](/DeepQuasar/commands/tempvc).
+*   For more details, refer to the [tempvc command documentation](/commands/tempvc).
 
 ### 👋 Welcome and Leave Messages
 
@@ -101,7 +101,7 @@ To configure custom welcome and leave messages for your server:
     ```sh
     /welcome setup welcome channel:#welcome-new-members message:"Welcome {user.mention} to {guild.name}!"
     ```
-*   For more details, refer to the [welcome command documentation](/DeepQuasar/commands/welcome).
+*   For more details, refer to the [welcome command documentation](/commands/welcome).
 
 ---
 
