@@ -31,4 +31,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/dist # The directory where Starlight builds the site
-          #cname: docs.deepquasar.com # Optional: If you have a custom domain
+          cname: docs.karutoil.site # Custom domain for documentation
