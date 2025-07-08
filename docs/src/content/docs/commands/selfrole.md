@@ -167,14 +167,19 @@ Use the `/selfrole` command followed by a subcommand to manage your self-role me
 
 ## Examples
 
-*   **Create a new self-role message:**
-    `/selfrole create channel:#roles title:Server Roles description:Choose your roles here.`
-*   **Add a "Member" role to a message:**
-    `/selfrole add-role message-id:123456789012345678 role:@Member label:Join style:Success`
-*   **List all self-role messages:**
-    `/selfrole list`
-*   **Configure a message to allow only 1 role per user:**
-    `/selfrole settings message-id:123456789012345678 max-roles-per-user:1`
+```sh
+# Create a new self-role message
+/selfrole create channel:#roles title:Server Roles description:Choose your roles here.
+
+# Add a "Member" role to a message
+/selfrole add-role message-id:123456789012345678 role:@Member label:Join style:Success
+
+# List all self-role messages
+/selfrole list
+
+# Configure a message to allow only 1 role per user
+/selfrole settings message-id:123456789012345678 max-roles-per-user:1
+```
 
 ## Related Advanced Guide Sections
 

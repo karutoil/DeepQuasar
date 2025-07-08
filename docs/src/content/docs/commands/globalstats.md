@@ -13,11 +13,17 @@ This command provides a comprehensive overview of the bot's all-time global stat
 
 Simply use the command without any additional options:
 
-`/globalstats`
+```sh
+# Show all-time global stats
+/globalstats
+```
 
 ## Examples
 
-*   `/globalstats`
+```sh
+# Show all-time global stats
+/globalstats
+```
 
 ## What it Shows
 

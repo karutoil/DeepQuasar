@@ -11,7 +11,11 @@ This command allows you to directly ask the AI chatbot a question. It's a quick 
 
 ## How to Use
 
-To use the `ask` command, simply type `/ask` followed by your message.
+To use the `ask` command, simply type:
+
+```sh
+/ask message:Your question here
+```
 
 ### Options
 
@@ -23,8 +27,10 @@ To use the `ask` command, simply type `/ask` followed by your message.
 
 ## Examples
 
-*   `/ask message:What is the capital of France?`
-*   `/ask message:Tell me a fun fact about space.`
+```sh
+/ask message:What is the capital of France?
+/ask message:Tell me a fun fact about space.
+```
 
 ## Related Advanced Guide Sections
 

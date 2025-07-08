@@ -13,9 +13,16 @@ This command is your go-to resource for understanding how to use the bot. It pro
 
 There are several ways to use the `help` command:
 
-*   **General Help:** Simply type `/help` to get a general overview of the bot, its features, and command categories.
-*   **Category-Specific Help:** Use the `category` option to view all commands within a particular category.
-*   **Command-Specific Help:** Use the `command` option to get detailed information about a single command, including its options and examples.
+```sh
+# General Help
+/help
+
+# Category-Specific Help
+/help category:music
+
+# Command-Specific Help
+/help command:play
+```
 
 ### Options
 

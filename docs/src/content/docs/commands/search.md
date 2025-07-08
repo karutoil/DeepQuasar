@@ -13,6 +13,13 @@ This command allows you to search for music across different platforms and selec
 
 To search for music, use the `/search` command and provide a `query`. You can optionally specify a `source` and `limit` the number of results.
 
+```sh
+/search query:lofi hip hop radio
+/search query:Imagine Dragons Believer
+/search query:workout playlist source:spotify limit:5
+/search query:Lorn source:soundcloud
+```
+
 **Important:** You must be in a voice channel to use this command.
 
 ### Options
@@ -39,9 +46,11 @@ To search for music, use the `/search` command and provide a `query`. You can op
 
 ## Examples
 
-*   **Search for a song on YouTube:** `/search query:Imagine Dragons Believer`
-*   **Search for a playlist on Spotify and show 5 results:** `/search query:workout playlist source:spotify limit:5`
-*   **Search for an artist on SoundCloud:** `/search query:Lorn source:soundcloud`
+```sh
+/search query:Imagine Dragons Believer
+/search query:workout playlist source:spotify limit:5
+/search query:Lorn source:soundcloud
+```
 
 ## Related Advanced Guide Sections
 

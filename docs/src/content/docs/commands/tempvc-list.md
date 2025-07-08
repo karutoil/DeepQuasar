@@ -13,6 +13,23 @@ This command provides various ways to view and manage active temporary voice cha
 
 Use the `/tempvc-list` command followed by a subcommand to specify the type of listing or management you want to perform.
 
+```sh
+# List all active temporary voice channels
+/tempvc-list all
+
+# View your own temporary voice channels
+/tempvc-list mine
+
+# Check temporary channels owned by a specific user
+/tempvc-list user:@SomeUser
+
+# Run a cleanup of inactive temporary channels
+/tempvc-list cleanup
+
+# See the overall statistics for temporary voice channels
+/tempvc-list stats
+```
+
 ### Subcommands
 
 *   `all`
@@ -43,16 +60,22 @@ Use the `/tempvc-list` command followed by a subcommand to specify the type of l
 
 ## Examples
 
-*   **List all active temporary voice channels:**
-    `/tempvc-list all`
-*   **View your own temporary voice channels:**
-    `/tempvc-list mine`
-*   **Check temporary channels owned by a specific user:**
-    `/tempvc-list user:@AnotherUser`
-*   **Run a cleanup of inactive temporary channels:**
-    `/tempvc-list cleanup`
-*   **See the overall statistics for temporary voice channels:**
-    `/tempvc-list stats`
+```sh
+# List all active temporary voice channels
+/tempvc-list all
+
+# View your own temporary voice channels
+/tempvc-list mine
+
+# Check temporary channels owned by a specific user
+/tempvc-list user:@AnotherUser
+
+# Run a cleanup of inactive temporary channels
+/tempvc-list cleanup
+
+# See the overall statistics for temporary voice channels
+/tempvc-list stats
+```
 
 ## Related Advanced Guide Sections
 

@@ -13,6 +13,17 @@ This command provides tools to manage your saved embed templates. You can list a
 
 Use the `/templates` command followed by a subcommand to perform actions on your embed templates.
 
+```sh
+# List all saved templates
+/templates list
+
+# Delete a template (then select from the dropdown)
+/templates delete
+
+# View information about a template (then select from the dropdown)
+/templates info
+```
+
 **Important Permissions:** You need `Manage Messages` permissions to use this command.
 
 ### Subcommands
@@ -31,9 +42,16 @@ Use the `/templates` command followed by a subcommand to perform actions on your
 
 ## Examples
 
-*   **List all saved templates:** `/templates list`
-*   **Delete a template:** `/templates delete` (then select from the dropdown)
-*   **View information about a template:** `/templates info` (then select from the dropdown)
+```sh
+# List all saved templates
+/templates list
+
+# Delete a template (then select from the dropdown)
+/templates delete
+
+# View information about a template (then select from the dropdown)
+/templates info
+```
 
 ## Related Advanced Guide Sections
 

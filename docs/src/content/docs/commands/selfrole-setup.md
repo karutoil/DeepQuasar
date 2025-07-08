@@ -13,6 +13,14 @@ This command provides a quick and easy way to set up a self-role message using p
 
 To set up a self-role message, use the `/selfrole-setup` command and provide the required `channel` and `template` options. If you choose the `custom` template, you will also need to provide a `title` and `description`.
 
+```sh
+# Set up a gaming roles message in #roles channel
+/selfrole-setup channel:#roles template:gaming
+
+# Create a custom self-role message for announcements
+/selfrole-setup channel:#announcements template:custom title:Get Notified! description:Click a button to get roles for server updates.
+```
+
 **Important Permissions:** You need `Administrator` permissions to use this command.
 
 ### Options
@@ -48,10 +56,13 @@ To set up a self-role message, use the `/selfrole-setup` command and provide the
 
 ## Examples
 
-*   **Set up a gaming roles message in #roles channel:**
-    `/selfrole-setup channel:#roles template:gaming`
-*   **Create a custom self-role message for announcements:**
-    `/selfrole-setup channel:#announcements template:custom title:Get Notified! description:Click a button to get roles for server updates.`
+```sh
+# Set up a gaming roles message in #roles channel
+/selfrole-setup channel:#roles template:gaming
+
+# Create a custom self-role message for announcements
+/selfrole-setup channel:#announcements template:custom title:Get Notified! description:Click a button to get roles for server updates.
+```
 
 ## Related Advanced Guide Sections
 

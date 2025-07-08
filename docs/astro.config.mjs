@@ -8,13 +8,16 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'DeepQuasar',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/yourusername/DeepQuasar' }],
+			social: [
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/yourusername/DeepQuasar' },
+				{ icon: 'discord', label: 'Discord', href: 'https://discord.karutoil.site/' }
+			],
 			sidebar: [
 				{
 					label: 'Getting Started',
 					items: [
-						{ label: 'Quick Start', link: 'DeepQuasar/getting-started/quick-start' },
-						{ label: 'Modules', link: 'DeepQuasar/getting-started/modules' },
+						{ label: 'Quick Start', link: '/getting-started/quick-start' },
+						{ label: 'Modules', link: '/getting-started/modules' },
 					],
 				},
 				{

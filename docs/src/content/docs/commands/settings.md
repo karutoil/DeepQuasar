@@ -13,6 +13,38 @@ This command provides comprehensive control over various bot settings for your D
 
 Use the `/settings` command followed by a subcommand group or a direct subcommand to manage specific aspects of the bot's configuration.
 
+```sh
+# Set default and max music volume
+/settings music volume default:75 max:150
+
+# Set max queue size and enable auto-shuffle
+/settings music queue max-size:200 auto-shuffle:True
+
+# Set default music source to Spotify
+/settings music source platform:spotify
+
+# Set the DJ role
+/settings permissions dj-role role:@DJ
+
+# Allow music commands in #music-commands
+/settings permissions channels add:#music-commands
+
+# Set a global command cooldown
+/settings commands cooldown seconds:5
+
+# Disable the play command
+/settings commands disable command:play
+
+# Enable the play command
+/settings commands enable command:play
+
+# View all current server settings
+/settings view
+
+# Reset all settings to default
+/settings reset confirm:True
+```
+
 **Important Permissions:** You need `Manage Guild` permissions to use this command.
 
 ### Subcommand Groups
@@ -136,16 +168,22 @@ Use the `/settings` command followed by a subcommand group or a direct subcomman
 
 ## Examples
 
-*   **Set default music volume to 60% and max to 120%:**
-    `/settings music volume default:60 max:120`
-*   **Set the DJ role:**
-    `/settings permissions dj-role role:@DJ`
-*   **Disable the `play` command:**
-    `/settings commands disable command:play`
-*   **View all current server settings:**
-    `/settings view`
-*   **Reset all settings to default:**
-    `/settings reset confirm:True`
+```sh
+# Set default music volume to 60% and max to 120%
+/settings music volume default:60 max:120
+
+# Set the DJ role to @DJ
+/settings permissions dj-role role:@DJ
+
+# Disable the play command
+/settings commands disable command:play
+
+# View all current settings
+/settings view
+
+# Reset all settings to default
+/settings reset confirm:True
+```
 
 ## Related Advanced Guide Sections
 

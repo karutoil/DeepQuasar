@@ -13,13 +13,17 @@ This command allows you to resume the music playback if it has been paused. This
 
 To resume the music, simply use the command without any additional options:
 
-`/resume`
+```sh
+/resume
+```
 
 **Important:** You must be in the same voice channel as the bot to use this command.
 
 ## Examples
 
-*   `/resume`
+```sh
+/resume
+```
 
 ## Related Advanced Guide Sections
 

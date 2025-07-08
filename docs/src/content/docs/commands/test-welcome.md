@@ -25,8 +25,13 @@ To use this command, you must be a bot owner or have specific testing permission
 
 ## Examples
 
-*   **Simulate a member join event:** `/test-welcome type:join`
-*   **Simulate a member leave event:** `/test-welcome type:leave`
+```sh
+# Simulate a member join event
+/test-welcome type:join
+
+# Simulate a member leave event
+/test-welcome type:leave
+```
 
 ## Important Notes
 

@@ -13,6 +13,41 @@ This command allows server administrators to fully configure the welcome and lea
 
 Use the `/welcome` command followed by a subcommand group or a direct subcommand to manage the welcome and leave message systems.
 
+```sh
+# Set up a welcome message in #welcome-new-members
+/welcome setup welcome channel:#welcome-new-members message:Welcome {user.mention} to {guild.name}!
+
+# Set up a leave message in #farewells
+/welcome setup leave channel:#farewells message:{user.tag} has left the server.
+
+# Set up a DM welcome message
+/welcome setup dm enabled:True message:Welcome to our community!
+
+# Configure welcome messages to use embeds with a green color
+/welcome config welcome embed:True color:#00FF00 show-account-age:True
+
+# Configure leave messages to use embeds with a red color
+/welcome config leave embed:True color:#FF0000 show-time-in-server:True
+
+# Create a custom welcome embed
+/welcome custom welcome
+
+# Create a custom leave embed
+/welcome custom leave
+
+# Create a custom DM welcome embed
+/welcome custom dm
+
+# View the current configuration and status
+/welcome status
+
+# Test the welcome message
+/welcome test type:welcome
+
+# View all available placeholders
+/welcome placeholders
+```
+
 **Important Permissions:** You need `Manage Guild` permissions to use this command.
 
 ### Subcommand Groups
@@ -129,14 +164,19 @@ Use the `/welcome` command followed by a subcommand group or a direct subcommand
 
 ## Examples
 
-*   **Set up a welcome message in #general:**
-    `/welcome setup welcome channel:#general message:Welcome {user.mention} to {guild.name}!`
-*   **Configure welcome messages to use embeds with a green color:**
-    `/welcome config welcome embed:True color:#00FF00`
-*   **Test the leave message:**
-    `/welcome test type:leave`
-*   **View all available placeholders:**
-    `/welcome placeholders`
+```sh
+# Set up a welcome message in #general
+/welcome setup welcome channel:#general message:Welcome {user.mention} to {guild.name}!
+
+# Configure welcome messages to use embeds with a green color
+/welcome config welcome embed:True color:#00FF00
+
+# Test the leave message
+/welcome test type:leave
+
+# View all available placeholders
+/welcome placeholders
+```
 
 ## Related Advanced Guide Sections
 
