@@ -204,41 +204,6 @@
 </ul>
 </li>
 <li>
-<p><code dir="auto">permissions</code></p>
-<ul>
-<li><strong>Description:</strong> Configures command-specific permissions for moderation commands, allowing certain roles to use specific commands.</li>
-<li><strong>Options:</strong>
-<ul>
-<li><code dir="auto">command</code>
-<ul>
-<li><strong>Description:</strong> The moderation command to configure (e.g., <code dir="auto">warn</code>, <code dir="auto">kick</code>, <code dir="auto">ban</code>).</li>
-<li><strong>Type:</strong> String (Choices)</li>
-<li><strong>Required:</strong> Yes</li>
-</ul>
-</li>
-<li><code dir="auto">role</code>
-<ul>
-<li><strong>Description:</strong> The role to add/remove permission for this command.</li>
-<li><strong>Type:</strong> Role</li>
-<li><strong>Required:</strong> Yes</li>
-</ul>
-</li>
-<li><code dir="auto">action</code>
-<ul>
-<li><strong>Description:</strong> Action to perform: <code dir="auto">add</code> or <code dir="auto">remove</code> permission.</li>
-<li><strong>Type:</strong> String (Choices)</li>
-<li><strong>Required:</strong> Yes</li>
-<li><strong>Choices:</strong> <code dir="auto">add</code>, <code dir="auto">remove</code></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><strong>Usage:</strong>
-<div class="expressive-code"><figure class="frame is-terminal not-content"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="sh"><code><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">/setup-moderation</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">permissions</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">command:ban</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">role:@Admin</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">action:add</span></div></div></code></pre><div class="copy"><button title="Copy to clipboard" data-copied="Copied!" data-code="/setup-moderation permissions command:ban role:@Admin action:add"><div></div></button></div></figure></div>
-</li>
-</ul>
-</li>
-<li>
 <p><code dir="auto">view</code></p>
 <ul>
 <li><strong>Description:</strong> Displays the current moderation settings for the server.</li>
@@ -254,8 +219,7 @@
 </div></div><div class="ec-line"><div class="code"><span style="--0:#919F9F;--1:#5F636F"># Create a new mute role and configure it</span></div></div><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">/setup-moderation</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">muterole</span></div></div><div class="ec-line"><div class="code">
 </div></div><div class="ec-line"><div class="code"><span style="--0:#919F9F;--1:#5F636F"># Enable auto-moderation with custom warning thresholds</span></div></div><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">/setup-moderation</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">automod</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">enabled:True</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">mute-warnings:2</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">kick-warnings:4</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">ban-warnings:8</span></div></div><div class="ec-line"><div class="code">
 </div></div><div class="ec-line"><div class="code"><span style="--0:#919F9F;--1:#5F636F"># Add the "Staff" role as a default moderator role</span></div></div><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">/setup-moderation</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">modroles</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">add:@Staff</span></div></div><div class="ec-line"><div class="code">
-</div></div><div class="ec-line"><div class="code"><span style="--0:#919F9F;--1:#5F636F"># Allow the "Trial Mod" role to use the warn command</span></div></div><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">/setup-moderation</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">permissions</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">command:warn</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">role:@TrialMod</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">action:add</span></div></div><div class="ec-line"><div class="code">
-</div></div><div class="ec-line"><div class="code"><span style="--0:#919F9F;--1:#5F636F"># View all current moderation settings</span></div></div><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">/setup-moderation</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">view</span></div></div></code></pre><div class="copy"><button title="Copy to clipboard" data-copied="Copied!" data-code="/setup-moderation init/setup-moderation modlog channel:#server-logs/setup-moderation muterole/setup-moderation automod enabled:True mute-warnings:2 kick-warnings:4 ban-warnings:8/setup-moderation modroles add:@Staff/setup-moderation permissions command:warn role:@TrialMod action:add/setup-moderation view"><div></div></button></div></figure></div>
+</div></div><div class="ec-line"><div class="code"><span style="--0:#919F9F;--1:#5F636F"># View all current moderation settings</span></div></div><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">/setup-moderation</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">view</span></div></div></code></pre><div class="copy"><button title="Copy to clipboard" data-copied="Copied!" data-code="/setup-moderation init/setup-moderation modlog channel:#server-logs/setup-moderation muterole/setup-moderation automod enabled:True mute-warnings:2 kick-warnings:4 ban-warnings:8/setup-moderation modroles add:@Staff/setup-moderation view"><div></div></button></div></figure></div>
 <div class="sl-heading-wrapper level-h2"><h2 id="important-permissions">Important Permissions</h2><a class="sl-anchor-link" href="#important-permissions"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “Important Permissions”</span></a></div>
 <ul>
 <li>You need <code dir="auto">Administrator</code> permissions to use this command.</li>
