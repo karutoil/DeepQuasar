@@ -43,15 +43,15 @@ module.exports = {
             await interaction.deferReply({ ephemeral: true });
 
             // Create and save the note
-            const userNote = new UserNotes({
-                guildId: interaction.guild.id,
-                userId: targetUser.id,
-                moderatorId: interaction.user.id,
-                note: noteText,
-                timestamp: new Date()
-            });
-
-            await userNote.save();
+            const userNote = await UserNotes.addNote(
+                interaction.guild.id,
+                targetUser.id,
+                {
+                    content: noteText,
+                    moderatorId: interaction.user.id,
+                    type: 'general'
+                }
+            );
 
             const embed = Utils.createSuccessEmbed(
                 'Note Added',

@@ -68,8 +68,7 @@ module.exports = {
                 userId: targetUser.id,
                 moderatorId: interaction.user.id,
                 action: 'strike',
-                reason: reason,
-                timestamp: new Date()
+                reason: reason
             });
 
             const embed = Utils.createSuccessEmbed(

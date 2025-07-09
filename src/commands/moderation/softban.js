@@ -115,7 +115,6 @@ module.exports = {
                     moderatorId: interaction.user.id,
                     action: 'softban',
                     reason: reason,
-                    timestamp: new Date(),
                     additionalInfo: { deleteDays }
                 });
 

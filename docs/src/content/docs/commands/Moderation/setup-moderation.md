@@ -91,27 +91,6 @@ Use the `/setup-moderation` command followed by a subcommand to configure specif
         /setup-moderation modroles remove:@Helper
         ```
 
-*   `permissions`
-    *   **Description:** Configures command-specific permissions for moderation commands, allowing certain roles to use specific commands.
-    *   **Options:**
-        *   `command`
-            *   **Description:** The moderation command to configure (e.g., `warn`, `kick`, `ban`).
-            *   **Type:** String (Choices)
-            *   **Required:** Yes
-        *   `role`
-            *   **Description:** The role to add/remove permission for this command.
-            *   **Type:** Role
-            *   **Required:** Yes
-        *   `action`
-            *   **Description:** Action to perform: `add` or `remove` permission.
-            *   **Type:** String (Choices)
-            *   **Required:** Yes
-            *   **Choices:** `add`, `remove`
-    *   **Usage:** 
-        ```sh
-        /setup-moderation permissions command:ban role:@Admin action:add
-        ```
-
 *   `view`
     *   **Description:** Displays the current moderation settings for the server.
     *   **Usage:** 
@@ -136,9 +115,6 @@ Use the `/setup-moderation` command followed by a subcommand to configure specif
 
 # Add the "Staff" role as a default moderator role
 /setup-moderation modroles add:@Staff
-
-# Allow the "Trial Mod" role to use the warn command
-/setup-moderation permissions command:warn role:@TrialMod action:add
 
 # View all current moderation settings
 /setup-moderation view

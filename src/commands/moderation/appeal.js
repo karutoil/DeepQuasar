@@ -248,7 +248,7 @@ module.exports = {
                 action: { $in: appealableActions },
                 status: { $ne: 'pardoned' },
                 'appeal.submitted': { $ne: true }
-            }).sort({ timestamp: -1 }).limit(10);
+            }).sort({ createdAt: -1 }).limit(10);
 
             if (userCases.length === 0) {
                 const embed = Utils.createInfoEmbed(
@@ -283,7 +283,7 @@ module.exports = {
                     `**Action:** ${ModerationUtils.capitalizeAction(punishmentCase.action)}`,
                     `**Reason:** ${punishmentCase.reason ? (punishmentCase.reason.length > 100 ? punishmentCase.reason.substring(0, 100) + '...' : punishmentCase.reason) : 'No reason provided'}`,
                     `**Moderator:** ${moderator ? moderator.tag : 'Unknown'}`,
-                    punishmentCase.timestamp ? `**Date:** <t:${Math.floor(punishmentCase.timestamp.getTime() / 1000)}:R>` : '**Date:** Unknown'
+                    punishmentCase.createdAt ? `**Date:** <t:${Math.floor(punishmentCase.createdAt.getTime() / 1000)}:R>` : '**Date:** Unknown'
                 ].join('\n');
 
                 embed.addFields({
@@ -365,7 +365,7 @@ module.exports = {
                         `**Case ID:** ${punishmentCase.caseId}`,
                         `**Action:** ${ModerationUtils.capitalizeAction(punishmentCase.action)}`,
                         `**Status:** ${punishmentCase.status || 'Active'}`,
-                        `**Date:** <t:${Math.floor(punishmentCase.timestamp.getTime() / 1000)}:f>`
+                        `**Date:** <t:${Math.floor(punishmentCase.createdAt.getTime() / 1000)}:f>`
                     ].join('\n'),
                     inline: true
                 },

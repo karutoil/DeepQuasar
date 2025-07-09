@@ -54,7 +54,7 @@ module.exports = {
 
             // Find warnings
             const warnings = await PunishmentLog.find(query)
-                .sort({ timestamp: -1 })
+                .sort({ createdAt: -1 })
                 .limit(20);
 
             if (warnings.length === 0) {
@@ -93,7 +93,12 @@ module.exports = {
                 
                 let fieldValue = `**Reason:** ${warning.reason || 'No reason provided'}\n`;
                 fieldValue += `**Moderator:** ${moderator ? moderator.tag : 'Unknown'}\n`;
-                fieldValue += `**Date:** <t:${Math.floor(warning.timestamp.getTime() / 1000)}:f>`;
+                
+                if (warning.createdAt) {
+                    fieldValue += `**Date:** <t:${Math.floor(warning.createdAt.getTime() / 1000)}:f>`;
+                } else {
+                    fieldValue += `**Date:** Unknown`;
+                }
                 
                 if (warning.status === 'pardoned' && warning.pardonReason) {
                     fieldValue += `\n**Pardon Reason:** ${warning.pardonReason}`;
