@@ -9,6 +9,14 @@ module.exports = {
         client.logger.info(`✅ ${client.user.tag} is now online and ready!`);
         client.logger.info(`📊 Serving ${client.guilds.cache.size} guilds with ${client.users.cache.size} users`);
 
+        // Fetch application information (including owner)
+        try {
+            await client.application.fetch();
+            client.logger.info(`📋 Application owner: ${client.application.owner?.tag || 'Unknown'}`);
+        } catch (error) {
+            client.logger.error('Failed to fetch application information:', error);
+        }
+
         // Initialize Moonlink Manager
         client.manager.init(client.user.id);
         client.logger.info('🎵 Moonlink Manager initialized');

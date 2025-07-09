@@ -1,3 +1,7 @@
 label: Commands
 position: 2
 collapsed: true
+
+- label: Moderation
+  position: 3
+  collapsed: true

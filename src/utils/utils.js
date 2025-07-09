@@ -202,7 +202,7 @@ class Utils {
         const guildData = await this.getGuildData(interaction.guildId);
 
         // Bot owner always has permission
-        if (interaction.client.application.owner?.id === interaction.user.id) {
+        if (this.isBotOwner(interaction)) {
             return { hasPermission: true };
         }
 
@@ -483,7 +483,19 @@ class Utils {
      * Check if user is bot owner
      */
     static isBotOwner(interaction) {
-        return interaction.client.application.owner.id === interaction.user.id;
+        try {
+            // Check if application owner is available
+            if (interaction.client.application?.owner?.id) {
+                return interaction.client.application.owner.id === interaction.user.id;
+            }
+            
+            // If application owner is not available, log a warning
+            console.warn('Application owner not available. Make sure client.application.fetch() is called on startup.');
+            return false;
+        } catch (error) {
+            console.error('Error checking bot owner:', error);
+            return false;
+        }
     }
 
     /**
