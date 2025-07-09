@@ -1,5 +1,6 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const PunishmentLog = require('../../schemas/PunishmentLog');
+const UserNotes = require('../../schemas/UserNotes');
 const Utils = require('../../utils/utils');
 const ModerationUtils = require('../../utils/ModerationUtils');
 
@@ -13,6 +14,17 @@ module.exports = {
                 .setName('user')
                 .setDescription('User to view history for')
                 .setRequired(true)
+        )
+        .addStringOption(option =>
+            option
+                .setName('filter')
+                .setDescription('Filter the history type')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'All', value: 'all' },
+                    { name: 'Moderation Actions', value: 'mod_actions' },
+                    { name: 'Notes', value: 'notes' }
+                )
         )
         .addIntegerOption(option =>
             option
@@ -34,18 +46,41 @@ module.exports = {
                         'Permission Denied',
                         permissionCheck.reason
                     )],
-                    ephemeral: true
+                    flags: [MessageFlags.Ephemeral]
                 });
             }
 
             const target = interaction.options.getUser('user');
             const limit = interaction.options.getInteger('limit') || 10;
+            const filterType = interaction.options.getString('filter') || 'all';
 
-            // Change deferred reply to be ephemeral
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-            // Get user's punishment history
-            const history = await PunishmentLog.find({ guildId: interaction.guild.id, userId: target.id }).sort({ createdAt: -1 });
+            let history = [];
+
+            if (filterType === 'all' || filterType === 'mod_actions') {
+                const punishments = await PunishmentLog.find({ guildId: interaction.guild.id, userId: target.id });
+                history.push(...punishments.map(p => ({ ...p.toObject(), type: 'punishment' })));
+            }
+
+            if (filterType === 'all' || filterType === 'notes') {
+                const userNotesDoc = await UserNotes.findOne({ guildId: interaction.guild.id, userId: target.id });
+                if (userNotesDoc && userNotesDoc.notes) {
+                    history.push(...userNotesDoc.notes.map(n => ({ ...n.toObject(), type: 'note' })));
+                }
+            }
+
+            history.sort((a, b) => {
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return dateB - dateA;
+            });
+
+            if (history.length === 0) {
+                return interaction.editReply({
+                    embeds: [Utils.createInfoEmbed('Moderation History', `No history found for ${target.tag} with the selected filter.`)]
+                });
+            }
 
             const totalPages = Math.ceil(history.length / limit);
             let currentPage = 0;
@@ -61,20 +96,29 @@ module.exports = {
                 );
 
                 const historyText = pageHistory.map((entry, index) => {
-                    const date = `<t:${Math.floor(entry.createdAt.getTime() / 1000)}:d>`;
-                    const moderator = `<@${entry.moderatorId}>`;
-                    const status = entry.status === 'active' ? '🟢' : '🔴';
+                    const date = entry.createdAt ? `<t:${Math.floor(new Date(entry.createdAt).getTime() / 1000)}:d>` : 'Unknown Date';
+                    const moderator = entry.moderatorId ? `<@${entry.moderatorId}>` : 'Unknown';
 
-                    return `**${index + 1}.** ${status} ${ModerationUtils.getActionEmoji(entry.action)} ${ModerationUtils.capitalizeAction(entry.action)}
-                    **Case:** ${entry.caseId}
-                    **Date:** ${date}
-                    **Moderator:** ${moderator}
-                    **Reason:** ${Utils.truncate(entry.reason, 100)}`;
+                    if (entry.type === 'punishment') {
+                        const status = entry.status === 'active' ? '🟢' : '🔴';
+                        const reason = entry.reason ? Utils.truncate(entry.reason, 100) : 'No reason provided.';
+                        return `**${start + index + 1}.** ${status} ${ModerationUtils.getActionEmoji(entry.action)} ${ModerationUtils.capitalizeAction(entry.action)}
+                        **Case:** ${entry.caseId}
+                        **Date:** ${date}
+                        **Moderator:** ${moderator}
+                        **Reason:** ${reason}`;
+                    } else { // Note
+                        const noteText = entry.content ? Utils.truncate(entry.content, 100) : 'No note content.';
+                        return `**${start + index + 1}.** 📝 Note
+                        **Date:** ${date}
+                        **Moderator:** ${moderator}
+                        **Note:** ${noteText}`;
+                    }
                 }).join('\n\n');
 
                 embed.setDescription(historyText);
 
-                if (pageHistory.length >= limit) {
+                if (totalPages > 1) {
                     embed.setFooter({
                         text: `Showing ${limit} entries per page. Use buttons to navigate.`
                     });
@@ -98,15 +142,16 @@ module.exports = {
                 );
             };
 
-            // Replace the initial reply with editReply
-            await interaction.editReply({ embeds: [generateEmbed(currentPage)], components: [generateActionRow(currentPage, totalPages)] });
+            await interaction.editReply({ embeds: [generateEmbed(currentPage)], components: totalPages > 1 ? [generateActionRow(currentPage, totalPages)] : [] });
 
-            const filter = i => {
+            if (totalPages <= 1) return;
+
+            const collectorFilter = i => {
                 i.deferUpdate();
                 return i.customId === 'modhistory_back' || i.customId === 'modhistory_next';
             };
 
-            const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
+            const collector = interaction.channel.createMessageComponentCollector({ filter: collectorFilter, time: 60000 });
 
             collector.on('collect', async (i) => {
                 if (i.customId === 'modhistory_back') {
@@ -119,7 +164,7 @@ module.exports = {
             });
 
             collector.on('end', () => {
-                interaction.editReply({ components: [] });
+                interaction.editReply({ components: [] }).catch(console.error);
             });
 
         } catch (error) {
@@ -129,7 +174,7 @@ module.exports = {
                     'History Error',
                     'An error occurred while fetching moderation history.'
                 )]
-            });
+            }).catch(console.error);
         }
     }
 };
