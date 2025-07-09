@@ -50,7 +50,7 @@ module.exports = {
                 });
             }
 
-            await interaction.deferReply();
+            await interaction.deferReply({ ephemeral: true });
 
             // Check if user is actually banned
             const bans = await interaction.guild.bans.fetch();

@@ -49,7 +49,7 @@ module.exports = {
             const duration = interaction.options.getInteger('duration');
             const reason = interaction.options.getString('reason') || 'No reason provided';
 
-            await interaction.deferReply();
+            await interaction.deferReply({ ephemeral: true });
 
             // Check if bot has permission to manage channel
             if (!channel.permissionsFor(interaction.guild.members.me).has(PermissionFlagsBits.ManageChannels)) {

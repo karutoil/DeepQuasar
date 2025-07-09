@@ -87,7 +87,7 @@ module.exports = {
                 }
             }
 
-            await interaction.deferReply();
+            await interaction.deferReply({ ephemeral: true });
 
             // Try to DM user before banning (if they're in the server)
             let dmSent = false;

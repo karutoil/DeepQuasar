@@ -58,7 +58,7 @@ module.exports = {
                 });
             }
 
-            await interaction.deferReply();
+            await interaction.deferReply({ ephemeral: true });
 
             // Parse duration
             let duration = null;

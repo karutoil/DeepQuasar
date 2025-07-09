@@ -51,7 +51,7 @@ module.exports = {
                 });
             }
 
-            await interaction.deferReply();
+            await interaction.deferReply({ ephemeral: true });
 
             // Get moderation settings and mute role
             const settings = await ModerationUtils.getModerationSettings(interaction.guild.id);

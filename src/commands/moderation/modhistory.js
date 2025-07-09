@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const PunishmentLog = require('../../schemas/PunishmentLog');
 const Utils = require('../../utils/utils');
 const ModerationUtils = require('../../utils/ModerationUtils');
@@ -41,51 +41,86 @@ module.exports = {
             const target = interaction.options.getUser('user');
             const limit = interaction.options.getInteger('limit') || 10;
 
-            await interaction.deferReply();
+            // Change deferred reply to be ephemeral
+            await interaction.deferReply({ ephemeral: true });
 
             // Get user's punishment history
-            const history = await PunishmentLog.getUserHistory(interaction.guild.id, target.id, limit);
+            const history = await PunishmentLog.find({ guildId: interaction.guild.id, userId: target.id }).sort({ createdAt: -1 });
 
-            if (history.length === 0) {
-                return interaction.editReply({
-                    embeds: [Utils.createInfoEmbed(
-                        'No History Found',
-                        `${target.tag} has no moderation history.`
-                    )]
-                });
-            }
+            const totalPages = Math.ceil(history.length / limit);
+            let currentPage = 0;
 
-            const embed = Utils.createInfoEmbed(
-                'Moderation History',
-                `History for ${target.tag} (${target.id})`
-            );
+            const generateEmbed = (page) => {
+                const start = page * limit;
+                const end = start + limit;
+                const pageHistory = history.slice(start, end);
 
-            const historyText = history.map((entry, index) => {
-                const date = `<t:${Math.floor(entry.createdAt.getTime() / 1000)}:d>`;
-                const moderator = `<@${entry.moderatorId}>`;
-                const status = entry.status === 'active' ? '🟢' : '🔴';
-                
-                return `**${index + 1}.** ${status} ${ModerationUtils.getActionEmoji(entry.action)} ${ModerationUtils.capitalizeAction(entry.action)}
-                **Case:** ${entry.caseId}
-                **Date:** ${date}
-                **Moderator:** ${moderator}
-                **Reason:** ${Utils.truncate(entry.reason, 100)}`;
-            }).join('\n\n');
+                const embed = Utils.createInfoEmbed(
+                    'Moderation History',
+                    `History for ${target.tag} (${target.id}) - Page ${page + 1} of ${totalPages}`
+                );
 
-            embed.setDescription(historyText);
+                const historyText = pageHistory.map((entry, index) => {
+                    const date = `<t:${Math.floor(entry.createdAt.getTime() / 1000)}:d>`;
+                    const moderator = `<@${entry.moderatorId}>`;
+                    const status = entry.status === 'active' ? '🟢' : '🔴';
 
-            if (history.length >= limit) {
-                embed.setFooter({
-                    text: `Showing ${limit} most recent entries. Use a higher limit to see more.`
-                });
-            }
+                    return `**${index + 1}.** ${status} ${ModerationUtils.getActionEmoji(entry.action)} ${ModerationUtils.capitalizeAction(entry.action)}
+                    **Case:** ${entry.caseId}
+                    **Date:** ${date}
+                    **Moderator:** ${moderator}
+                    **Reason:** ${Utils.truncate(entry.reason, 100)}`;
+                }).join('\n\n');
 
-            const legendEmbed = Utils.createInfoEmbed(
-                'Legend',
-                '🟢 Active: The case is currently active and unresolved.\n🔴 Inactive: The case has been resolved or pardoned.'
-            );
+                embed.setDescription(historyText);
 
-            await interaction.editReply({ embeds: [legendEmbed, embed] });
+                if (pageHistory.length >= limit) {
+                    embed.setFooter({
+                        text: `Showing ${limit} entries per page. Use buttons to navigate.`
+                    });
+                }
+
+                return embed;
+            };
+
+            const generateActionRow = (page, totalPages) => {
+                return new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('modhistory_back')
+                        .setLabel('Back')
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(page <= 0),
+                    new ButtonBuilder()
+                        .setCustomId('modhistory_next')
+                        .setLabel('Next')
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(page >= totalPages - 1)
+                );
+            };
+
+            // Replace the initial reply with editReply
+            await interaction.editReply({ embeds: [generateEmbed(currentPage)], components: [generateActionRow(currentPage, totalPages)] });
+
+            const filter = i => {
+                i.deferUpdate();
+                return i.customId === 'modhistory_back' || i.customId === 'modhistory_next';
+            };
+
+            const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
+
+            collector.on('collect', async (i) => {
+                if (i.customId === 'modhistory_back') {
+                    currentPage = Math.max(currentPage - 1, 0);
+                } else if (i.customId === 'modhistory_next') {
+                    currentPage = Math.min(currentPage + 1, totalPages - 1);
+                }
+
+                await interaction.editReply({ embeds: [generateEmbed(currentPage)], components: [generateActionRow(currentPage, totalPages)] });
+            });
+
+            collector.on('end', () => {
+                interaction.editReply({ components: [] });
+            });
 
         } catch (error) {
             console.error('Error in modhistory command:', error);

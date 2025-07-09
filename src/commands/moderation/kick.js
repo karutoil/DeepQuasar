@@ -51,7 +51,7 @@ module.exports = {
                 });
             }
 
-            await interaction.deferReply();
+            await interaction.deferReply({ ephemeral: true });
 
             const targetMember = interaction.guild.members.cache.get(target.id);
 
