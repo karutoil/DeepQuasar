@@ -1,5 +1,6 @@
 const Utils = require('../utils/utils');
 const { ButtonStyle } = require('discord.js');
+const LFGInteractionHandler = require('./lfg/LFGInteractionHandler');
 
 // Helper function for progress bar (not used in original interactionCreate.js, but kept for completeness if it was intended)
 function createProgressBar(current, total, length = 20) {
@@ -728,9 +729,13 @@ async function handleTempVCButton(interaction, client) {
 }
 
 async function handleButtonInteraction(interaction, client) {
-    const customId = interaction.customId;
-
     try {
+        // Handle LFG button interactions first
+        const lfgHandled = await LFGInteractionHandler.handleButtonInteraction(interaction);
+        if (lfgHandled) return;
+
+        const customId = interaction.customId;
+
         // Handle embed builder buttons
         if (customId.startsWith('embed_')) {
             const embedCommand = client.commands.get('embed');

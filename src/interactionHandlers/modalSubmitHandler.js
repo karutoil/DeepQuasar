@@ -1,5 +1,6 @@
 const Utils = require('../utils/utils');
 const EmbedBuilderHandler = require('../utils/EmbedBuilderHandler');
+const LFGInteractionHandler = require('./lfg/LFGInteractionHandler');
 
 // Temp VC interaction handlers
 async function handleTempVCModal(interaction, client) {
@@ -27,6 +28,10 @@ async function handleTempVCModal(interaction, client) {
 
 async function handleModalSubmit(interaction, client) {
     try {
+        // Handle LFG modal submissions first
+        const lfgHandled = await LFGInteractionHandler.handleModalSubmission(interaction);
+        if (lfgHandled) return;
+
         const customId = interaction.customId;
         
         // Handle embed builder modals

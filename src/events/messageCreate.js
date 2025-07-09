@@ -1,5 +1,6 @@
 const { Events } = require('discord.js');
 const ChatBot = require('../utils/ChatBot');
+const LFGMessageHandler = require('../handlers/lfg/LFGMessageHandler');
 
 module.exports = {
     name: Events.MessageCreate,
@@ -13,6 +14,9 @@ module.exports = {
         if (!message.guild) {
             return;
         }
+
+        // Handle LFG message detection
+        await LFGMessageHandler.handleMessage(message);
 
         // Process the message with the chatbot
         await ChatBot.processMessage(message);

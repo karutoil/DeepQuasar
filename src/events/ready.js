@@ -1,6 +1,7 @@
 const { ActivityType } = require('discord.js');
 const Guild = require('../schemas/Guild');
 const WelcomeSystem = require('../utils/WelcomeSystem');
+const LFGCleanupTask = require('../handlers/lfg/LFGCleanupTask');
 
 module.exports = {
     name: 'ready',
@@ -102,6 +103,9 @@ async function initializeGuilds(client) {
 }
 
 function startPeriodicTasks(client) {
+    // Initialize LFG cleanup task
+    LFGCleanupTask.init(client);
+    
     // Clean up inactive players every 5 minutes
     setInterval(() => {
         cleanupInactivePlayers(client);

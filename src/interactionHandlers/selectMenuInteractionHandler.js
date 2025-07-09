@@ -284,6 +284,13 @@ async function handleSelectMenuInteraction(interaction, client) {
             return;
         }
 
+        // Handle LFG select menus
+        if (customId.startsWith('lfg_')) {
+            const LFGInteractionHandler = require('./lfg/LFGInteractionHandler');
+            const handled = await LFGInteractionHandler.handleSelectMenuInteraction(interaction);
+            if (handled) return;
+        }
+
     } catch (error) {
         client.logger.error(`Error handling select menu interaction ${customId}:`, error);
         
