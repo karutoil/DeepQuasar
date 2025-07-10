@@ -38,121 +38,210 @@ class SmartCommandDeployer {
             throw new Error(`HTTP ${response.status}: ${errorBody}`);
         }
 
+        // For DELETE requests, response might be empty
+        if (response.status === 204) {
+            return null;
+        }
+
         return await response.json();
     }
 
     // Compare two commands to see if they're different
     commandsEqual(cmd1, cmd2) {
-        const normalize = (cmd) => ({
-            name: cmd.name,
-            description: cmd.description,
-            type: cmd.type || 1,
-            options: cmd.options || [],
-            default_permission: cmd.default_permission,
-            default_member_permissions: cmd.default_member_permissions,
-            dm_permission: cmd.dm_permission
-        });
+        const normalize = (cmd) => {
+            const normalizeOptions = (options) => {
+                if (!options) return [];
+                
+                // Create new, normalized option objects, sorting them and their choices
+                return options.map(opt => {
+                    const newOpt = {
+                        type: opt.type,
+                        name: opt.name,
+                        description: opt.description,
+                        required: opt.required || false,
+                    };
+                    if (opt.choices) {
+                        // Create a sorted copy of choices
+                        newOpt.choices = [...opt.choices].sort((a, b) => a.name.localeCompare(b.name));
+                    }
+                    if (opt.options) {
+                        // Recursively normalize sub-options
+                        newOpt.options = normalizeOptions(opt.options);
+                    }
+                    // Add other valid option fields if they exist
+                    if ('channel_types' in opt) newOpt.channel_types = opt.channel_types;
+                    if ('min_value' in opt) newOpt.min_value = opt.min_value;
+                    if ('max_value' in opt) newOpt.max_value = opt.max_value;
+                    if ('min_length' in opt) newOpt.min_length = opt.min_length;
+                    if ('max_length' in opt) newOpt.max_length = opt.max_length;
+                    if ('autocomplete' in opt) newOpt.autocomplete = opt.autocomplete;
+
+                    return newOpt;
+                }).sort((a, b) => a.name.localeCompare(b.name));
+            };
+
+            // Normalize the top-level command object
+            return {
+                name: cmd.name,
+                description: cmd.description || '',
+                type: cmd.type || 1,
+                options: normalizeOptions(cmd.options),
+                default_member_permissions: cmd.default_member_permissions ? String(cmd.default_member_permissions) : null,
+                dm_permission: cmd.dm_permission === false ? false : true, // API defaults to true if undefined
+            };
+        };
 
         const norm1 = normalize(cmd1);
         const norm2 = normalize(cmd2);
         
-        return JSON.stringify(norm1) === JSON.stringify(norm2);
+        const str1 = JSON.stringify(norm1);
+        const str2 = JSON.stringify(norm2);
+
+        return str1 === str2;
     }
 
     async checkDailyLimit() {
         try {
-            // Try a small test request to check if we're rate limited
-            await this.makeRequest(`/applications/${this.clientId}`);
-            console.log('✅ No rate limiting detected');
+            // A lightweight request to check for rate limiting
+            await this.makeRequest(`/applications/${this.clientId}/commands`, 'GET');
+            console.log('✅ No rate limiting detected.');
             return false;
         } catch (error) {
-            if (error.message.includes('daily application command creates')) {
-                console.log('🚫 Daily command creation limit reached');
+            if (error.message.includes('429')) {
+                console.log('🚫 Daily command creation/update limit likely reached.');
                 return true;
             }
+            // Re-throw other errors
             throw error;
         }
     }
 
-    async smartDeploy(isGuild = false, guildId = null) {
+    async createCommand(command, endpoint) {
+        console.log(`➕ Creating new command: ${command.name}`);
+        return this.makeRequest(endpoint, 'POST', command);
+    }
+
+    async updateCommand(commandId, command, endpoint) {
+        console.log(`🔄 Updating command: ${command.name}`);
+        const updateEndpoint = `${endpoint}/${commandId}`;
+        return this.makeRequest(updateEndpoint, 'PATCH', command);
+    }
+
+    async deleteCommand(commandId, commandName, endpoint) {
+        console.log(`➖ Deleting command: ${commandName} (${commandId})`);
+        const deleteEndpoint = `${endpoint}/${commandId}`;
+        return this.makeRequest(deleteEndpoint, 'DELETE');
+    }
+
+    async smartDeploy(isGuild = false, guildId = null, isCheckOnly = false) {
         try {
-            console.log(`🤖 Smart deployment ${isGuild ? `to guild ${guildId}` : 'globally'}...`);
-            
-            // Check daily limit first
-            const rateLimited = await this.checkDailyLimit();
-            if (rateLimited) {
-                console.log('❌ Cannot deploy: Daily limit reached. Try again tomorrow or deploy to guild.');
-                return;
-            }
+            const mode = isCheckOnly ? 'check' : 'deployment';
+            console.log(`🤖 Smart ${mode} started ${isGuild ? `for guild ${guildId}` : 'globally'}...`);
 
-            // Load commands from files
             const newCommands = await this.loadCommands();
-            console.log(`📦 Loaded ${newCommands.length} local commands`);
+            console.log(`📦 Loaded ${newCommands.length} local command files.`);
 
-            // Get current deployed commands
             const endpoint = isGuild 
                 ? `/applications/${this.clientId}/guilds/${guildId}/commands`
                 : `/applications/${this.clientId}/commands`;
             
             const currentCommands = await this.makeRequest(endpoint);
-            console.log(`📋 Current deployed commands: ${currentCommands.length}`);
+            console.log(`📋 Found ${currentCommands.length} currently deployed commands.`);
 
-            // Compare commands
-            const commandsChanged = this.compareCommandSets(currentCommands, newCommands);
-            
-            if (!commandsChanged) {
-                console.log('✅ No changes detected. Skipping deployment.');
+            const newCommandsMap = new Map(newCommands.map(cmd => [cmd.name, cmd]));
+            const currentCommandsMap = new Map(currentCommands.map(cmd => [cmd.name, cmd]));
+
+            const toCreate = [];
+            const toUpdate = [];
+            const toDelete = [];
+
+            for (const [name, newCmd] of newCommandsMap.entries()) {
+                if (currentCommandsMap.has(name)) {
+                    const currentCmd = currentCommandsMap.get(name);
+                    if (!this.commandsEqual(currentCmd, newCmd)) {
+                        toUpdate.push({ id: currentCmd.id, data: newCmd });
+                    } 
+                } else {
+                    toCreate.push(newCmd);
+                }
+            }
+
+            for (const [name, currentCmd] of currentCommandsMap.entries()) {
+                if (!newCommandsMap.has(name)) {
+                    toDelete.push(currentCmd);
+                }
+            }
+
+            if (toCreate.length === 0 && toUpdate.length === 0 && toDelete.length === 0) {
+                console.log('✅ Commands are already up-to-date. No changes needed.');
                 return;
             }
 
-            console.log('📝 Changes detected. Deploying...');
-            
-            // Deploy changes
-            const deployed = await this.makeRequest(endpoint, 'PUT', newCommands);
-            console.log(`✅ Successfully deployed ${deployed.length} commands!`);
-            
+            this.displayChanges(toCreate, toUpdate, toDelete);
+
+            if (isCheckOnly) {
+                console.log('\nRun the command without --check-only to apply these changes.');
+                return;
+            }
+
+            console.log('\n📝 Syncing commands with Discord...');
+
+            const rateLimited = await this.checkDailyLimit();
+            if (rateLimited) {
+                console.log('❌ Deployment cancelled: Daily rate limit reached.');
+                return;
+            }
+
+            const totalChanges = toCreate.length + toUpdate.length + toDelete.length;
+
+            if (totalChanges > 1) {
+                console.log('🔄 Multiple changes detected. Using bulk update for efficiency.');
+                await this.makeRequest(endpoint, 'PUT', newCommands);
+            } else {
+                console.log('⚙️ Single change detected. Applying individually.');
+                for (const cmd of toDelete) {
+                    await this.deleteCommand(cmd.id, cmd.name, endpoint);
+                }
+                for (const cmd of toUpdate) {
+                    await this.updateCommand(cmd.id, cmd.data, endpoint);
+                }
+                for (const cmd of toCreate) {
+                    await this.createCommand(cmd, endpoint);
+                }
+            }
+
+            console.log('\n✅ Command sync complete!');
+            console.log(`📊 Summary: ${toCreate.length} created, ${toUpdate.length} updated, ${toDelete.length} deleted.`);
+
         } catch (error) {
-            console.error('❌ Smart deployment failed:', error.message);
-            
+            console.error(`❌ Smart ${isCheckOnly ? 'check' : 'deployment'} failed:`, error.message);
             if (error.message.includes('daily application command creates')) {
                 console.log('\n💡 Solutions:');
-                console.log('1. Wait until tomorrow (resets at midnight UTC)');
-                console.log('2. Deploy to guild instead: node smart-deploy.js guild <guildId>');
-                console.log('3. Use existing commands without changes');
+                console.log('1. Wait for the daily reset (midnight UTC).');
+                console.log(`2. Deploy to a specific guild: node ${path.basename(__filename)} guild <guildId>`);
             }
         }
     }
 
-    compareCommandSets(current, new_) {
-        if (current.length !== new_.length) {
-            console.log(`📊 Command count changed: ${current.length} → ${new_.length}`);
-            return true;
+    displayChanges(toCreate, toUpdate, toDelete) {
+        console.log('\n🔍 Change Summary (Dry Run):');
+        
+        if (toCreate.length > 0) {
+            console.log(`\n➕ Commands to be CREATED (${toCreate.length}):`);
+            toCreate.forEach(cmd => console.log(`  - ${cmd.name}`));
         }
 
-        for (let i = 0; i < new_.length; i++) {
-            const newCmd = new_[i];
-            const currentCmd = current.find(cmd => cmd.name === newCmd.name);
-            
-            if (!currentCmd) {
-                console.log(`➕ New command: ${newCmd.name}`);
-                return true;
-            }
-            
-            if (!this.commandsEqual(currentCmd, newCmd)) {
-                console.log(`🔄 Changed command: ${newCmd.name}`);
-                return true;
-            }
+        if (toUpdate.length > 0) {
+            console.log(`\n🔄 Commands to be UPDATED (${toUpdate.length}):`);
+            toUpdate.forEach(cmd => console.log(`  - ${cmd.data.name}`));
         }
 
-        // Check for deleted commands
-        for (const currentCmd of current) {
-            if (!new_.find(cmd => cmd.name === currentCmd.name)) {
-                console.log(`➖ Deleted command: ${currentCmd.name}`);
-                return true;
-            }
+        if (toDelete.length > 0) {
+            console.log(`\n➖ Commands to be DELETED (${toDelete.length}):`);
+            toDelete.forEach(cmd => console.log(`  - ${cmd.name}`));
         }
 
-        return false;
+        console.log('\nRun the command without --check-only to apply these changes.');
     }
 
     async loadCommands() {
@@ -178,8 +267,9 @@ class SmartCommandDeployer {
                     delete require.cache[require.resolve(filePath)]; // Clear cache
                     const command = require(filePath);
                     if (command.data) {
-                        commands.push(command.data.toJSON());
-                        console.log(`📝 Loaded command: ${command.data.name}`);
+                        const commandData = command.data.toJSON();
+                        commands.push(commandData);
+                        // console.log(`📝 Loaded command: ${commandData.name}`); // Optional: uncomment for verbose logging
                     }
                 } catch (error) {
                     console.log(`❌ Failed to load ${file}: ${error.message}`);
@@ -195,21 +285,23 @@ class SmartCommandDeployer {
 async function main() {
     const deployer = new SmartCommandDeployer();
     const args = process.argv.slice(2);
-    const deployType = args[0] || 'global';
     
+    const isCheckOnly = args.includes('--check-only');
+    const filteredArgs = args.filter(arg => arg !== '--check-only');
+    
+    const deployType = filteredArgs[0] || 'global';
+    const guildId = filteredArgs[1] || process.env.GUILD_ID;
+
     try {
-        if (deployType === 'guild') {
-            const guildId = args[1] || process.env.GUILD_ID;
-            if (!guildId) {
-                console.error('❌ Guild ID required. Set GUILD_ID in .env or pass as argument: node smart-deploy.js guild <guildId>');
-                process.exit(1);
-            }
-            await deployer.smartDeploy(true, guildId);
-        } else {
-            await deployer.smartDeploy(false);
+        if (deployType === 'guild' && !guildId) {
+            console.error('❌ Guild ID required. Set GUILD_ID in .env or pass as an argument: node smart-deploy.js guild <guildId>');
+            process.exit(1);
         }
+
+        await deployer.smartDeploy(deployType === 'guild', guildId, isCheckOnly);
+
     } catch (error) {
-        console.error('💥 Failed:', error.message);
+        console.error(`💥 Deployment script failed: ${error.message}`);
         process.exit(1);
     }
 }

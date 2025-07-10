@@ -81,6 +81,7 @@ class LFGMessageHandler {
             let postType = 'dm';
             let embed, components;
 
+            // Only create embed if user is in a voice channel
             if (voiceChannel && settings.features.voiceChannelEmbeds) {
                 // User is in voice channel - create voice-based LFG
                 postType = 'voice';
@@ -91,17 +92,9 @@ class LFGMessageHandler {
                     voiceChannel, 
                     settings
                 );
-            } else if (settings.features.dmEmbeds) {
-                // User not in voice or DM mode - create DM-style LFG
-                embed = await LFGUtils.createLFGEmbed(
-                    user, 
-                    gameName, 
-                    lfgMessage, 
-                    null, 
-                    settings
-                );
             } else {
-                return; // Neither feature is enabled
+                // User is not in a voice channel, do nothing
+                return;
             }
 
             // Create the LFG post in database first to get the ID
