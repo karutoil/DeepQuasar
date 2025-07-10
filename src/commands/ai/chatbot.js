@@ -9,7 +9,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('chatbot')
         .setDescription('Configure AI chatbot settings for this server')
-        .setDefaultMemberPermissions(null) // Hidden by default, only server owners can use
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('status')
