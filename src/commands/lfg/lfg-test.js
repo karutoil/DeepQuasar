@@ -11,6 +11,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('lfg-test')
         .setDescription('Test LFG system functionality')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('system')

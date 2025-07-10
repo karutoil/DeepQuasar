@@ -5,3 +5,6 @@ collapsed: true
 - label: Moderation
   position: 3
   collapsed: true
+- label: LFG
+  position: 4
+  collapsed: true

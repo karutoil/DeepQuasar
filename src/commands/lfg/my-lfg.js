@@ -8,6 +8,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('my-lfg')
         .setDescription('Manage your LFG posts')
+        .setDefaultMemberPermissions(null) // Open to all users
         .addSubcommand(subcommand =>
             subcommand
                 .setName('status')

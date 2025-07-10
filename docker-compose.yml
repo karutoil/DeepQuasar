@@ -23,6 +23,27 @@ services:
       retries: 5
       start_period: 60s
 
+  # MongoDB Management Interface
+  mongo-express:
+    image: mongo-express:latest
+    container_name: discord-bot-mongo-express
+    restart: unless-stopped
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_PORT=27017
+      # - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      # If your MongoDB requires authentication, uncomment and set these variables
+      # - ME_CONFIG_MONGODB_AUTH_USERNAME=${MONGO_EXPRESS_USERNAME}
+      # - ME_CONFIG_MONGODB_AUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD}
+      # - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_BASICAUTH_USERNAME}
+      # - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_BASICAUTH_PASSWORD}
+    ports:
+      - "127.0.0.1:8081:8081"
+    networks:
+      - discord-bot-network
+    depends_on:
+      - mongodb
+
   # Lavalink Audio Server
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4-alpine
@@ -96,10 +117,10 @@ services:
     command: >
       sh -c "
         echo 'Creating backup...'
-        DATE=$$(date +%Y%m%d_%H%M%S)
+        DATE=$(date +%Y%m%d_%H%M%S)
         mkdir -p /backup/output
-        tar -czf /backup/output/discord-bot-backup-$$DATE.tar.gz -C /backup data
-        echo 'Backup created: discord-bot-backup-$$DATE.tar.gz'
+        tar -czf /backup/output/discord-bot-backup-$DATE.tar.gz -C /backup data
+        echo 'Backup created: discord-bot-backup-$DATE.tar.gz'
         ls -la /backup/output/
       "
 

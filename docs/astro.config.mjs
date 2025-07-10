@@ -152,6 +152,19 @@ export default defineConfig({
 								{ label: 'pardon', link: '/commands/moderation/pardon' },
 							],
 						},
+						{
+							label: 'LFG Commands',
+							collapsed: true,
+							items: [
+								{ label: 'setup-lfg', link: '/commands/LFG/setup-lfg' },
+								{ label: 'lfg-admin', link: '/commands/LFG/lfg-admin' },
+								{ label: 'lfg-presets', link: '/commands/LFG/lfg-presets' },
+								{ label: 'lfg-channels', link: '/commands/LFG/lfg-channels' },
+								{ label: 'lfg-test', link: '/commands/LFG/lfg-test' },
+								{ label: 'lfg', link: '/commands/LFG/lfg' },
+								{ label: 'my-lfg', link: '/commands/LFG/my-lfg' },
+							],
+						},
 					],
 				},
 				{

@@ -8,6 +8,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('lfg')
         .setDescription('Create a Looking for Group post')
+        .setDefaultMemberPermissions(null)
         .addStringOption(option =>
             option
                 .setName('game')
