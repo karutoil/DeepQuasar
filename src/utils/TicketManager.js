@@ -32,6 +32,7 @@ class TicketManager {
      */
     async getConfig(guildId) {
         let config = await TicketConfig.findOne({ guildId });
+        let configNeedsSave = false;
         
         if (!config) {
             config = new TicketConfig({
@@ -90,9 +91,21 @@ class TicketManager {
                     style: 'Paragraph'
                 }]
             });
-            
+            configNeedsSave = true;
+        }
+
+        // Ensure ticketId counter is correct and not duplicated
+        if (!config.naming) config.naming = {};
+        if (!config.naming.counter || config.naming.counter <= 1) {
+            const nextCounter = await this.getNextAvailableTicketNumber();
+            config.naming.counter = nextCounter;
+            configNeedsSave = true;
+        }
+
+        if (configNeedsSave) {
             await config.save();
-        } else {
+        }
+
             // Check if existing config has modal configs, if not, add them
             if (!config.modalConfig || config.modalConfig.size === 0) {
                 console.log('Existing config missing modal configurations, adding defaults...');
@@ -1093,8 +1106,19 @@ class TicketManager {
         const counter = config.naming.counter;
         config.naming.counter++;
         config.save(); // Don't await to avoid blocking
-        
         return counter.toString().padStart(4, '0');
+    }
+
+    /**
+     * Get the next available ticket number (max existing ticketId + 1)
+     */
+    async getNextAvailableTicketNumber() {
+        // Find the highest ticketId in the database (as a number)
+        const latest = await Ticket.findOne({}).sort({ ticketId: -1 }).lean();
+        if (latest && latest.ticketId && !isNaN(Number(latest.ticketId))) {
+            return Number(latest.ticketId) + 1;
+        }
+        return 1;
     }
 
     /**

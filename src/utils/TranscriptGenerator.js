@@ -101,6 +101,20 @@ class TranscriptGenerator {
      * Format transcript as HTML
      */
     formatHTML(ticket, messages) {
+        // Group consecutive messages by user for Discord-like grouping
+        const groupedMessages = [];
+        let lastAuthorId = null;
+        let lastGroup = null;
+        for (const msg of messages) {
+            if (lastGroup && lastAuthorId === msg.author.id) {
+                lastGroup.messages.push(msg);
+            } else {
+                lastGroup = { author: msg.author, messages: [msg] };
+                groupedMessages.push(lastGroup);
+                lastAuthorId = msg.author.id;
+            }
+        }
+
         const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
@@ -110,91 +124,141 @@ class TranscriptGenerator {
     <title>Ticket #${ticket.ticketId} Transcript</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #36393f;
-            color: #dcddde;
+            font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #313338;
+            color: #dbdee1;
             margin: 0;
-            padding: 20px;
+            padding: 0;
         }
         .container {
             max-width: 800px;
-            margin: 0 auto;
-            background-color: #2f3136;
+            margin: 40px auto;
+            background-color: #2b2d31;
             border-radius: 8px;
-            padding: 20px;
+            box-shadow: 0 2px 8px #000a;
+            padding: 0 0 32px 0;
         }
         .header {
-            border-bottom: 1px solid #40444b;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
+            border-bottom: 1px solid #232428;
+            padding: 32px 32px 16px 32px;
+            margin-bottom: 0;
         }
         .ticket-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
         }
         .info-item {
-            background-color: #40444b;
-            padding: 10px;
+            background-color: #232428;
+            padding: 8px 16px;
             border-radius: 4px;
+            font-size: 13px;
         }
         .info-label {
             font-weight: bold;
-            color: #b9bbbe;
-            font-size: 12px;
+            color: #b5bac1;
+            font-size: 11px;
             text-transform: uppercase;
         }
         .info-value {
-            margin-top: 5px;
-            color: #dcddde;
+            margin-top: 2px;
+            color: #dbdee1;
         }
-        .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #40444b;
-            border-radius: 4px;
-            border-left: 4px solid #5865f2;
+        .messages {
+            padding: 24px 32px 0 32px;
         }
-        .message-header {
+        .message-group {
             display: flex;
-            align-items: center;
-            margin-bottom: 8px;
+            align-items: flex-start;
+            margin-bottom: 18px;
         }
-        .author {
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 16px;
+            flex-shrink: 0;
+            background: #232428;
+            object-fit: cover;
+        }
+        .message-block {
+            flex: 1;
+        }
+        .username {
+            font-weight: 600;
+            font-size: 16px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .bot-tag {
+            background: #5865f2;
+            color: #fff;
+            font-size: 10px;
             font-weight: bold;
-            color: #ffffff;
-            margin-right: 10px;
+            border-radius: 3px;
+            padding: 2px 4px;
+            margin-left: 4px;
+            vertical-align: middle;
         }
         .timestamp {
-            color: #72767d;
+            color: #949ba4;
             font-size: 12px;
+            margin-left: 4px;
+            vertical-align: middle;
         }
         .message-content {
-            color: #dcddde;
-            line-height: 1.375;
-            word-wrap: break-word;
+            color: #dbdee1;
+            font-size: 15px;
+            line-height: 1.5;
+            margin: 2px 0 0 0;
+            word-break: break-word;
         }
         .attachment {
-            background-color: #2f3136;
+            background-color: #232428;
             border: 1px solid #202225;
             border-radius: 4px;
-            padding: 10px;
+            padding: 8px;
             margin-top: 8px;
+            display: inline-block;
+        }
+        .attachment img {
+            max-width: 320px;
+            max-height: 240px;
+            border-radius: 4px;
+            display: block;
         }
         .embed {
-            background-color: #2f3136;
+            background-color: #232428;
             border-left: 4px solid #5865f2;
-            padding: 10px;
+            padding: 10px 12px;
             margin-top: 8px;
             border-radius: 0 4px 4px 0;
+            color: #fff;
+        }
+        .embed-title {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .embed-description {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        .embed-field {
+            margin-top: 4px;
+        }
+        .embed-field-name {
+            font-weight: bold;
+            font-size: 13px;
+            color: #b5bac1;
+        }
+        .embed-field-value {
+            font-size: 13px;
         }
         .system-message {
-            border-left-color: #faa61a;
-            background-color: #413f3f;
-        }
-        .bot-message {
-            border-left-color: #5865f2;
+            color: #faa61a;
+            font-style: italic;
         }
     </style>
 </head>
@@ -241,66 +305,80 @@ class TranscriptGenerator {
                 <div class="info-value">${ticket.reason}</div>
             </div>
         </div>
-        
         <div class="messages">
-            ${messages.map(msg => this.formatHTMLMessage(msg)).join('')}
+            ${this.formatDiscordHTMLMessages(groupedMessages)}
         </div>
-        
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #40444b; text-align: center; color: #72767d; font-size: 12px;">
             Transcript generated on ${new Date().toLocaleString()}
         </div>
     </div>
 </body>
 </html>`;
-        
         return htmlContent;
     }
+
+    // Discord-like message grouping and rendering
+    formatDiscordHTMLMessages(groups) {
+        return groups.map(group => {
+            const author = group.author;
+            const avatar = author.displayAvatarURL?.() || author.avatarURL || 'https://cdn.discordapp.com/embed/avatars/0.png';
+            const usernameColor = author.hexAccentColor || author.hexColor || '#fff';
+            const isBot = author.bot;
+            return `
+            <div class="message-group">
+                <img class="avatar" src="${avatar}" alt="avatar">
+                <div class="message-block">
+                    <div>
+                        <span class="username" style="color: ${usernameColor}">${this.escapeHTML(author.displayName || author.username)}</span>
+                        ${isBot ? '<span class="bot-tag">BOT</span>' : ''}
+                        <span class="timestamp">${group.messages[0].createdAt.toLocaleString()}</span>
+                    </div>
+                    ${group.messages.map(msg => this.formatDiscordHTMLMessage(msg)).join('')}
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    formatDiscordHTMLMessage(message) {
+        let content = message.content ? this.escapeHTML(message.content) : '';
+        // Attachments
+        let attachments = '';
+        if (message.attachments.size > 0) {
+            attachments = Array.from(message.attachments.values()).map(att => {
+                if (att.contentType && att.contentType.startsWith('image/')) {
+                    return `<div class="attachment"><a href="${att.url}" target="_blank"><img src="${att.url}" alt="attachment"></a></div>`;
+                } else {
+                    return `<div class="attachment"><a href="${att.url}" target="_blank">📎 ${this.escapeHTML(att.name)} (${att.size} bytes)</a></div>`;
+                }
+            }).join('');
+        }
+        // Embeds
+        let embeds = '';
+        if (message.embeds.length > 0) {
+            embeds = message.embeds.map(embed => {
+                let fields = '';
+                if (embed.fields && embed.fields.length > 0) {
+                    fields = embed.fields.map(f => `<div class="embed-field"><div class="embed-field-name">${this.escapeHTML(f.name)}</div><div class="embed-field-value">${this.escapeHTML(f.value)}</div></div>`).join('');
+                }
+                return `<div class="embed" style="border-left-color: ${embed.color ? '#' + embed.color.toString(16).padStart(6, '0') : '#5865f2'}">
+                    ${embed.title ? `<div class="embed-title">${this.escapeHTML(embed.title)}</div>` : ''}
+                    ${embed.description ? `<div class="embed-description">${this.escapeHTML(embed.description)}</div>` : ''}
+                    ${fields}
+                </div>`;
+            }).join('');
+        }
+        // System message
+        const isSystem = message.type !== 0;
+        return `<div class="message-content${isSystem ? ' system-message' : ''}">${content}${attachments}${embeds}</div>`;
+    }
+
 
     /**
      * Format a single message for HTML
      */
-    formatHTMLMessage(message) {
-        const isBot = message.author.bot;
-        const isSystem = message.type !== 0;
-        const classes = ['message'];
-        
-        if (isBot) classes.push('bot-message');
-        if (isSystem) classes.push('system-message');
-        
-        let content = message.content || '';
-        content = this.escapeHTML(content);
-        
-        // Handle attachments
-        let attachments = '';
-        if (message.attachments.size > 0) {
-            attachments = message.attachments.map(att => 
-                `<div class="attachment">📎 ${this.escapeHTML(att.name)} (${att.size} bytes)</div>`
-            ).join('');
-        }
-        
-        // Handle embeds
-        let embeds = '';
-        if (message.embeds.length > 0) {
-            embeds = message.embeds.map(embed => 
-                `<div class="embed">
-                    ${embed.title ? `<strong>${this.escapeHTML(embed.title)}</strong><br>` : ''}
-                    ${embed.description ? this.escapeHTML(embed.description) : ''}
-                </div>`
-            ).join('');
-        }
-        
-        return `
-            <div class="${classes.join(' ')}">
-                <div class="message-header">
-                    <span class="author">${this.escapeHTML(message.author.displayName || message.author.username)}</span>
-                    <span class="timestamp">${message.createdAt.toLocaleString()}</span>
-                </div>
-                <div class="message-content">${content}</div>
-                ${attachments}
-                ${embeds}
-            </div>
-        `;
-    }
+    // formatHTMLMessage is now obsolete, replaced by formatDiscordHTMLMessages and formatDiscordHTMLMessage
+
 
     /**
      * Format transcript as plain text
