@@ -345,11 +345,30 @@ class TicketManager {
         const ticket = await this.createTicket(interaction, ticketType, responses, config);
         
         if (ticket) {
+            // Create a button to jump to the ticket channel
+            const jumpButton = new ButtonBuilder()
+                .setLabel('Go to Ticket')
+                .setEmoji('🎫')
+                .setStyle(ButtonStyle.Link)
+                .setURL(`https://discord.com/channels/${interaction.guild.id}/${ticket.channelId}`);
+
+            const actionRow = new ActionRowBuilder()
+                .addComponents(jumpButton);
+
+            const successEmbed = Utils.createEmbed({
+                title: '🎉 Ticket Created Successfully!',
+                description: `Your **${ticketType}** ticket has been created and assigned ID **#${ticket.ticketId}**.\n\n` +
+                           `📋 **Channel:** <#${ticket.channelId}>\n` +
+                           `⏱️ **Expected Response:** Within 24 hours\n` +
+                           `👥 **Status:** Awaiting staff claim\n\n` +
+                           `Click the button below to go directly to your ticket!`,
+                color: 0x57F287,
+                footer: { text: `Ticket ID: ${ticket.ticketId} • Created at ${new Date().toLocaleTimeString()}` }
+            });
+
             await interaction.reply({
-                embeds: [Utils.createSuccessEmbed(
-                    'Ticket Created',
-                    `Your ticket has been created! Check <#${ticket.channelId}>`
-                )],
+                embeds: [successEmbed],
+                components: [actionRow],
                 ephemeral: true
             });
         }
@@ -469,31 +488,60 @@ class TicketManager {
      * Send welcome message to ticket channel
      */
     async sendTicketWelcomeMessage(channel, ticket, config) {
+        const assignedText = ticket.assignedTo.userId ? 
+            `\n**Assigned to:** <@${ticket.assignedTo.userId}>` : 
+            '\n**Status:** Unclaimed - awaiting staff response';
+
         const embed = Utils.createEmbed({
             title: `🎫 Ticket #${ticket.ticketId}`,
-            description: `**Type:** ${ticket.type}\n**User:** <@${ticket.userId}>\n**Created:** <t:${Math.floor(ticket.createdAt.getTime() / 1000)}:R>`,
-            color: 0x5865F2,
+            description: `**Type:** ${ticket.type}\n**User:** <@${ticket.userId}>\n**Created:** <t:${Math.floor(ticket.createdAt.getTime() / 1000)}:R>${assignedText}`,
+            color: ticket.assignedTo.userId ? 0x57F287 : 0xFEE75C,
             fields: [
                 {
-                    name: '📝 Reason',
+                    name: '📝 Request Details',
                     value: ticket.reason,
                     inline: false
+                },
+                {
+                    name: '⏱️ What to Expect',
+                    value: '• **Response Time:** Within 24 hours (usually much faster!)\n' +
+                           '• **Assignment:** A staff member will claim your ticket shortly\n' +
+                           '• **Updates:** You\'ll be notified of any status changes\n' +
+                           '• **Transcript:** You\'ll receive a full transcript when closed',
+                    inline: false
+                },
+                {
+                    name: '💡 Tips',
+                    value: '• Feel free to add more details or screenshots\n' +
+                           '• For urgent issues, ping staff members\n' +
+                           '• Use `/mytickets` to view all your tickets\n' +
+                           '• This channel will remain accessible until closed',
+                    inline: false
                 }
-            ]
+            ],
+            footer: { text: 'Thank you for contacting support! We\'re here to help.' }
         });
 
+        // Create different button sets based on assignment status
+        const claimButton = new ButtonBuilder()
+            .setCustomId(`ticket_claim_${ticket.ticketId}`)
+            .setLabel('Claim Ticket')
+            .setEmoji('✋')
+            .setStyle(ButtonStyle.Success);
+
+        const assignButton = new ButtonBuilder()
+                .setCustomId(`ticket_assign_${ticket.ticketId}`)
+                .setLabel('Reassign')
+                .setEmoji('👤')
+                .setStyle(ButtonStyle.Secondary);
         const actionRow = new ActionRowBuilder()
             .addComponents(
+                ticket.assignedTo.userId ? assignButton : claimButton,
                 new ButtonBuilder()
                     .setCustomId(`ticket_close_${ticket.ticketId}`)
                     .setLabel('Close Ticket')
                     .setEmoji('🔒')
                     .setStyle(ButtonStyle.Danger),
-                new ButtonBuilder()
-                    .setCustomId(`ticket_assign_${ticket.ticketId}`)
-                    .setLabel('Assign to Me')
-                    .setEmoji('👤')
-                    .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
                     .setCustomId(`ticket_transcript_${ticket.ticketId}`)
                     .setLabel('Generate Transcript')
@@ -501,8 +549,13 @@ class TicketManager {
                     .setStyle(ButtonStyle.Secondary)
             );
 
+        const welcomeContent = ticket.assignedTo.userId ? 
+            `👋 **Welcome <@${ticket.userId}>!** Your ticket has been claimed by <@${ticket.assignedTo.userId}> and they'll be helping you today.` :
+            `👋 **Welcome <@${ticket.userId}>!** Your ticket has been created successfully. A staff member will claim and respond to your ticket shortly.\n\n` +
+            `🔔 **You will be notified when:** A staff member claims your ticket, provides updates, or closes your ticket.`;
+
         await channel.send({
-            content: `👋 Welcome <@${ticket.userId}>! A staff member will be with you shortly.`,
+            content: welcomeContent,
             embeds: [embed],
             components: [actionRow]
         });
@@ -530,6 +583,9 @@ class TicketManager {
                 break;
             case 'assign':
                 await this.handleAssignTicket(interaction, ticket, config);
+                break;
+            case 'claim':
+                await this.handleClaimTicket(interaction, ticket, config);
                 break;
             case 'transcript':
                 await this.handleGenerateTranscript(interaction, ticket, config);
@@ -651,10 +707,70 @@ class TicketManager {
             // Log event
             await this.logTicketEvent('close', ticket, interaction.user, config);
 
-            // Send DM notification
+            // Generate and send transcript to user via DM
             if (config.dmNotifications.onClose) {
-                const user = await this.client.users.fetch(ticket.userId);
-                await this.sendDMNotification(user, 'closed', ticket);
+                try {
+                    const user = await this.client.users.fetch(ticket.userId);
+                    
+                    // Generate transcript
+                    const transcript = await this.transcriptGenerator.generateTranscript(
+                        ticket, 
+                        channel, 
+                        config.transcripts.format
+                    );
+
+                    // Send transcript via DM
+                    const transcriptEmbed = Utils.createEmbed({
+                        title: `📄 Ticket #${ticket.ticketId} Transcript`,
+                        description: `Your ticket has been closed. Here's a complete transcript of the conversation for your records.`,
+                        color: 0x5865F2,
+                        fields: [
+                            { name: 'Ticket ID', value: `#${ticket.ticketId}`, inline: true },
+                            { name: 'Type', value: ticket.type, inline: true },
+                            { name: 'Closed By', value: interaction.user.toString(), inline: true },
+                            { name: 'Close Reason', value: reason || 'No reason provided', inline: false }
+                        ],
+                        footer: { text: 'Keep this transcript for your records' }
+                    });
+
+                    await user.send({ 
+                        embeds: [transcriptEmbed], 
+                        files: [transcript.file] 
+                    });
+                } catch (dmError) {
+                    console.log(`Could not send transcript to user ${ticket.userId}:`, dmError.message);
+                    // Still send the regular DM notification without transcript
+                    const user = await this.client.users.fetch(ticket.userId);
+                    await this.sendDMNotification(user, 'closed', ticket);
+                }
+            }
+
+            // Also post transcript to log channel if configured
+            if (config.channels.modLogChannel) {
+                try {
+                    const logChannel = interaction.guild.channels.cache.get(config.channels.modLogChannel);
+                    if (logChannel) {
+                        const transcript = await this.transcriptGenerator.generateTranscript(
+                            ticket, 
+                            channel, 
+                            config.transcripts.format
+                        );
+
+                        const logEmbed = Utils.createEmbed({
+                            title: `📄 Ticket #${ticket.ticketId} Closed - Transcript Generated`,
+                            description: `Ticket closed by ${interaction.user} with reason: ${reason || 'No reason provided'}`,
+                            color: 0xFEE75C,
+                            footer: { text: 'Automatic transcript generation' }
+                        });
+
+                        await logChannel.send({ 
+                            embeds: [logEmbed], 
+                            files: [transcript.file] 
+                        });
+                    }
+                } catch (logError) {
+                    console.error('Error sending transcript to log channel:', logError);
+                }
             }
 
             await interaction.reply({
@@ -713,6 +829,74 @@ class TicketManager {
             console.error('Error assigning ticket:', error);
             await interaction.reply({
                 embeds: [Utils.createErrorEmbed('Error', 'Failed to assign ticket.')],
+                ephemeral: true
+            });
+        }
+    }
+
+    /**
+     * Handle claim ticket (enhanced assign system)
+     */
+    async handleClaimTicket(interaction, ticket, config) {
+        if (!this.hasPermission(interaction.member, 'canAssign', config)) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('No Permission', 'You cannot claim tickets.')],
+                ephemeral: true
+            });
+        }
+
+        // Check if ticket is already claimed
+        if (ticket.assignedTo.userId) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('Already Claimed', 
+                    `This ticket is already claimed by <@${ticket.assignedTo.userId}>. Use the "Reassign" button if you need to reassign it.`)],
+                ephemeral: true
+            });
+        }
+
+        try {
+            // Update ticket assignment
+            ticket.assignedTo = {
+                userId: interaction.user.id,
+                username: interaction.user.displayName || interaction.user.username,
+                assignedAt: new Date(),
+                note: null
+            };
+
+            await ticket.save();
+
+            // Update channel topic
+            const channel = interaction.guild.channels.cache.get(ticket.channelId);
+            if (channel) {
+                await channel.setTopic(`Ticket #${ticket.ticketId} - Claimed by ${interaction.user.displayName || interaction.user.username}`);
+                
+                // Update the welcome message with new button layout
+                await this.updateWelcomeMessage(channel, ticket, config);
+            }
+
+            // Log event
+            await this.logTicketEvent('claim', ticket, interaction.user, config);
+
+            // Send notification in the channel
+            const claimEmbed = Utils.createEmbed({
+                title: '✋ Ticket Claimed',
+                description: `${interaction.user} has claimed this ticket and will be handling your request.`,
+                color: 0x57F287,
+                footer: { text: 'You can expect a response shortly!' }
+            });
+
+            await channel.send({ embeds: [claimEmbed] });
+
+            await interaction.reply({ 
+                embeds: [Utils.createSuccessEmbed('Ticket Claimed', 
+                    `You have successfully claimed ticket #${ticket.ticketId}.`)], 
+                ephemeral: true 
+            });
+
+        } catch (error) {
+            console.error('Error claiming ticket:', error);
+            await interaction.reply({
+                embeds: [Utils.createErrorEmbed('Error', 'Failed to claim ticket.')],
                 ephemeral: true
             });
         }
@@ -1121,7 +1305,7 @@ class TicketManager {
     /**
      * Log ticket events
      */
-    async logTicketEvent(eventType, ticket, user, config) {
+    async logTicketEvent(eventType, ticket, user, config, additionalInfo = null) {
         if (!config.logging.enabled || !config.logging.events[`ticket${eventType.charAt(0).toUpperCase() + eventType.slice(1)}`]) {
             return;
         }
@@ -1139,15 +1323,66 @@ class TicketManager {
                 close: 0xFEE75C,
                 delete: 0xED4245,
                 assign: 0x5865F2,
+                claim: 0x57F287,
                 reopen: 0x57F287,
-                autoclose: 0xFEE75C
+                autoclose: 0xFEE75C,
+                priority: 0xFF9500,
+                tag: 0x9B59B6
             };
 
+            const eventEmojis = {
+                create: '🆕',
+                close: '🔒',
+                delete: '🗑️',
+                assign: '👤',
+                claim: '✋',
+                reopen: '🔓',
+                autoclose: '⏰',
+                priority: '⚡',
+                tag: '�️'
+            };
+
+            let description = `**Ticket ID:** #${ticket.ticketId}\n**User:** <@${ticket.userId}>\n**Action by:** ${user}\n**Type:** ${ticket.type}`;
+            
+            // Add event-specific information
+            switch (eventType) {
+                case 'claim':
+                    description += `\n**Claimed by:** ${user}`;
+                    if (ticket.assignedTo.assignedAt) {
+                        description += `\n**Claimed at:** <t:${Math.floor(ticket.assignedTo.assignedAt.getTime() / 1000)}:F>`;
+                    }
+                    break;
+                case 'assign':
+                    if (ticket.assignedTo.userId) {
+                        description += `\n**Assigned to:** <@${ticket.assignedTo.userId}>`;
+                    }
+                    break;
+                case 'close':
+                case 'delete':
+                    if (additionalInfo) {
+                        description += `\n**Reason:** ${additionalInfo}`;
+                    }
+                    break;
+                case 'priority':
+                    if (additionalInfo) {
+                        description += `\n**Priority changed to:** ${additionalInfo}`;
+                    }
+                    break;
+                case 'tag':
+                    if (additionalInfo) {
+                        description += `\n**Tags updated:** ${additionalInfo}`;
+                    }
+                    break;
+            }
+
+            description += `\n**Channel:** <#${ticket.channelId}>`;
+
             const embed = Utils.createEmbed({
-                title: `🎫 Ticket ${eventType.charAt(0).toUpperCase() + eventType.slice(1)}`,
-                description: `**Ticket ID:** #${ticket.ticketId}\n**User:** <@${ticket.userId}>\n**Action by:** ${user}\n**Type:** ${ticket.type}`,
+                title: `${eventEmojis[eventType] || '🎫'} Ticket ${eventType.charAt(0).toUpperCase() + eventType.slice(1)}`,
+                description,
                 color: colors[eventType] || 0x99AAB5,
-                timestamp: true
+                timestamp: true,
+                footer: { text: `Ticket System Log • Event: ${eventType}` }
             });
 
             await channel.send({ embeds: [embed] });
@@ -1175,85 +1410,95 @@ class TicketManager {
     }
 
     /**
-     * Handle assign ticket
+     * Update the welcome message when ticket status changes
      */
-    async handleAssignTicket(interaction, ticket, config) {
-        if (!this.hasPermission(interaction.member, 'canAssign', config)) {
-            return interaction.reply({
-                embeds: [Utils.createErrorEmbed('No Permission', 'You cannot assign tickets.')],
-                ephemeral: true
-            });
-        }
-
+    async updateWelcomeMessage(channel, ticket, config) {
         try {
-            // Update ticket assignment
-            ticket.assignedTo = {
-                userId: interaction.user.id,
-                username: interaction.user.displayName || interaction.user.username,
-                assignedAt: new Date(),
-                note: null
-            };
-
-            await ticket.save();
-
-            // Update channel topic
-            const channel = interaction.guild.channels.cache.get(ticket.channelId);
-            if (channel) {
-                await channel.setTopic(`Ticket #${ticket.ticketId} - Assigned to ${interaction.user.displayName || interaction.user.username}`);
-            }
-
-            // Log event
-            await this.logTicketEvent('assign', ticket, interaction.user, config);
-
-            const embed = Utils.createSuccessEmbed(
-                'Ticket Assigned',
-                `Ticket #${ticket.ticketId} has been assigned to you.`
+            // Find the welcome message (usually the first bot message in the channel)
+            const messages = await channel.messages.fetch({ limit: 10 });
+            const welcomeMessage = messages.find(msg => 
+                msg.author.id === this.client.user.id && 
+                msg.embeds.length > 0 && 
+                msg.embeds[0].title?.includes(`Ticket #${ticket.ticketId}`)
             );
 
-            await interaction.reply({ embeds: [embed] });
+            if (!welcomeMessage) return;
+
+            const assignedText = ticket.assignedTo.userId ? 
+                `\n**Assigned to:** <@${ticket.assignedTo.userId}>` : 
+                '\n**Status:** Unclaimed - awaiting staff response';
+
+            const embed = Utils.createEmbed({
+                title: `🎫 Ticket #${ticket.ticketId}`,
+                description: `**Type:** ${ticket.type}\n**User:** <@${ticket.userId}>\n**Created:** <t:${Math.floor(ticket.createdAt.getTime() / 1000)}:R>${assignedText}`,
+                color: ticket.assignedTo.userId ? 0x57F287 : 0xFEE75C,
+                fields: [
+                    {
+                        name: '📝 Request Details',
+                        value: ticket.reason,
+                        inline: false
+                    },
+                    {
+                        name: '⏱️ What to Expect',
+                        value: '• **Response Time:** Within 24 hours (usually much faster!)\n' +
+                               '• **Assignment:** A staff member will claim your ticket shortly\n' +
+                               '• **Updates:** You\'ll be notified of any status changes\n' +
+                               '• **Transcript:** You\'ll receive a full transcript when closed',
+                        inline: false
+                    },
+                    {
+                        name: '💡 Tips',
+                        value: '• Feel free to add more details or screenshots\n' +
+                               '• For urgent issues, ping staff members\n' +
+                               '• Use `/mytickets` to view all your tickets\n' +
+                               '• This channel will remain accessible until closed',
+                        inline: false
+                    }
+                ],
+                footer: { text: 'Thank you for contacting support! We\'re here to help.' }
+            });
+
+            // Create different button sets based on assignment status
+            const claimButton = new ButtonBuilder()
+                .setCustomId(`ticket_claim_${ticket.ticketId}`)
+                .setLabel('Claim Ticket')
+                .setEmoji('✋')
+                .setStyle(ButtonStyle.Success);
+
+            const assignButton = new ButtonBuilder()
+                .setCustomId(`ticket_assign_${ticket.ticketId}`)
+                .setLabel('Reassign')
+                .setEmoji('👤')
+                .setStyle(ButtonStyle.Secondary);
+
+            const actionRow = new ActionRowBuilder()
+                .addComponents(
+                    ticket.assignedTo.userId ? assignButton : claimButton,
+                    new ButtonBuilder()
+                        .setCustomId(`ticket_close_${ticket.ticketId}`)
+                        .setLabel('Close Ticket')
+                        .setEmoji('🔒')
+                        .setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder()
+                        .setCustomId(`ticket_transcript_${ticket.ticketId}`)
+                        .setLabel('Generate Transcript')
+                        .setEmoji('📄')
+                        .setStyle(ButtonStyle.Secondary)
+                );
+
+            const welcomeContent = ticket.assignedTo.userId ? 
+                `👋 **Welcome <@${ticket.userId}>!** Your ticket has been claimed by <@${ticket.assignedTo.userId}> and they'll be helping you today.` :
+                `👋 **Welcome <@${ticket.userId}>!** Your ticket has been created successfully. A staff member will claim and respond to your ticket shortly.\n\n` +
+                `🔔 **You will be notified when:** A staff member claims your ticket, provides updates, or closes your ticket.`;
+
+            await welcomeMessage.edit({
+                content: welcomeContent,
+                embeds: [embed],
+                components: [actionRow]
+            });
 
         } catch (error) {
-            console.error('Error assigning ticket:', error);
-            await interaction.reply({
-                embeds: [Utils.createErrorEmbed('Error', 'Failed to assign ticket.')],
-                ephemeral: true
-            });
-        }
-    }
-
-    /**
-     * Handle generate transcript
-     */
-    async handleGenerateTranscript(interaction, ticket, config) {
-        try {
-            await interaction.deferReply({ ephemeral: true });
-
-            const channel = interaction.guild.channels.cache.get(ticket.channelId);
-            if (!channel) {
-                return interaction.editReply({
-                    embeds: [Utils.createErrorEmbed('Channel Not Found', 'Ticket channel no longer exists.')]
-                });
-            }
-
-            const transcript = await this.transcriptGenerator.generateTranscript(
-                ticket, 
-                channel, 
-                config.transcripts.format
-            );
-
-            await interaction.editReply({
-                embeds: [Utils.createSuccessEmbed(
-                    'Transcript Generated',
-                    `Transcript for ticket #${ticket.ticketId} has been generated.`
-                )],
-                files: [transcript.file]
-            });
-
-        } catch (error) {
-            console.error('Error generating transcript:', error);
-            await interaction.editReply({
-                embeds: [Utils.createErrorEmbed('Error', 'Failed to generate transcript.')]
-            });
+            console.error('Error updating welcome message:', error);
         }
     }
 }

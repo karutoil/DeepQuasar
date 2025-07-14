@@ -360,6 +360,33 @@ const ticketConfigSchema = new mongoose.Schema({
         }
     },
     
+    // Panel customization
+    panelTitle: {
+        type: String,
+        default: 'Support Tickets'
+    },
+    panelDescription: {
+        type: String,
+        default: 'Click the button below to create a support ticket.'
+    },
+    panelColor: {
+        type: Number,
+        default: 0x5865F2
+    },
+    buttonLabel: {
+        type: String,
+        default: 'Create Ticket'
+    },
+    buttonStyle: {
+        type: Number,
+        enum: [1, 2, 3, 4], // Primary, Secondary, Success, Danger
+        default: 1
+    },
+    buttonEmoji: {
+        type: String,
+        default: null
+    },
+    
     // System settings
     settings: {
         maxOpenTicketsPerUser: {

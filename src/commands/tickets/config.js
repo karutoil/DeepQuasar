@@ -31,6 +31,15 @@ module.exports = {
                         .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
+                .setName('setup-automatic')
+                .setDescription('Automated setup - creates all channels, categories, and roles automatically')
+                .addStringOption(option =>
+                    option
+                        .setName('staff_role_name')
+                        .setDescription('Name for the staff role (default: "Ticket Staff")')
+                        .setRequired(false)))
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('config')
                 .setDescription('View current configuration'))
         .addSubcommand(subcommand =>
@@ -202,6 +211,9 @@ module.exports = {
             case 'setup':
                 await this.setupTicketSystem(interaction);
                 break;
+            case 'setup-automatic':
+                await this.automatedSetup(interaction);
+                break;
             case 'config':
                 await this.showConfig(interaction);
                 break;
@@ -264,6 +276,168 @@ module.exports = {
             console.error('Error setting up ticket system:', error);
             await interaction.editReply({
                 embeds: [Utils.createErrorEmbed('Setup Failed', 'Failed to set up ticket system. Please try again.')]
+            });
+        }
+    },
+
+    async automatedSetup(interaction) {
+        const staffRoleName = interaction.options.getString('staff_role_name') || 'Ticket Staff';
+
+        try {
+            await interaction.deferReply({ ephemeral: true });
+
+            const guild = interaction.guild;
+            
+            // Create or update configuration
+            let config = await TicketConfig.findOne({ guildId: guild.id });
+            
+            if (!config) {
+                config = new TicketConfig({ guildId: guild.id });
+            }
+
+            // Step 1: Create staff role
+            const staffRole = await guild.roles.create({
+                name: staffRoleName,
+                color: 0x5865F2,
+                hoist: true,
+                mentionable: true,
+                permissions: [
+                    PermissionFlagsBits.ViewChannel,
+                    PermissionFlagsBits.SendMessages,
+                    PermissionFlagsBits.ReadMessageHistory,
+                    PermissionFlagsBits.AttachFiles,
+                    PermissionFlagsBits.EmbedLinks,
+                    PermissionFlagsBits.ManageMessages,
+                    PermissionFlagsBits.UseExternalEmojis
+                ],
+                reason: 'Automated ticket system setup'
+            });
+
+            // Step 2: Create categories
+            const openCategory = await guild.channels.create({
+                name: '📂 Open Tickets',
+                type: ChannelType.GuildCategory,
+                permissionOverwrites: [
+                    {
+                        id: guild.roles.everyone.id,
+                        deny: [PermissionFlagsBits.ViewChannel]
+                    },
+                    {
+                        id: staffRole.id,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory,
+                            PermissionFlagsBits.AttachFiles,
+                            PermissionFlagsBits.EmbedLinks,
+                            PermissionFlagsBits.ManageMessages
+                        ]
+                    }
+                ],
+                reason: 'Automated ticket system setup'
+            });
+
+            const closedCategory = await guild.channels.create({
+                name: '📁 Closed Tickets',
+                type: ChannelType.GuildCategory,
+                permissionOverwrites: [
+                    {
+                        id: guild.roles.everyone.id,
+                        deny: [PermissionFlagsBits.ViewChannel]
+                    },
+                    {
+                        id: staffRole.id,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory,
+                            PermissionFlagsBits.AttachFiles,
+                            PermissionFlagsBits.EmbedLinks,
+                            PermissionFlagsBits.ManageMessages
+                        ]
+                    }
+                ],
+                reason: 'Automated ticket system setup'
+            });
+
+            // Step 3: Create log channel
+            const logChannel = await guild.channels.create({
+                name: 'ticket-logs',
+                type: ChannelType.GuildText,
+                permissionOverwrites: [
+                    {
+                        id: guild.roles.everyone.id,
+                        deny: [PermissionFlagsBits.ViewChannel]
+                    },
+                    {
+                        id: staffRole.id,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.ReadMessageHistory
+                        ]
+                    }
+                ],
+                reason: 'Automated ticket system setup'
+            });
+
+            // Step 4: Update configuration
+            config.channels.openCategory = openCategory.id;
+            config.channels.closedCategory = closedCategory.id;
+            config.channels.modLogChannel = logChannel.id;
+
+            // Add staff role to configuration
+            if (!config.staffRoles.some(role => role.roleId === staffRole.id)) {                    config.staffRoles.push({
+                        roleId: staffRole.id,
+                        roleName: staffRole.name,
+                        permissions: {
+                            canView: true,
+                            canClose: true,
+                            canAssign: true,
+                            canDelete: true,
+                            canReopen: true,
+                            canManagePanel: true
+                        }
+                    });
+            }
+
+            await config.save();
+
+            // Step 5: Send welcome message to log channel
+            const welcomeEmbed = Utils.createEmbed({
+                title: '🎫 Ticket System Setup Complete!',
+                description: 'The automated setup has been completed successfully. Your ticket system is now ready to use!',
+                color: 0x57F287,
+                fields: [
+                    { name: '📂 Open Category', value: openCategory.toString(), inline: true },
+                    { name: '📁 Closed Category', value: closedCategory.toString(), inline: true },
+                    { name: '📋 Log Channel', value: logChannel.toString(), inline: true },
+                    { name: '👥 Staff Role', value: staffRole.toString(), inline: true },
+                    { name: '🚀 Next Steps', value: 'Use `/panel create` to create your first ticket panel!', inline: false }
+                ],
+                footer: { text: 'DeepQuasar Ticket System' }
+            });
+
+            await logChannel.send({ embeds: [welcomeEmbed] });
+
+            const successEmbed = Utils.createSuccessEmbed(
+                '🎉 Automated Setup Complete!',
+                `✅ **Staff Role:** ${staffRole}\n` +
+                `✅ **Open Category:** ${openCategory}\n` +
+                `✅ **Closed Category:** ${closedCategory}\n` +
+                `✅ **Log Channel:** ${logChannel}\n\n` +
+                `🚀 **Your ticket system is ready!** Use \`/panel create\` to create your first ticket panel.\n\n` +
+                `💡 **Tip:** Assign the ${staffRole} role to your support team members.`
+            );
+
+            await interaction.editReply({ embeds: [successEmbed] });
+
+        } catch (error) {
+            console.error('Error in automated setup:', error);
+            await interaction.editReply({
+                embeds: [Utils.createErrorEmbed('Automated Setup Failed', 
+                    `Failed to set up ticket system automatically: ${error.message}\n\n` +
+                    'Please ensure the bot has sufficient permissions to create roles, channels, and categories.'
+                )]
             });
         }
     },

@@ -2,6 +2,126 @@ const Utils = require('../utils/utils');
 const EmbedBuilderHandler = require('../utils/EmbedBuilderHandler');
 const { StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
+async function handlePanelCustomizeSelection(interaction, client) {
+    try {
+        const panelId = interaction.values[0];
+        const TicketConfig = require('../schemas/TicketConfig');
+        
+        const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
+        if (!config) {
+            return interaction.update({
+                embeds: [Utils.createErrorEmbed('Error', 'Ticket configuration not found.')],
+                components: []
+            });
+        }
+
+        const panel = config.panels.find(p => p.panelId === panelId);
+        if (!panel) {
+            return interaction.update({
+                embeds: [Utils.createErrorEmbed('Error', 'Panel not found.')],
+                components: []
+            });
+        }
+
+        // Create live preview of the panel
+        const previewEmbed = Utils.createEmbed({
+            title: panel.title,
+            description: panel.description,
+            color: parseInt(panel.color.replace('#', ''), 16) || 0x5865F2,
+            footer: { text: `Panel ID: ${panel.panelId} • LIVE PREVIEW` }
+        });
+
+        // Create preview buttons (disabled for preview)
+        const previewRows = [];
+        for (let i = 0; i < panel.buttons.length; i += 5) {
+            const row = new ActionRowBuilder();
+            const rowButtons = panel.buttons.slice(i, i + 5);
+            
+            rowButtons.forEach(btn => {
+                const button = new ButtonBuilder()
+                    .setCustomId(`preview_${btn.customId}`)
+                    .setLabel(btn.label)
+                    .setStyle(convertStyleToDiscord(btn.style))
+                    .setDisabled(true);
+                
+                if (btn.emoji) {
+                    button.setEmoji(btn.emoji);
+                }
+                
+                row.addComponents(button);
+            });
+            
+            previewRows.push(row);
+        }
+
+        // Create control panel
+        const controlEmbed = Utils.createEmbed({
+            title: '🎛️ Panel Customizer',
+            description: `**Editing:** ${panel.title}\n**Panel ID:** \`${panel.panelId}\`\n\n` +
+                        'Use the buttons below to modify your panel. Changes will be reflected in the preview above.',
+            color: 0x9B59B6,
+            fields: [
+                {
+                    name: '📝 Current Settings',
+                    value: `**Title:** ${panel.title}\n**Description:** ${panel.description}\n**Color:** ${panel.color}\n**Buttons:** ${panel.buttons.length}`,
+                    inline: false
+                }
+            ]
+        });
+
+        const controlRow1 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_title_${panel.panelId}`)
+                    .setLabel('Edit Title')
+                    .setEmoji('📝')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_description_${panel.panelId}`)
+                    .setLabel('Edit Description')
+                    .setEmoji('📄')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_color_${panel.panelId}`)
+                    .setLabel('Change Color')
+                    .setEmoji('🎨')
+                    .setStyle(ButtonStyle.Primary)
+            );
+
+        const controlRow2 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`panel_manage_buttons_${panel.panelId}`)
+                    .setLabel('Manage Buttons')
+                    .setEmoji('🔘')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`panel_preview_${panel.panelId}`)
+                    .setLabel('Refresh Preview')
+                    .setEmoji('🔄')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`panel_save_changes_${panel.panelId}`)
+                    .setLabel('Save & Publish')
+                    .setEmoji('✅')
+                    .setStyle(ButtonStyle.Success)
+            );
+
+        await interaction.update({
+            content: '### 📺 **LIVE PREVIEW**',
+            embeds: [previewEmbed, controlEmbed],
+            components: [...previewRows, controlRow1, controlRow2]
+        });
+
+    } catch (error) {
+        console.error('Error handling panel customize selection:', error);
+        await interaction.update({
+            embeds: [Utils.createErrorEmbed('Error', 'Failed to load panel customizer.')],
+            components: []
+        });
+    }
+}
+
 // Duplicated from buttonInteractionHandler.js to avoid circular dependency
 async function handleModLogEventToggle(interaction, client) {
     const ModLog = require('../schemas/ModLog');
@@ -273,6 +393,30 @@ async function handleSelectMenuInteraction(interaction, client) {
             return;
         }
 
+        // Handle panel customizer selection
+        if (customId === 'panel_customize_select') {
+            await handlePanelCustomizeSelection(interaction, client);
+            return;
+        }
+
+        // Handle panel button style selection
+        if (customId === 'panel_button_style_select') {
+            await handleButtonStyleSelection(interaction, client);
+            return;
+        }
+
+        // Handle panel button selection for editing
+        if (customId.startsWith('panel_select_button_')) {
+            await handlePanelButtonSelection(interaction, client);
+            return;
+        }
+
+        // Handle button style selection for individual buttons
+        if (customId.startsWith('button_style_select_')) {
+            await handleIndividualButtonStyleSelection(interaction, client);
+            return;
+        }
+
         if (customId.startsWith('modlog_events_')) {
             await handleModLogEventToggle(interaction, client);
             return;
@@ -299,6 +443,299 @@ async function handleSelectMenuInteraction(interaction, client) {
             'An error occurred while processing this selection.'
         );
 
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+        } else {
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        }
+    }
+}
+
+// Helper function to convert numeric Discord.js style to schema string
+function convertStyleToSchema(discordStyle) {
+    const conversion = {
+        1: 'Primary',
+        2: 'Secondary',
+        3: 'Success',
+        4: 'Danger'
+    };
+    return conversion[discordStyle] || 'Primary';
+}
+
+// Helper function to convert schema string to Discord.js style
+function convertStyleToDiscord(schemaStyle) {
+    const conversion = {
+        'Primary': ButtonStyle.Primary,
+        'Secondary': ButtonStyle.Secondary,
+        'Success': ButtonStyle.Success,
+        'Danger': ButtonStyle.Danger
+    };
+    return conversion[schemaStyle] || ButtonStyle.Primary;
+}
+
+async function handleButtonStyleSelection(interaction, client) {
+    const TicketConfig = require('../schemas/TicketConfig');
+    
+    try {
+        await interaction.deferUpdate();
+        
+        const config = await TicketConfig.findOne({ guildId: interaction.guildId });
+        if (!config) {
+            return interaction.editReply({
+                embeds: [Utils.createErrorEmbed('Configuration Error', 'Ticket system is not configured for this server.')],
+                components: []
+            });
+        }
+
+        const selectedStyle = parseInt(interaction.values[0]);
+        config.buttonStyle = selectedStyle;
+        await config.save();
+
+        const styleNames = {
+            1: 'Primary (Blue)',
+            2: 'Secondary (Gray)',  
+            3: 'Success (Green)',
+            4: 'Danger (Red)'
+        };
+
+        await interaction.editReply({
+            embeds: [Utils.createSuccessEmbed(
+                '✅ Button Style Updated',
+                `Button style has been updated to: **${styleNames[selectedStyle]}**`
+            )],
+            components: []
+        });
+        
+    } catch (error) {
+        client.logger.error('Error in button style selection handler:', error);
+        await interaction.editReply({
+            embeds: [Utils.createErrorEmbed(
+                'Selection Error',
+                'An error occurred while updating the button style.'
+            )],
+            components: []
+        });
+    }
+}
+
+async function handlePanelButtonSelection(interaction, client) {
+    try {
+        const customId = interaction.customId;
+        const selectedButtonIndex = parseInt(interaction.values[0]);
+        
+        // Extract panel ID from customId (panel_select_button_panelId)
+        const panelId = customId.replace('panel_select_button_', '');
+        
+        const TicketConfig = require('../schemas/TicketConfig');
+        const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
+        
+        if (!config) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('Configuration Error', 'Ticket system is not configured for this server.')],
+                ephemeral: true
+            });
+        }
+
+        const panel = config.panels.find(p => p.panelId === panelId);
+        if (!panel) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('Panel Not Found', 'The panel could not be found.')],
+                ephemeral: true
+            });
+        }
+
+        const selectedButton = panel.buttons[selectedButtonIndex];
+        if (!selectedButton) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('Button Not Found', 'The selected button could not be found.')],
+                ephemeral: true
+            });
+        }
+
+        // Show button edit interface for the selected button
+        const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+        
+        const embed = new EmbedBuilder()
+            .setTitle(`✏️ Edit Button: ${selectedButton.label}`)
+            .setDescription(`Editing button for panel: **${panel.title}**`)
+            .setColor(parseInt(panel.color.replace('#', ''), 16) || 0x5865F2)
+            .addFields([
+                {
+                    name: '🏷️ Current Label',
+                    value: `\`${selectedButton.label}\``,
+                    inline: true
+                },
+                {
+                    name: '🎨 Current Style',
+                    value: getButtonStyleName(selectedButton.style),
+                    inline: true
+                },
+                {
+                    name: '❓ Current Emoji',
+                    value: selectedButton.emoji || 'None',
+                    inline: true
+                },
+                {
+                    name: '🎫 Ticket Type',
+                    value: selectedButton.ticketType,
+                    inline: true
+                },
+                {
+                    name: '📋 Button Index',
+                    value: `${selectedButtonIndex + 1} of ${panel.buttons.length}`,
+                    inline: true
+                }
+            ]);
+
+        const editRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_button_label_${panelId}_${selectedButtonIndex}`)
+                    .setLabel('Edit Label')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setEmoji('🏷️'),
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_button_style_${panelId}_${selectedButtonIndex}`)
+                    .setLabel('Edit Style')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setEmoji('🎨'),
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_button_emoji_${panelId}_${selectedButtonIndex}`)
+                    .setLabel('Edit Emoji')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setEmoji('❓')
+            );
+
+        const typeRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_button_type_${panelId}_${selectedButtonIndex}`)
+                    .setLabel('Edit Ticket Type')
+                    .setStyle(ButtonStyle.Primary)
+                    .setEmoji('🎫'),
+                new ButtonBuilder()
+                    .setCustomId(`panel_remove_button_${panelId}_${selectedButtonIndex}`)
+                    .setLabel('Remove Button')
+                    .setStyle(ButtonStyle.Danger)
+                    .setEmoji('🗑️')
+            );
+
+        const backRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`panel_manage_buttons_${panelId}`)
+                    .setLabel('Back to Button Management')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setEmoji('⬅️')
+            );
+
+        await interaction.update({
+            embeds: [embed],
+            components: [editRow, typeRow, backRow]
+        });
+
+    } catch (error) {
+        client.logger.error('Error in panel button selection handler:', error);
+        const errorEmbed = Utils.createErrorEmbed(
+            'Selection Error',
+            'An error occurred while processing the button selection.'
+        );
+        
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+        } else {
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        }
+    }
+}
+
+function getButtonStyleName(style) {
+    const styles = {
+        1: 'Primary (Blue)',
+        2: 'Secondary (Gray)',  
+        3: 'Success (Green)',
+        4: 'Danger (Red)'
+    };
+    return styles[style] || 'Primary (Blue)';
+}
+
+async function handleIndividualButtonStyleSelection(interaction, client) {
+    try {
+        const customId = interaction.customId;
+        const selectedStyle = parseInt(interaction.values[0]);
+        
+        // Extract panel ID and button index from customId (button_style_select_panelId_buttonIndex)
+        const parts = customId.split('_');
+        if (parts.length < 5) {
+            throw new Error('Invalid customId format');
+        }
+        
+        const panelId = parts[3];
+        const buttonIndex = parseInt(parts[4]);
+        
+        const TicketConfig = require('../schemas/TicketConfig');
+        const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
+        
+        if (!config) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('Configuration Error', 'Ticket system is not configured for this server.')],
+                ephemeral: true
+            });
+        }
+
+        const panel = config.panels.find(p => p.panelId === panelId);
+        if (!panel || !panel.buttons[buttonIndex]) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('Button Not Found', 'The button could not be found.')],
+                ephemeral: true
+            });
+        }
+
+        // Update the button style with schema-compatible string
+        const selectedStyleValue = parseInt(interaction.values[0]);
+        panel.buttons[buttonIndex].style = convertStyleToSchema(selectedStyleValue);
+        await config.save();
+
+        const styleNames = {
+            1: 'Primary (Blue)',
+            2: 'Secondary (Gray)',
+            3: 'Success (Green)',
+            4: 'Danger (Red)'
+        };
+
+        await interaction.update({
+            embeds: [Utils.createSuccessEmbed(
+                '✅ Button Style Updated',
+                `Button "**${panel.buttons[buttonIndex].label}**" style has been updated to: **${styleNames[selectedStyleValue]}**`
+            )],
+            components: []
+        });
+
+        // After a short delay, return to button edit interface
+        setTimeout(async () => {
+            try {
+                // Go back to individual button edit interface
+                const buttonInteractionHandler = require('./buttonInteractionHandler');
+                // Simulate returning to the button edit interface by calling the select handler again
+                const mockSelectInteraction = {
+                    customId: `panel_select_button_${panelId}`,
+                    values: [buttonIndex.toString()],
+                    update: interaction.editReply.bind(interaction),
+                    guild: interaction.guild
+                };
+                await handlePanelButtonSelection(mockSelectInteraction, client);
+            } catch (error) {
+                console.error('Error returning to button edit interface:', error);
+            }
+        }, 2000);
+        
+    } catch (error) {
+        client.logger.error('Error in individual button style selection handler:', error);
+        const errorEmbed = Utils.createErrorEmbed(
+            'Selection Error',
+            'An error occurred while updating the button style.'
+        );
+        
         if (interaction.replied || interaction.deferred) {
             await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
         } else {

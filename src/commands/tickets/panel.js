@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const TicketConfig = require('../../schemas/TicketConfig');
 const Utils = require('../../utils/utils');
 
@@ -129,7 +129,16 @@ module.exports = {
                     option
                         .setName('type')
                         .setDescription('Ticket type of button to remove')
-                        .setRequired(true))),
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('customize')
+                .setDescription('Interactive panel customizer with live preview')
+                .addStringOption(option =>
+                    option
+                        .setName('panel_id')
+                        .setDescription('Panel ID to customize (leave empty to see all panels)')
+                        .setRequired(false))),
 
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
@@ -152,6 +161,9 @@ module.exports = {
                 break;
             case 'remove-button':
                 await this.removeButton(interaction);
+                break;
+            case 'customize':
+                await this.customizePanel(interaction);
                 break;
         }
     },
@@ -514,6 +526,175 @@ module.exports = {
                     .setCustomId(btn.customId)
                     .setLabel(btn.label)
                     .setStyle(ButtonStyle[btn.style]);
+                
+                if (btn.emoji) {
+                    button.setEmoji(btn.emoji);
+                }
+                
+                row.addComponents(button);
+            });
+            
+            rows.push(row);
+        }
+        
+        return rows;
+    },
+
+    async customizePanel(interaction) {
+        const panelId = interaction.options.getString('panel_id');
+
+        try {
+            await interaction.deferReply({ ephemeral: true });
+
+            const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
+            if (!config) {
+                return interaction.editReply({
+                    embeds: [Utils.createErrorEmbed('No Configuration', 'No ticket configuration found for this server.')]
+                });
+            }
+
+            // If no panel ID provided, show panel selector
+            if (!panelId) {
+                return this.showPanelSelector(interaction, config);
+            }
+
+            const panel = config.panels.find(p => p.panelId === panelId);
+            if (!panel) {
+                return interaction.editReply({
+                    embeds: [Utils.createErrorEmbed('Panel Not Found', 'No panel found with that ID.')]
+                });
+            }
+
+            await this.showPanelCustomizer(interaction, panel, config);
+
+        } catch (error) {
+            console.error('Error in panel customizer:', error);
+            await interaction.editReply({
+                embeds: [Utils.createErrorEmbed('Error', 'Failed to open panel customizer.')]
+            });
+        }
+    },
+
+    async showPanelSelector(interaction, config) {
+        if (config.panels.length === 0) {
+            return interaction.editReply({
+                embeds: [Utils.createErrorEmbed('No Panels', 'No ticket panels found. Create one first with `/panel create`.')]
+            });
+        }
+
+        const panelOptions = config.panels.map(panel => ({
+            label: panel.title.length > 25 ? panel.title.substring(0, 22) + '...' : panel.title,
+            description: `ID: ${panel.panelId} • ${panel.buttons.length} buttons`,
+            value: panel.panelId
+        }));
+
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('panel_customize_select')
+            .setPlaceholder('Select a panel to customize...')
+            .addOptions(panelOptions);
+
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+
+        const embed = Utils.createEmbed({
+            title: '🎛️ Interactive Panel Customizer',
+            description: 'Select a panel below to open the customizer interface with live preview and editing capabilities.',
+            color: 0x5865F2,
+            fields: config.panels.map(panel => ({
+                name: `📋 ${panel.title}`,
+                value: `**ID:** \`${panel.panelId}\`\n**Buttons:** ${panel.buttons.length}\n**Channel:** <#${panel.channelId}>`,
+                inline: true
+            })),
+            footer: { text: 'The customizer provides a visual "what you see is what you get" editing experience' }
+        });
+
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    },
+
+    async showPanelCustomizer(interaction, panel, config) {
+        // Create live preview of the panel
+        const previewEmbed = Utils.createEmbed({
+            title: panel.title,
+            description: panel.description,
+            color: parseInt(panel.color.replace('#', ''), 16) || 0x5865F2,
+            footer: { text: `Panel ID: ${panel.panelId} • LIVE PREVIEW` }
+        });
+
+        // Create preview buttons (disabled for preview)
+        const previewRows = this.createPreviewButtonRows(panel.buttons);
+
+        // Create control panel
+        const controlEmbed = Utils.createEmbed({
+            title: '🎛️ Panel Customizer',
+            description: `**Editing:** ${panel.title}\n**Panel ID:** \`${panel.panelId}\`\n\n` +
+                        'Use the buttons below to modify your panel. Changes will be reflected in the preview above.',
+            color: 0x9B59B6,
+            fields: [
+                {
+                    name: '📝 Current Settings',
+                    value: `**Title:** ${panel.title}\n**Description:** ${panel.description}\n**Color:** ${panel.color}\n**Buttons:** ${panel.buttons.length}`,
+                    inline: false
+                }
+            ]
+        });
+
+        const controlRow1 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_title_${panel.panelId}`)
+                    .setLabel('Edit Title')
+                    .setEmoji('📝')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_description_${panel.panelId}`)
+                    .setLabel('Edit Description')
+                    .setEmoji('📄')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId(`panel_edit_color_${panel.panelId}`)
+                    .setLabel('Change Color')
+                    .setEmoji('🎨')
+                    .setStyle(ButtonStyle.Primary)
+            );
+
+        const controlRow2 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`panel_manage_buttons_${panel.panelId}`)
+                    .setLabel('Manage Buttons')
+                    .setEmoji('🔘')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`panel_preview_${panel.panelId}`)
+                    .setLabel('Refresh Preview')
+                    .setEmoji('🔄')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`panel_save_changes_${panel.panelId}`)
+                    .setLabel('Save & Publish')
+                    .setEmoji('✅')
+                    .setStyle(ButtonStyle.Success)
+            );
+
+        await interaction.editReply({
+            content: '### 📺 **LIVE PREVIEW**',
+            embeds: [previewEmbed, controlEmbed],
+            components: [...previewRows, controlRow1, controlRow2]
+        });
+    },
+
+    createPreviewButtonRows(buttons) {
+        const rows = [];
+        
+        for (let i = 0; i < buttons.length; i += 5) {
+            const row = new ActionRowBuilder();
+            const rowButtons = buttons.slice(i, i + 5);
+            
+            rowButtons.forEach(btn => {
+                const button = new ButtonBuilder()
+                    .setCustomId(`preview_${btn.customId}`)
+                    .setLabel(btn.label)
+                    .setStyle(ButtonStyle[btn.style])
+                    .setDisabled(true); // Disabled for preview
                 
                 if (btn.emoji) {
                     button.setEmoji(btn.emoji);
