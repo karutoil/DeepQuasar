@@ -199,15 +199,28 @@ class SmartCommandDeployer {
                 await this.makeRequest(endpoint, 'PUT', newCommands);
             } else {
                 console.log('⚙️ Single change detected. Applying individually.');
-                for (const cmd of toDelete) {
-                    await this.deleteCommand(cmd.id, cmd.name, endpoint);
+                let created = 0, updated = 0, deleted = 0;
+                if (toDelete.length > 0) {
+                    for (const cmd of toDelete) {
+                        await this.deleteCommand(cmd.id, cmd.name, endpoint);
+                        deleted++;
+                    }
                 }
-                for (const cmd of toUpdate) {
-                    await this.updateCommand(cmd.id, cmd.data, endpoint);
+                if (toUpdate.length > 0) {
+                    for (const cmd of toUpdate) {
+                        await this.updateCommand(cmd.id, cmd.data, endpoint);
+                        updated++;
+                    }
                 }
-                for (const cmd of toCreate) {
-                    await this.createCommand(cmd, endpoint);
+                if (toCreate.length > 0) {
+                    for (const cmd of toCreate) {
+                        await this.createCommand(cmd, endpoint);
+                        created++;
+                    }
                 }
+                console.log(`\n✅ Command sync complete!`);
+                console.log(`📊 Summary: ${created} created, ${updated} updated, ${deleted} deleted.`);
+                return;
             }
 
             console.log('\n✅ Command sync complete!');
