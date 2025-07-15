@@ -104,7 +104,7 @@ class TicketManager {
 
         if (configNeedsSave) {
             await config.save();
-        }
+        } else {
 
             // Check if existing config has modal configs, if not, add them
             if (!config.modalConfig || config.modalConfig.size === 0) {

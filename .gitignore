@@ -89,3 +89,5 @@ docs/.vitepress/dist/
 docs/.vitepress/.temp/
 docs/.vitepress/cache/
 update-deepquasarv2.sh
+
+.aider*
