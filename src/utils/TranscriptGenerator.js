@@ -85,13 +85,27 @@ class TranscriptGenerator {
      * @returns {Promise<string>} Formatted transcript
      */
     async formatTranscript(ticket, messages, format) {
+        // Helper to resolve user display (Name (ID))
+        const userDisplay = (user) => {
+            if (!user) return 'Unknown';
+            const name = user.displayName || user.username || user.tag || user.id;
+            return `${name} (${user.id})`;
+        };
+
+        // Helper to resolve channel display (Name (ID))
+        const channelDisplay = (channel) => {
+            if (!channel) return 'Unknown';
+            const name = channel.name || channel.id;
+            return `${name} (${channel.id})`;
+        };
+
         switch (format) {
             case 'html':
-                return this.formatHTML(ticket, messages);
+                return this.formatHTML(ticket, messages, { userDisplay, channelDisplay });
             case 'txt':
-                return this.formatTXT(ticket, messages);
+                return this.formatTXT(ticket, messages, { userDisplay, channelDisplay });
             case 'json':
-                return this.formatJSON(ticket, messages);
+                return this.formatJSON(ticket, messages, { userDisplay, channelDisplay });
             default:
                 throw new Error(`Unsupported format: ${format}`);
         }
@@ -100,7 +114,8 @@ class TranscriptGenerator {
     /**
      * Format transcript as HTML
      */
-    formatHTML(ticket, messages) {
+    formatHTML(ticket, messages, helpers = {}) {
+        const { userDisplay = (u) => u.id, channelDisplay = (c) => c.id } = helpers;
         // Group consecutive messages by user for Discord-like grouping
         const groupedMessages = [];
         let lastAuthorId = null;
@@ -318,19 +333,25 @@ class TranscriptGenerator {
     }
 
     // Discord-like message grouping and rendering
-    formatDiscordHTMLMessages(groups) {
+    formatDiscordHTMLMessages(groups, helpers = {}) {
+        const { userDisplay = (u) => u.id } = helpers;
         return groups.map(group => {
             const author = group.author;
             const avatar = author.displayAvatarURL?.() || author.avatarURL || 'https://cdn.discordapp.com/embed/avatars/0.png';
             const usernameColor = author.hexAccentColor || author.hexColor || '#fff';
             const isBot = author.bot;
+            // Show Name (ID) for user, and append "BOT" if bot
+            const nameWithId = author.displayName
+                ? `${this.escapeHTML(author.displayName)} (${author.id})`
+                : author.username
+                    ? `${this.escapeHTML(author.username)} (${author.id})`
+                    : author.id;
             return `
             <div class="message-group">
                 <img class="avatar" src="${avatar}" alt="avatar">
                 <div class="message-block">
                     <div>
-                        <span class="username" style="color: ${usernameColor}">${this.escapeHTML(author.displayName || author.username)}</span>
-                        ${isBot ? '<span class="bot-tag">BOT</span>' : ''}
+                        <span class="username" style="color: ${usernameColor}">${nameWithId}${isBot ? ' BOT' : ''}</span>
                         <span class="timestamp">${group.messages[0].createdAt.toLocaleString()}</span>
                     </div>
                     ${group.messages.map(msg => this.formatDiscordHTMLMessage(msg)).join('')}
@@ -383,25 +404,27 @@ class TranscriptGenerator {
     /**
      * Format transcript as plain text
      */
-    formatTXT(ticket, messages) {
+    formatTXT(ticket, messages, helpers = {}) {
+        const { userDisplay = (u) => u.id, channelDisplay = (c) => c.id } = helpers;
         let content = `TICKET #${ticket.ticketId} TRANSCRIPT\n`;
         content += `${'='.repeat(50)}\n\n`;
         content += `Ticket ID: ${ticket.ticketId}\n`;
-        content += `User: ${ticket.username}\n`;
+        content += `Channel: ${ticket.channelName ? `${ticket.channelName} (${ticket.channelId})` : ticket.channelId}\n`;
+        content += `User: ${ticket.username ? `${ticket.username} (${ticket.userId})` : ticket.userId}\n`;
         content += `Type: ${ticket.type}\n`;
         content += `Status: ${ticket.status}\n`;
         content += `Created: ${new Date(ticket.createdAt).toLocaleString()}\n`;
-        if (ticket.assignedTo.userId) {
-            content += `Assigned To: ${ticket.assignedTo.username}\n`;
+        if (ticket.assignedTo?.userId) {
+            content += `Assigned To: ${ticket.assignedTo.username ? `${ticket.assignedTo.username} (${ticket.assignedTo.userId})` : ticket.assignedTo.userId}\n`;
         }
-        if (ticket.tags.length > 0) {
+        if (ticket.tags && ticket.tags.length > 0) {
             content += `Tags: ${ticket.tags.join(', ')}\n`;
         }
         content += `Reason: ${ticket.reason}\n`;
         content += `\n${'='.repeat(50)}\n\n`;
         
         messages.forEach(msg => {
-            content += `[${msg.createdAt.toLocaleString()}] ${msg.author.displayName || msg.author.username}: ${msg.content || '[No content]'}\n`;
+            content += `[${msg.createdAt.toLocaleString()}] ${userDisplay(msg.author)}: ${msg.content || '[No content]'}\n`;
             
             if (msg.attachments.size > 0) {
                 msg.attachments.forEach(att => {
@@ -427,18 +450,33 @@ class TranscriptGenerator {
     /**
      * Format transcript as JSON
      */
-    formatJSON(ticket, messages) {
+    formatJSON(ticket, messages, helpers = {}) {
+        const { userDisplay = (u) => u.id, channelDisplay = (c) => c.id } = helpers;
         const data = {
             ticket: {
                 ticketId: ticket.ticketId,
                 username: ticket.username,
+                userId: ticket.userId,
+                userDisplay: ticket.username ? `${ticket.username} (${ticket.userId})` : ticket.userId,
                 type: ticket.type,
                 status: ticket.status,
                 reason: ticket.reason,
                 createdAt: ticket.createdAt,
-                assignedTo: ticket.assignedTo,
+                assignedTo: ticket.assignedTo
+                    ? {
+                        ...ticket.assignedTo,
+                        display: ticket.assignedTo.username
+                            ? `${ticket.assignedTo.username} (${ticket.assignedTo.userId})`
+                            : ticket.assignedTo.userId
+                    }
+                    : null,
                 tags: ticket.tags,
-                priority: ticket.priority
+                priority: ticket.priority,
+                channelId: ticket.channelId,
+                channelName: ticket.channelName,
+                channelDisplay: ticket.channelName
+                    ? `${ticket.channelName} (${ticket.channelId})`
+                    : ticket.channelId
             },
             messages: messages.map(msg => ({
                 id: msg.id,
@@ -446,7 +484,9 @@ class TranscriptGenerator {
                     id: msg.author.id,
                     username: msg.author.username,
                     displayName: msg.author.displayName,
-                    bot: msg.author.bot
+                    tag: msg.author.tag,
+                    bot: msg.author.bot,
+                    display: userDisplay(msg.author)
                 },
                 content: msg.content,
                 createdAt: msg.createdAt,

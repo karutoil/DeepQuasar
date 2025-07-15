@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
 const Ticket = require('../../schemas/Ticket');
 const TicketConfig = require('../../schemas/TicketConfig');
 const Utils = require('../../utils/utils');
@@ -178,8 +178,8 @@ module.exports = {
         const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
         if (!config && !['list', 'info'].includes(subcommand)) {
             return interaction.reply({
-                embeds: [Utils.createErrorEmbed('No Configuration', 'Ticket system is not configured for this server.')],
-                ephemeral: true
+                embeds: [Utils.createErrorEmbed('No Configuration', 'Ticket system is not configured for this server. Please contact an administrator.')],
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -231,15 +231,15 @@ module.exports = {
 
         if (!ticket) {
             return interaction.reply({
-                embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel.')],
-                ephemeral: true
+                embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel. It may have been deleted or you lack permission to view it.')],
+                flags: MessageFlags.Ephemeral
             });
         }
 
         if (ticket.status !== 'open') {
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed('Ticket Already Closed', 'This ticket is already closed.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -249,7 +249,7 @@ module.exports = {
             
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed('No Permission', 'You cannot close this ticket.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -258,11 +258,8 @@ module.exports = {
 
     async assignTicket(interaction, ticketManager, config) {
         const ticketId = interaction.options.getString('ticket_id');
-        const staffMember = interaction.options.getUser('staff_member') || interaction.user;
-        const note = interaction.options.getString('note');
 
         let ticket;
-        
         if (ticketId) {
             ticket = await Ticket.findOne({ ticketId, guildId: interaction.guild.id });
         } else {
@@ -271,52 +268,20 @@ module.exports = {
 
         if (!ticket) {
             return interaction.reply({
-                embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel.')],
-                ephemeral: true
+                embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel. It may have been deleted or you lack permission to view it.')],
+                flags: MessageFlags.Ephemeral
             });
         }
 
         if (!ticketManager.hasPermission(interaction.member, 'canAssign', config)) {
             return interaction.reply({
-                embeds: [Utils.createErrorEmbed('No Permission', 'You cannot assign tickets.')],
-                ephemeral: true
+                embeds: [Utils.createErrorEmbed('No Permission', 'You cannot assign tickets. If you believe this is an error, please contact an administrator.')],
+                flags: MessageFlags.Ephemeral
             });
         }
 
-        try {
-            // Update ticket assignment
-            ticket.assignedTo = {
-                userId: staffMember.id,
-                username: staffMember.displayName || staffMember.username,
-                assignedAt: new Date(),
-                note: note || null
-            };
-
-            await ticket.save();
-
-            // Update channel topic
-            const channel = interaction.guild.channels.cache.get(ticket.channelId);
-            if (channel) {
-                await channel.setTopic(`Ticket #${ticket.ticketId} - Assigned to ${staffMember.displayName || staffMember.username}`);
-            }
-
-            // Log event
-            await ticketManager.logTicketEvent('assign', ticket, interaction.user, config);
-
-            const embed = Utils.createSuccessEmbed(
-                'Ticket Assigned',
-                `Ticket #${ticket.ticketId} has been assigned to ${staffMember}${note ? `\n**Note:** ${note}` : ''}`
-            );
-
-            await interaction.reply({ embeds: [embed] });
-
-        } catch (error) {
-            console.error('Error assigning ticket:', error);
-            await interaction.reply({
-                embeds: [Utils.createErrorEmbed('Error', 'Failed to assign ticket.')],
-                ephemeral: true
-            });
-        }
+        // Show staff selection modal
+        await ticketManager.showAssignStaffModal(interaction, ticket, config);
     },
 
     async reopenTicket(interaction, ticketManager, config) {
@@ -333,22 +298,22 @@ module.exports = {
 
         if (!ticket) {
             return interaction.reply({
-                embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel.')],
-                ephemeral: true
+                embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel. It may have been deleted or you lack permission to view it.')],
+                flags: MessageFlags.Ephemeral
             });
         }
 
         if (ticket.status !== 'closed') {
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed('Ticket Not Closed', 'This ticket is not closed.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
         if (!ticketManager.hasPermission(interaction.member, 'canReopen', config)) {
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed('No Permission', 'You cannot reopen tickets.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -358,7 +323,7 @@ module.exports = {
             if (!channel) {
                 return interaction.reply({
                     embeds: [Utils.createErrorEmbed('Channel Not Found', 'Ticket channel no longer exists.')],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -422,7 +387,7 @@ module.exports = {
             console.error('Error reopening ticket:', error);
             await interaction.reply({
                 embeds: [Utils.createErrorEmbed('Error', 'Failed to reopen ticket.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     },
@@ -441,14 +406,14 @@ module.exports = {
         if (!ticket) {
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
         if (!ticketManager.hasPermission(interaction.member, 'canDelete', config)) {
             return interaction.reply({
-                embeds: [Utils.createErrorEmbed('No Permission', 'You cannot delete tickets.')],
-                ephemeral: true
+                embeds: [Utils.createErrorEmbed('No Permission', 'You cannot delete tickets. If you believe this is an error, please contact an administrator.')],
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -473,8 +438,10 @@ module.exports = {
         await interaction.reply({ 
             embeds: [confirmEmbed], 
             components: [confirmRow], 
-            ephemeral: true 
+            flags: MessageFlags.Ephemeral
         });
+
+        // After deletion, DM the user or provide a final confirmation in the channel if possible (handled in the actual delete logic)
     },
 
     async generateTranscript(interaction, ticketManager, config) {
@@ -492,12 +459,12 @@ module.exports = {
         if (!ticket) {
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
         try {
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             const channel = interaction.guild.channels.cache.get(ticket.channelId);
             if (!channel) {
@@ -544,7 +511,7 @@ module.exports = {
         if (!ticket && action !== 'list') {
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -553,14 +520,14 @@ module.exports = {
                 if (!tag) {
                     return interaction.reply({
                         embeds: [Utils.createErrorEmbed('Missing Tag', 'Please specify a tag to add.')],
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                 }
 
                 if (ticket.tags.includes(tag)) {
                     return interaction.reply({
                         embeds: [Utils.createErrorEmbed('Tag Exists', 'This tag is already on the ticket.')],
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                 }
 
@@ -568,7 +535,8 @@ module.exports = {
                 await ticket.save();
 
                 await interaction.reply({
-                    embeds: [Utils.createSuccessEmbed('Tag Added', `Added tag "${tag}" to ticket #${ticket.ticketId}.`)]
+                    embeds: [Utils.createSuccessEmbed('Tag Added', `Added tag "${tag}" to ticket #${ticket.ticketId}.`)],
+                    ephemeral: true
                 });
                 break;
 
@@ -576,7 +544,7 @@ module.exports = {
                 if (!tag) {
                     return interaction.reply({
                         embeds: [Utils.createErrorEmbed('Missing Tag', 'Please specify a tag to remove.')],
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                 }
 
@@ -584,7 +552,7 @@ module.exports = {
                 if (tagIndex === -1) {
                     return interaction.reply({
                         embeds: [Utils.createErrorEmbed('Tag Not Found', 'This tag is not on the ticket.')],
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                 }
 
@@ -592,7 +560,8 @@ module.exports = {
                 await ticket.save();
 
                 await interaction.reply({
-                    embeds: [Utils.createSuccessEmbed('Tag Removed', `Removed tag "${tag}" from ticket #${ticket.ticketId}.`)]
+                    embeds: [Utils.createSuccessEmbed('Tag Removed', `Removed tag "${tag}" from ticket #${ticket.ticketId}.`)],
+                    ephemeral: true
                 });
                 break;
 
@@ -639,11 +608,21 @@ module.exports = {
         if (!ticket) {
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
         try {
+            if (ticket.priority === level) {
+                return interaction.reply({
+                    embeds: [Utils.createWarningEmbed(
+                        'No Change',
+                        `Ticket #${ticket.ticketId} is already set to ${level.toUpperCase()}.`
+                    )],
+                    ephemeral: true
+                });
+            }
+
             ticket.priority = level;
             await ticket.save();
 
@@ -658,13 +637,14 @@ module.exports = {
                 embeds: [Utils.createSuccessEmbed(
                     'Priority Updated',
                     `Ticket #${ticket.ticketId} priority set to ${priorityEmojis[level]} ${level.toUpperCase()}`
-                )]
+                )],
+                flags: MessageFlags.Ephemeral
             });
 
         } catch (error) {
             console.error('Error setting priority:', error);
             await interaction.reply({
-                embeds: [Utils.createErrorEmbed('Error', 'Failed to set ticket priority.')],
+                embeds: [Utils.createErrorEmbed('Error', `Failed to set ticket priority: ${error.message}`)],
                 ephemeral: true
             });
         }
@@ -677,7 +657,7 @@ module.exports = {
         const priority = interaction.options.getString('priority');
 
         try {
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             // Build query
             const query = { guildId: interaction.guild.id };
@@ -766,7 +746,7 @@ module.exports = {
         if (!ticket) {
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed('Ticket Not Found', 'No ticket found with that ID or in this channel.')],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -786,7 +766,7 @@ module.exports = {
         const fields = [
             {
                 name: '👤 User',
-                value: `<@${ticket.userId}>`,
+                value: ticket.username ? `${ticket.username} (${ticket.userId})` : `<@${ticket.userId}>`,
                 inline: true
             },
             {
@@ -819,7 +799,9 @@ module.exports = {
         if (ticket.assignedTo.userId) {
             fields.push({
                 name: '👨‍💼 Assigned To',
-                value: `<@${ticket.assignedTo.userId}>\n<t:${Math.floor(ticket.assignedTo.assignedAt.getTime() / 1000)}:R>`,
+                value: ticket.assignedTo.username
+                    ? `${ticket.assignedTo.username} (${ticket.assignedTo.userId})\n<t:${Math.floor(ticket.assignedTo.assignedAt.getTime() / 1000)}:R>`
+                    : `<@${ticket.assignedTo.userId}>\n<t:${Math.floor(ticket.assignedTo.assignedAt.getTime() / 1000)}:R>`,
                 inline: true
             });
         }
@@ -835,7 +817,10 @@ module.exports = {
         if (ticket.status === 'closed' && ticket.closedBy.userId) {
             fields.push({
                 name: '🔒 Closed By',
-                value: `<@${ticket.closedBy.userId}>\n<t:${Math.floor(ticket.closedBy.closedAt.getTime() / 1000)}:R>\n**Reason:** ${ticket.closedBy.reason}`,
+                value: (ticket.closedBy.username
+                    ? `${ticket.closedBy.username} (${ticket.closedBy.userId})`
+                    : `<@${ticket.closedBy.userId}>`)
+                    + `\n<t:${Math.floor(ticket.closedBy.closedAt.getTime() / 1000)}:R>\n**Reason:** ${ticket.closedBy.reason}`,
                 inline: false
             });
         }

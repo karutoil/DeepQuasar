@@ -7,7 +7,9 @@ const {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    EmbedBuilder
+    EmbedBuilder,
+    StringSelectMenuBuilder,
+    InteractionType
 } = require('discord.js');
 const Ticket = require('../schemas/Ticket');
 const TicketConfig = require('../schemas/TicketConfig');
@@ -244,10 +246,15 @@ class TicketManager {
 
         // Check rate limiting
         if (await this.isRateLimited(interaction.user.id, config)) {
+            const lastTicket = this.activeRateLimits.get(interaction.user.id);
+            const cooldownMs = config.rateLimiting.cooldownMinutes * 60 * 1000;
+            const retryAfter = lastTicket ? Math.ceil((cooldownMs - (Date.now() - lastTicket)) / 1000) : null;
+            const retryTimestamp = lastTicket ? `<t:${Math.floor((lastTicket + cooldownMs) / 1000)}:R>` : '';
             return interaction.reply({
                 embeds: [Utils.createErrorEmbed(
                     'Rate Limited',
-                    `You can only create ${config.rateLimiting.maxTicketsPerUser} tickets every ${config.rateLimiting.cooldownMinutes} minutes.`
+                    `You can only create ${config.rateLimiting.maxTicketsPerUser} tickets every ${config.rateLimiting.cooldownMinutes} minutes.` +
+                    (retryAfter ? `\nPlease try again in ${retryAfter} seconds (${retryTimestamp}).` : '')
                 )],
                 ephemeral: true
             });
@@ -389,112 +396,138 @@ class TicketManager {
 
     /**
      * Create a new ticket
+     * Retries up to 5 times if a duplicate ticketId is detected.
      */
     async createTicket(interaction, ticketType, responses, config) {
-        try {
-            const guild = interaction.guild;
-            const user = interaction.user;
+        const guild = interaction.guild;
+        const user = interaction.user;
+        let lastError = null;
 
+        for (let attempt = 0; attempt < 5; attempt++) {
             // Generate ticket ID
             const ticketId = this.generateTicketId(config);
-            
+
             // Generate channel name
             const channelName = this.generateChannelName(user, ticketId, config);
 
-            // Create the ticket channel
-            const channel = await guild.channels.create({
-                name: channelName,
-                type: ChannelType.GuildText,
-                parent: config.channels.openCategory,
-                permissionOverwrites: [
-                    {
-                        id: guild.roles.everyone.id,
-                        deny: [PermissionFlagsBits.ViewChannel]
-                    },
-                    {
-                        id: user.id,
-                        allow: [
-                            PermissionFlagsBits.ViewChannel,
-                            PermissionFlagsBits.SendMessages,
-                            PermissionFlagsBits.ReadMessageHistory,
-                            PermissionFlagsBits.AttachFiles,
-                            PermissionFlagsBits.EmbedLinks
-                        ]
-                    },
-                    // Add staff roles
-                    ...config.staffRoles
-                        .filter(role => role.permissions.canView)
-                        .map(role => ({
-                            id: role.roleId,
+            try {
+                // Create the ticket channel
+                const channel = await guild.channels.create({
+                    name: channelName,
+                    type: ChannelType.GuildText,
+                    parent: config.channels.openCategory,
+                    permissionOverwrites: [
+                        {
+                            id: guild.roles.everyone.id,
+                            deny: [PermissionFlagsBits.ViewChannel]
+                        },
+                        {
+                            id: user.id,
                             allow: [
                                 PermissionFlagsBits.ViewChannel,
                                 PermissionFlagsBits.SendMessages,
                                 PermissionFlagsBits.ReadMessageHistory,
                                 PermissionFlagsBits.AttachFiles,
-                                PermissionFlagsBits.EmbedLinks,
-                                PermissionFlagsBits.ManageMessages
+                                PermissionFlagsBits.EmbedLinks
                             ]
-                        }))
-                ]
-            });
-
-            // Create ticket in database
-            const reason = this.combineResponses(responses);
-            const ticket = new Ticket({
-                ticketId,
-                guildId: guild.id,
-                channelId: channel.id,
-                userId: user.id,
-                username: user.displayName || user.username,
-                type: ticketType,
-                reason,
-                status: 'open'
-            });
-
-            await ticket.save();
-
-            // Send initial message
-            await this.sendTicketWelcomeMessage(channel, ticket, config);
-
-            // Set up auto-close if enabled
-            if (config.autoClose.enabled) {
-                this.scheduleAutoClose(ticket, config);
-            }
-
-            // Log ticket creation
-            await this.logTicketEvent('create', ticket, user, config);
-
-            // Send DM notification
-            if (config.dmNotifications.onOpen) {
-                await this.sendDMNotification(user, 'opened', ticket);
-            }
-
-            // Ping staff if enabled
-            if (config.settings.pingStaffOnCreate && config.staffRoles.length > 0) {
-                const staffMentions = config.staffRoles
-                    .map(role => `<@&${role.roleId}>`)
-                    .join(' ');
-                
-                await channel.send(`📢 ${staffMentions} - New ${ticketType} ticket created!`);
-            }
-
-            // Update rate limiting
-            this.updateRateLimit(user.id);
-
-            return ticket;
-
-        } catch (error) {
-            console.error('Error creating ticket:', error);
-            
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({
-                    embeds: [Utils.createErrorEmbed('Error', 'Failed to create ticket. Please try again.')],
-                    ephemeral: true
+                        },
+                        // Add staff roles
+                        ...config.staffRoles
+                            .filter(role => role.permissions.canView)
+                            .map(role => ({
+                                id: role.roleId,
+                                allow: [
+                                    PermissionFlagsBits.ViewChannel,
+                                    PermissionFlagsBits.SendMessages,
+                                    PermissionFlagsBits.ReadMessageHistory,
+                                    PermissionFlagsBits.AttachFiles,
+                                    PermissionFlagsBits.EmbedLinks,
+                                    PermissionFlagsBits.ManageMessages
+                                ]
+                            }))
+                    ]
                 });
+
+                // Create ticket in database
+                const reason = this.combineResponses(responses);
+                const ticket = new Ticket({
+                    ticketId,
+                    guildId: guild.id,
+                    channelId: channel.id,
+                    userId: user.id,
+                    username: user.displayName || user.username,
+                    type: ticketType,
+                    reason,
+                    status: 'open'
+                });
+
+                await ticket.save();
+
+                // Send initial message
+                await this.sendTicketWelcomeMessage(channel, ticket, config);
+
+                // Set up auto-close if enabled
+                if (config.autoClose.enabled) {
+                    this.scheduleAutoClose(ticket, config);
+                }
+
+                // Log ticket creation
+                await this.logTicketEvent('create', ticket, user, config);
+
+                // Send DM notification
+                if (config.dmNotifications.onOpen) {
+                    await this.sendDMNotification(user, 'opened', ticket);
+                }
+
+                // Ping staff if enabled
+                if (config.settings.pingStaffOnCreate && config.staffRoles.length > 0) {
+                    const staffMentions = config.staffRoles
+                        .map(role => `<@&${role.roleId}>`)
+                        .join(' ');
+
+                    await channel.send(`📢 ${staffMentions} - New ${ticketType} ticket created!`);
+                }
+
+                // Update rate limiting
+                this.updateRateLimit(user.id);
+
+                return ticket;
+            } catch (error) {
+                lastError = error;
+                // If duplicate key error, try again with a new ticketId
+                if (error.code === 11000 && error.keyPattern && error.keyPattern.ticketId) {
+                    // Wait a tiny bit to avoid hammering
+                    await new Promise(res => setTimeout(res, 50));
+                    continue;
+                } else if (error.code === 50013 || (error.message && error.message.includes('Missing Permissions'))) {
+                    // DiscordAPIError: Missing Permissions
+                    await interaction.followUp({
+                        embeds: [Utils.createErrorEmbed('Permission Error', 'I do not have permission to create channels or set permissions. Please check my role and permissions.')],
+                        flags: 64 // MessageFlags.Ephemeral
+                    });
+                    break;
+                } else {
+                    console.error('Error creating ticket:', error);
+                    break;
+                }
             }
-            
-            return null;
         }
+
+        if (lastError && lastError.code === 11000 && lastError.keyPattern && lastError.keyPattern.ticketId) {
+            await interaction.followUp({
+                embeds: [Utils.createErrorEmbed('Ticket Creation Failed', 'Failed to create ticket after multiple attempts due to duplicate ticket IDs. This may be a database or configuration issue. Please contact support or try again later.')],
+                flags: 64 // MessageFlags.Ephemeral
+            });
+        } else if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({
+                embeds: [Utils.createErrorEmbed('Ticket Creation Failed', `Failed to create ticket. Reason: ${lastError?.message || 'Unknown error'}`)],
+                flags: 64 // MessageFlags.Ephemeral
+            });
+        }
+        if (lastError) {
+            console.error('Final error creating ticket:', lastError);
+        }
+        return null;
     }
 
     /**
@@ -682,9 +715,10 @@ class TicketManager {
             }
 
             // Update channel with close message
+            const closerName = interaction.member?.displayName || interaction.user.username || interaction.user.tag || interaction.user.id;
             const embed = Utils.createEmbed({
                 title: '🔒 Ticket Closed',
-                description: `This ticket has been closed by ${interaction.user}`,
+                description: `This ticket has been closed by ${closerName} (${interaction.user.id})`,
                 color: 0x57F287,
                 fields: [
                     {
@@ -740,7 +774,7 @@ class TicketManager {
                         fields: [
                             { name: 'Ticket ID', value: `#${ticket.ticketId}`, inline: true },
                             { name: 'Type', value: ticket.type, inline: true },
-                            { name: 'Closed By', value: interaction.user.toString(), inline: true },
+                            { name: 'Closed By', value: `${closerName} (${interaction.user.id})`, inline: true },
                             { name: 'Close Reason', value: reason || 'No reason provided', inline: false }
                         ],
                         footer: { text: 'Keep this transcript for your records' }
@@ -771,7 +805,7 @@ class TicketManager {
 
                         const logEmbed = Utils.createEmbed({
                             title: `📄 Ticket #${ticket.ticketId} Closed - Transcript Generated`,
-                            description: `Ticket closed by ${interaction.user} with reason: ${reason || 'No reason provided'}`,
+                            description: `Ticket closed by ${closerName} (${interaction.user.id}) with reason: ${reason || 'No reason provided'}`,
                             color: 0xFEE75C,
                             footer: { text: 'Automatic transcript generation' }
                         });
@@ -802,6 +836,7 @@ class TicketManager {
 
     /**
      * Handle assign ticket
+     * Now shows a staff selection modal.
      */
     async handleAssignTicket(interaction, ticket, config) {
         if (!this.hasPermission(interaction.member, 'canAssign', config)) {
@@ -811,40 +846,60 @@ class TicketManager {
             });
         }
 
-        try {
-            // Update ticket assignment
-            ticket.assignedTo = {
-                userId: interaction.user.id,
-                username: interaction.user.displayName || interaction.user.username,
-                assignedAt: new Date(),
-                note: null
-            };
+        // Show staff selection modal
+        await this.showAssignStaffModal(interaction, ticket, config);
+    }
 
-            await ticket.save();
+    /**
+     * Show a select menu modal to pick a staff member to assign the ticket to.
+     */
+    async showAssignStaffModal(interaction, ticket, config) {
+        // Get all staff members with the support role(s)
+        const staffRoleIds = config.staffRoles
+            .filter(role => role.permissions.canAssign || role.permissions.canClose || role.permissions.canView)
+            .map(role => role.roleId);
 
-            // Update channel topic
-            const channel = interaction.guild.channels.cache.get(ticket.channelId);
-            if (channel) {
-                await channel.setTopic(`Ticket #${ticket.ticketId} - Assigned to ${interaction.user.displayName || interaction.user.username}`);
-            }
+        // Fetch all guild members if not cached
+        let staffMembers;
+        if (interaction.guild.members.cache.size < interaction.guild.memberCount) {
+            // Not all members cached, fetch all
+            staffMembers = await interaction.guild.members.fetch();
+        } else {
+            staffMembers = interaction.guild.members.cache;
+        }
 
-            // Log event
-            await this.logTicketEvent('assign', ticket, interaction.user, config);
+        // Filter to staff
+        staffMembers = staffMembers.filter(member =>
+            member.roles.cache.some(role => staffRoleIds.includes(role.id))
+        );
 
-            const embed = Utils.createSuccessEmbed(
-                'Ticket Assigned',
-                `Ticket #${ticket.ticketId} has been assigned to you.`
-            );
-
-            await interaction.reply({ embeds: [embed] });
-
-        } catch (error) {
-            console.error('Error assigning ticket:', error);
-            await interaction.reply({
-                embeds: [Utils.createErrorEmbed('Error', 'Failed to assign ticket.')],
+        if (!staffMembers.size) {
+            return interaction.reply({
+                embeds: [Utils.createErrorEmbed('No Staff', 'No staff members found with the support role.')],
                 ephemeral: true
             });
         }
+
+        // Build select menu options
+        const options = staffMembers.map(member => ({
+            label: member.displayName || member.user.username,
+            value: member.id,
+            description: member.user.tag,
+            emoji: '👤'
+        })).slice(0, 25); // Discord max options
+
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(`assign_staff_select_${ticket.ticketId}`)
+            .setPlaceholder('Select a staff member to assign')
+            .addOptions(options);
+
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+
+        await interaction.reply({
+            content: 'Select a staff member to assign this ticket to:',
+            components: [row],
+            ephemeral: true
+        });
     }
 
     /**
@@ -994,6 +1049,9 @@ class TicketManager {
             components: [row],
             ephemeral: true
         });
+
+        // After deletion, DM the user or provide a final confirmation in the channel if possible
+        // This should be handled in the actual delete logic (button handler)
     }
 
     /**
@@ -1366,19 +1424,27 @@ class TicketManager {
                 tag: '�️'
             };
 
-            let description = `**Ticket ID:** #${ticket.ticketId}\n**User:** <@${ticket.userId}>\n**Action by:** ${user}\n**Type:** ${ticket.type}`;
+            // Try to resolve user display name and tag for logs
+            let userDisplay = typeof user === 'string'
+                ? user
+                : (user.displayName || user.username || user.tag || user.id);
+            if (typeof user !== 'string' && user.id) {
+                userDisplay = `${userDisplay} (${user.id})`;
+            }
+
+            let description = `**Ticket ID:** #${ticket.ticketId}\n**User:** ${ticket.username ? `${ticket.username} (${ticket.userId})` : `<@${ticket.userId}>`}\n**Action by:** ${userDisplay}\n**Type:** ${ticket.type}`;
             
             // Add event-specific information
             switch (eventType) {
                 case 'claim':
-                    description += `\n**Claimed by:** ${user}`;
+                    description += `\n**Claimed by:** ${userDisplay}`;
                     if (ticket.assignedTo.assignedAt) {
                         description += `\n**Claimed at:** <t:${Math.floor(ticket.assignedTo.assignedAt.getTime() / 1000)}:F>`;
                     }
                     break;
                 case 'assign':
                     if (ticket.assignedTo.userId) {
-                        description += `\n**Assigned to:** <@${ticket.assignedTo.userId}>`;
+                        description += `\n**Assigned to:** ${ticket.assignedTo.username ? `${ticket.assignedTo.username} (${ticket.assignedTo.userId})` : `<@${ticket.assignedTo.userId}>`}`;
                     }
                     break;
                 case 'close':
