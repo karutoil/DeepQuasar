@@ -91,3 +91,4 @@ docs/.vitepress/cache/
 update-deepquasarv2.sh
 
 .aider*
+AGENTS.md
