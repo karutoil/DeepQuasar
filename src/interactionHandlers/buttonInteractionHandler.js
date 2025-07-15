@@ -736,6 +736,82 @@ async function handleButtonInteraction(interaction, client) {
 
         const customId = interaction.customId;
 
+        // Remove reminder select menu handler from here.
+        // It should be handled in the selectMenuHandler file.
+
+        // Reminder Edit Handler
+        if (customId.startsWith('reminder_edit_')) {
+            const reminderId = customId.replace('reminder_edit_', '');
+            const Reminder = require('../schemas/Reminder');
+            const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+            const reminder = await Reminder.findOne({ reminder_id: reminderId });
+            if (!reminder) {
+                await interaction.reply({
+                    content: '❌ Reminder not found.',
+                    ephemeral: true
+                });
+                return;
+            }
+            // Show modal to edit the reminder task description
+            const modal = new ModalBuilder()
+                .setCustomId(`reminder_edit_modal_${reminderId}`)
+                .setTitle('Edit Reminder');
+
+            const taskInput = new TextInputBuilder()
+                .setCustomId('reminder_task_description')
+                .setLabel('Task Description')
+                .setStyle(TextInputStyle.Paragraph)
+                .setValue(reminder.task_description)
+                .setMaxLength(200)
+                .setRequired(true);
+
+            const row = new ActionRowBuilder().addComponents(taskInput);
+            modal.addComponents(row);
+
+            await interaction.showModal(modal);
+            return;
+        }
+
+        // Reminder Delete Handler
+        if (customId.startsWith('reminder_delete_')) {
+            const reminderId = customId.replace('reminder_delete_', '');
+            const Reminder = require('../schemas/Reminder');
+            const reminder = await Reminder.findOne({ reminder_id: reminderId });
+            if (!reminder) {
+                await interaction.reply({
+                    content: '❌ Reminder not found.',
+                    ephemeral: true
+                });
+                return;
+            }
+            await Reminder.deleteOne({ reminder_id: reminderId });
+            // Cancel scheduled timer if any
+            if (client.reminderManager) {
+                client.reminderManager.cancelReminder(reminderId);
+            }
+            await interaction.update({
+                content: '🗑️ Reminder deleted.',
+                embeds: [],
+                components: []
+            });
+            return;
+        }
+        // Handle embed builder buttons
+        if (customId.startsWith('embed_')) {
+            const embedCommand = client.commands.get('embed');
+            if (embedCommand && typeof embedCommand.handleBuilderInteraction === 'function') {
+                await embedCommand.handleBuilderInteraction(interaction);
+                return;
+            } else {
+                const errorEmbed = Utils.createErrorEmbed(
+                    'Handler Error',
+                    'Embed builder handler is not available.'
+                );
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return;
+            }
+        }
+
         // Handle embed builder buttons
         if (customId.startsWith('embed_')) {
             const embedCommand = client.commands.get('embed');

@@ -17,11 +17,15 @@ const AutoRoleManager = require('./utils/AutoRoleManager');
 const SelfRoleManager = require('./utils/SelfRoleManager');
 const TicketManager = require('./utils/TicketManager');
 
-// Import database models
+ // Import database models
 require('./schemas/Guild');
 require('./schemas/User');
 require('./schemas/SelfRole');
 require('./schemas/EmbedTemplate');
+require('./schemas/Reminder'); // <-- Ensure Reminder schema is initialized
+
+// Import ReminderManager
+const ReminderManager = require('./reminderManager');
 
 class MusicBot {
     constructor() {
@@ -262,6 +266,10 @@ class MusicBot {
 
             // Set bot activity
             this.client.user.setActivity('🚀 Starting up...', { type: ActivityType.Playing });
+
+            // --- ReminderManager Startup ---
+            this.client.reminderManager = new ReminderManager(this.client);
+            this.client.reminderManager.loadReminders();
 
             // --- Temp VC Cleanup on Startup ---
             try {

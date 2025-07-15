@@ -6,6 +6,7 @@ const reminderSchema = new mongoose.Schema({
     target_id: { type: String, default: null }, // user_id, channel_id, or null for self
     target_type: { type: String, enum: ['self', 'user', 'channel'], default: 'self' },
     task_description: { type: String, required: true },
+    role_id: { type: String, default: null }, // Only for channel reminders
     trigger_timestamp: { type: Number, required: true }, // UTC ms
     created_timestamp: { type: Number, required: true },
     guild_id: { type: String, required: true },

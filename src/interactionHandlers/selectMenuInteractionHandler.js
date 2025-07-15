@@ -362,6 +362,59 @@ async function handleSelectMenuInteraction(interaction, client) {
     const customId = interaction.customId;
 
     try {
+        // Handle reminder select menu
+        if (customId === 'reminder_select') {
+            const Reminder = require('../schemas/Reminder');
+            const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+            const reminderId = interaction.values[0];
+            const reminder = await Reminder.findOne({ reminder_id: reminderId });
+            if (!reminder) {
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({
+                        content: '❌ Reminder not found.',
+                        components: [],
+                        embeds: [],
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.editReply({
+                        content: '❌ Reminder not found.',
+                        components: [],
+                        embeds: []
+                    });
+                }
+                return;
+            }
+            const embed = new EmbedBuilder()
+                .setTitle('⏰ Reminder Preview')
+                .setDescription(reminder.task_description)
+                .addFields(
+                    { name: 'Time', value: `<t:${Math.floor(reminder.trigger_timestamp/1000)}:F>`, inline: true },
+                    { name: 'Target', value: reminder.target_type === 'self' ? 'You (DM)' : reminder.target_type === 'user' ? `<@${reminder.target_id}>` : `<#${reminder.target_id}>`, inline: true }
+                )
+                .setFooter({ text: `ID: ${reminder.reminder_id}` })
+                .setColor(0x5865F2);
+
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`reminder_edit_${reminder.reminder_id}`)
+                        .setLabel('Edit')
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId(`reminder_delete_${reminder.reminder_id}`)
+                        .setLabel('Delete')
+                        .setStyle(ButtonStyle.Danger)
+                );
+
+            await interaction.update({
+                content: '',
+                embeds: [embed],
+                components: [row]
+            });
+            return;
+        }
+
         // Handle embed builder select menus
         if (customId.startsWith('embed_select_')) {
             const handled = await EmbedBuilderHandler.handleSelectMenu(interaction);

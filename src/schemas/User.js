@@ -335,13 +335,22 @@ userSchema.methods.updateGuildSettings = function(guildId, settings) {
     return guildSettings;
 };
 
+userSchema.methods.setTimezone = function(timezone) {
+    this.timezone = timezone;
+    return this.save();
+};
+
+userSchema.methods.getTimezone = function() {
+    return this.timezone || 'UTC';
+};
+
 // Static methods
 userSchema.statics.findByUserId = function(userId) {
     return this.findOne({ userId });
 };
 
-userSchema.statics.createDefault = function(userId, username, discriminator = '0') {
-    return this.create({ userId, username, discriminator });
+userSchema.statics.createDefault = function(userId, username, discriminator = '0', timezone = null) {
+    return this.create({ userId, username, discriminator, timezone });
 };
 
 userSchema.statics.getPremiumUsers = function() {
@@ -361,5 +370,12 @@ userSchema.statics.getTopUsers = function(limit = 10) {
         .limit(limit)
         .select('userId username stats');
 };
+
+userSchema.add({
+    timezone: {
+        type: String,
+        default: null
+    }
+});
 
 module.exports = mongoose.model('User', userSchema);

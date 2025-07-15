@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, StringSelectMenuBuilder } = require('discord.js');
 const Reminder = require('../../schemas/Reminder');
 const timeParser = require('../../utils/timeParser');
 
@@ -14,37 +14,21 @@ module.exports = {
                 return interaction.reply({ content: 'You have no active reminders.', ephemeral: true });
             }
 
-            const embeds = [];
-            const components = [];
-            for (const reminder of reminders.slice(0, 5)) {
-                const embed = new EmbedBuilder()
-                    .setTitle('⏰ Reminder')
-                    .setDescription(reminder.task_description)
-                    .addFields(
-                        { name: 'Time', value: `<t:${Math.floor(reminder.trigger_timestamp/1000)}:F>`, inline: true },
-                        { name: 'Target', value: reminder.target_type === 'self' ? 'You (DM)' : reminder.target_type === 'user' ? `<@${reminder.target_id}>` : `<#${reminder.target_id}>`, inline: true }
-                    )
-                    .setFooter({ text: `ID: ${reminder.reminder_id}` })
-                    .setColor(0x5865F2);
-                embeds.push(embed);
+            // Selection menu for reminders
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('reminder_select')
+                .setPlaceholder('Select a reminder to preview')
+                .addOptions(reminders.map(reminder => ({
+                    label: reminder.task_description.length > 80 ? reminder.task_description.slice(0, 77) + '...' : reminder.task_description,
+                    description: `<t:${Math.floor(reminder.trigger_timestamp/1000)}:F>`,
+                    value: reminder.reminder_id
+                })));
 
-                const row = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`reminder_edit_${reminder.reminder_id}`)
-                            .setLabel('Edit')
-                            .setStyle(ButtonStyle.Primary),
-                        new ButtonBuilder()
-                            .setCustomId(`reminder_delete_${reminder.reminder_id}`)
-                            .setLabel('Delete')
-                            .setStyle(ButtonStyle.Danger)
-                    );
-                components.push(row);
-            }
+            const row = new ActionRowBuilder().addComponents(selectMenu);
 
             await interaction.reply({
-                embeds,
-                components,
+                content: `Select a reminder to preview and manage:`,
+                components: [row],
                 ephemeral: true
             });
         }

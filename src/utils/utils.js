@@ -441,43 +441,7 @@ class Utils {
         return 'just now';
     }
 
-    /**
-     * Parse time string to milliseconds
-     * @param {string} timeString - Time string (e.g., "1:30", "90s", "2m30s")
-     * @returns {number|null} Time in milliseconds or null if invalid
-     */
-    static parseTimeString(timeString) {
-        if (!timeString || typeof timeString !== 'string') return null;
-
-        timeString = timeString.trim().toLowerCase();
-
-        // Handle mm:ss format
-        const colonMatch = timeString.match(/^(\d+):(\d+)$/);
-        if (colonMatch) {
-            const minutes = parseInt(colonMatch[1]);
-            const seconds = parseInt(colonMatch[2]);
-            if (seconds < 60) {
-                return (minutes * 60 + seconds) * 1000;
-            }
-        }
-
-        // Handle time with units (e.g., 1m30s, 90s, 2m)
-        const unitMatch = timeString.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
-        if (unitMatch) {
-            const hours = parseInt(unitMatch[1] || 0);
-            const minutes = parseInt(unitMatch[2] || 0);
-            const seconds = parseInt(unitMatch[3] || 0);
-            return (hours * 3600 + minutes * 60 + seconds) * 1000;
-        }
-
-        // Handle simple seconds (e.g., "90")
-        const simpleMatch = timeString.match(/^(\d+)$/);
-        if (simpleMatch) {
-            return parseInt(simpleMatch[1]) * 1000;
-        }
-
-        return null;
-    }
+    // Removed: parseTimeString logic is now handled by chrono-node in timeParser.js
 
     /**
      * Check if user is bot owner

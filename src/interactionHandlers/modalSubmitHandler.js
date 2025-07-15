@@ -28,6 +28,28 @@ async function handleTempVCModal(interaction, client) {
 
 async function handleModalSubmit(interaction, client) {
     try {
+        // Reminder Edit Modal Handler
+        if (interaction.customId.startsWith('reminder_edit_modal_')) {
+            const reminderId = interaction.customId.replace('reminder_edit_modal_', '');
+            const Reminder = require('../schemas/Reminder');
+            const newTask = interaction.fields.getTextInputValue('reminder_task_description');
+            const reminder = await Reminder.findOne({ reminder_id: reminderId });
+            if (!reminder) {
+                await interaction.reply({
+                    content: '❌ Reminder not found.',
+                    ephemeral: true
+                });
+                return;
+            }
+            reminder.task_description = newTask;
+            await reminder.save();
+            await interaction.reply({
+                content: '✅ Reminder updated.',
+                ephemeral: true
+            });
+            return;
+        }
+
         // Handle LFG modal submissions first
         const lfgHandled = await LFGInteractionHandler.handleModalSubmission(interaction);
         if (lfgHandled) return;
