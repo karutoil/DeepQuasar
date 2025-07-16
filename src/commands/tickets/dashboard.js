@@ -140,6 +140,46 @@ module.exports = {
                 ]
             });
 
+            // --- Ticket Analytics Embed ---
+            // Aggregate ticket analytics
+            const analytics = await this.getTicketAnalytics(interaction.guild.id);
+
+            const analyticsEmbed = Utils.createEmbed({
+                title: '📊 Ticket Analytics',
+                color: 0x2ecc71,
+                fields: [
+                    {
+                        name: 'Ticket Types',
+                        value: analytics.types.length > 0
+                            ? analytics.types.map(t => `• **${t._id || 'Unknown'}**: ${t.count}`).join('\n')
+                            : 'No data',
+                        inline: true
+                    },
+                    {
+                        name: 'Priorities',
+                        value: analytics.priorities.length > 0
+                            ? analytics.priorities.map(p => `• **${p._id || 'Unknown'}**: ${p.count}`).join('\n')
+                            : 'No data',
+                        inline: true
+                    },
+                    {
+                        name: 'Average Close Time',
+                        value: analytics.avgCloseTime
+                            ? `${analytics.avgCloseTime} hours`
+                            : 'N/A',
+                        inline: true
+                    },
+                    {
+                        name: 'Tag Usage',
+                        value: analytics.tags.length > 0
+                            ? analytics.tags.map(tag => `• **${tag._id || 'Unknown'}**: ${tag.count}`).join('\n')
+                            : 'No tags used',
+                        inline: true
+                    }
+                ],
+                footer: { text: 'Analytics based on recent 100 tickets' }
+            });
+
             // Create action buttons
             const actionRow1 = new ActionRowBuilder()
                 .addComponents(
@@ -190,7 +230,7 @@ module.exports = {
             // If you use a custom interaction handler, ensure it listens for these customIds
 
             await interaction.editReply({
-                embeds: [dashboardEmbed, activityEmbed, settingsEmbed],
+                embeds: [dashboardEmbed, activityEmbed, settingsEmbed, analyticsEmbed],
                 components: [actionRow1, actionRow2]
             });
 
@@ -239,5 +279,51 @@ module.exports = {
 
         const configured = required.filter(Boolean).length;
         return configured === required.length ? '✅ Complete' : `⚠️ ${configured}/${required.length}`;
+    },
+
+    // --- Ticket Analytics Aggregation ---
+    async getTicketAnalytics(guildId) {
+        const Ticket = require('../../schemas/Ticket');
+        // Use last 100 tickets for analytics
+        const recentTickets = await Ticket.find({ guildId }).sort({ createdAt: -1 }).limit(100);
+
+        // Type breakdown
+        const typeCounts = {};
+        const priorityCounts = {};
+        const tagCounts = {};
+        let closeTimes = [];
+
+        for (const ticket of recentTickets) {
+            // Type
+            typeCounts[ticket.type] = (typeCounts[ticket.type] || 0) + 1;
+            // Priority
+            priorityCounts[ticket.priority] = (priorityCounts[ticket.priority] || 0) + 1;
+            // Tags
+            if (Array.isArray(ticket.tags)) {
+                for (const tag of ticket.tags) {
+                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                }
+            }
+            // Average close time
+            if (ticket.status === 'closed' && ticket.closedBy && ticket.closedBy.closedAt && ticket.createdAt) {
+                const hours = (ticket.closedBy.closedAt.getTime() - ticket.createdAt.getTime()) / (1000 * 60 * 60);
+                closeTimes.push(hours);
+            }
+        }
+
+        // Format for embed fields
+        const types = Object.entries(typeCounts).map(([type, count]) => ({ _id: type, count }));
+        const priorities = Object.entries(priorityCounts).map(([priority, count]) => ({ _id: priority, count }));
+        const tags = Object.entries(tagCounts).map(([tag, count]) => ({ _id: tag, count }));
+        const avgCloseTime = closeTimes.length > 0
+            ? (closeTimes.reduce((a, b) => a + b, 0) / closeTimes.length).toFixed(2)
+            : null;
+
+        return {
+            types,
+            priorities,
+            tags,
+            avgCloseTime
+        };
     }
 };
