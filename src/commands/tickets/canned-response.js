@@ -170,12 +170,13 @@ module.exports = {
     },
 
     async editResponse(interaction) {
-        const name = interaction.options.getString('name').toLowerCase();
+        const name = interaction.options.getString('name');
+        const lookupName = name.toLowerCase();
 
         try {
             const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
-            if (!config || !config.cannedResponses || !config.cannedResponses[name]) {
+            if (!config || !config.cannedResponses || !config.cannedResponses[lookupName]) {
                 return interaction.reply({
                     embeds: [Utils.createErrorEmbed('Not Found', 
                         `No canned response found with the name "${name}".`)],
@@ -183,7 +184,7 @@ module.exports = {
                 });
             }
 
-            const currentResponse = config.cannedResponses[name];
+            const currentResponse = config.cannedResponses[lookupName];
 
             // Create modal for editing
             const modal = new ModalBuilder()
@@ -212,21 +213,22 @@ module.exports = {
     },
 
     async deleteResponse(interaction) {
-        const name = interaction.options.getString('name').toLowerCase();
+        const name = interaction.options.getString('name');
+        const lookupName = name.toLowerCase();
 
         try {
             await interaction.deferReply({ ephemeral: true });
 
             const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
-            if (!config || !config.cannedResponses || !config.cannedResponses[name]) {
+            if (!config || !config.cannedResponses || !config.cannedResponses[lookupName]) {
                 return interaction.editReply({
                     embeds: [Utils.createErrorEmbed('Not Found', 
                         `No canned response found with the name "${name}".`)]
                 });
             }
 
-            delete config.cannedResponses[name];
+            delete config.cannedResponses[lookupName];
             await config.save();
 
             const successEmbed = Utils.createSuccessEmbed(
@@ -245,12 +247,13 @@ module.exports = {
     },
 
     async useResponse(interaction) {
-        const name = interaction.options.getString('name').toLowerCase();
+        const name = interaction.options.getString('name');
+        const lookupName = name.toLowerCase();
 
         try {
             const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
-            if (!config || !config.cannedResponses || !config.cannedResponses[name]) {
+            if (!config || !config.cannedResponses || !config.cannedResponses[lookupName]) {
                 return interaction.reply({
                     embeds: [Utils.createErrorEmbed('Not Found', 
                         `No canned response found with the name "${name}".`)],
@@ -258,11 +261,11 @@ module.exports = {
                 });
             }
 
-            const response = config.cannedResponses[name];
+            const response = config.cannedResponses[lookupName];
 
             // Increment usage count
             response.usageCount = (response.usageCount || 0) + 1;
-            config.cannedResponses[name] = response;
+            config.cannedResponses[lookupName] = response;
             await config.save();
 
             // Send the canned response
