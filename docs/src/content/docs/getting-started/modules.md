@@ -128,30 +128,6 @@ To enable and use the music player features:
     ```
 *   Use `/queue`, `/skip`, `/stop`, `/history`, and other music commands to manage playback.
 *   For more details, refer to the [music command documentation](/commands/music).
-
-### 🚫 Profanity Filter
-
-To enable and configure the profanity filter:
-
-*   Use the `/profanity toggle` command to enable or disable the filter.
-*   **Example:** 
-    ```sh
-    /profanity toggle enabled:True
-    ```
-*   For more details, refer to the [profanity command documentation](/commands/profanity).
-
-### 🧩 Templates System
-
-To manage embed templates for your server:
-
-*   Use the `/templates list` command to view templates.
-*   Use `/templates create`, `/templates delete`, and `/templates info` to manage them.
-*   **Example:** 
-    ```sh
-    /templates create name:"Announcement" content:"This is an announcement!"
-    ```
-*   For more details, refer to the [templates command documentation](/commands/templates).
-
 ---
 
-After enabling a module, remember to explore its specific configuration commands (e.g., `/chatbot api`, `/autorole settings`, `/modlog configure`, `/remind`, `/music settings`, `/profanity settings`, `/templates edit`) to tailor it to your server's needs.
+After enabling a module, remember to explore its specific configuration commands (e.g., `/chatbot api`, `/autorole settings`, `/modlog configure`, `/remind`, `/music settings`) to tailor it to your server's needs.
