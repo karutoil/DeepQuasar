@@ -38,6 +38,9 @@ const AutoRoleManager = require('./utils/AutoRoleManager');
 const SelfRoleManager = require('./utils/SelfRoleManager');
 const TicketManager = require('./utils/TicketManager');
 
+// Import GuildCleanup utility
+const { cleanupGuildData } = require('./utils/GuildCleanup');
+
  // Import database models
 require('./schemas/Guild');
 require('./schemas/User');
@@ -93,6 +96,16 @@ class MusicBot {
         // Initialize Temp VC Manager
         const TempVCManager = require('./utils/TempVCManager');
         this.client.tempVCManager = new TempVCManager(this.client);
+
+        // Setup guildDelete event for global cleanup
+        this.client.on('guildDelete', async (guild) => {
+            try {
+                logger.info(`[GuildCleanup] Bot removed from guild: ${guild.id} (${guild.name})`);
+                await cleanupGuildData(guild.id, logger);
+            } catch (err) {
+                logger.error(`[GuildCleanup] Error during cleanup for guild ${guild.id}:`, err);
+            }
+        });
 
         // Initialize Moonlink Manager
         this.setupMoonlink();
