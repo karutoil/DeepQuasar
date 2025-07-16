@@ -552,7 +552,32 @@ process.on('SIGQUIT', () => {
 // throw new Error('Simulated startup error for logging test');
 // --- END TEST ---
 
+let startupConfirmed = false;
+let startupStuckTimeout;
+
+function monitorStartupLog() {
+    // Patch logger.info to watch for the confirmation line
+    const originalInfo = logger.info;
+    logger.info = function (...args) {
+        if (
+            args.some(
+                arg =>
+                    typeof arg === 'string' &&
+                    arg.includes('Node main: connected=true, host=localhost:2333')
+            )
+        ) {
+            startupConfirmed = true;
+            if (startupStuckTimeout) {
+                clearTimeout(startupStuckTimeout);
+                console.log('Startup confirmation detected: Node main is connected.');
+            }
+        }
+        return originalInfo.apply(this, args);
+    };
+}
+
 (async () => {
+    monitorStartupLog();
     try {
         await bot.start();
         console.log('Bot startup completed.'); // Confirm startup reached here
@@ -561,13 +586,15 @@ process.on('SIGQUIT', () => {
         process.exit(1);
     }
     // If process is still running and no error, log a message
-    setTimeout(() => {
-        logErrorDetails('Startup appears to be stuck. No error was thrown, but bot did not finish startup.', {});
-        // Force an error to test error logging
-        try {
-            throw new Error('Forced error: Startup stuck after 15 seconds');
-        } catch (err) {
-            logErrorDetails('Forced error thrown after 15s', err);
+    startupStuckTimeout = setTimeout(() => {
+        if (!startupConfirmed) {
+            logErrorDetails('Startup appears to be stuck. No error was thrown, but bot did not finish startup.', {});
+            // Force an error to test error logging
+            try {
+                throw new Error('Forced error: Startup stuck after 15 seconds');
+            } catch (err) {
+                logErrorDetails('Forced error thrown after 15s', err);
+            }
         }
     }, 15000);
 })();
