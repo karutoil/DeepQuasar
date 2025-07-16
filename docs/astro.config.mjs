@@ -115,9 +115,9 @@ export default defineConfig({
 								{ label: 'tickets', link: '/commands/tickets' },
 								{ label: 'panel', link: '/commands/panel' },
 								{ label: 'dashboard', link: '/commands/dashboard' },
-								{ label: 'canned-responses', link: '/commands/canned-responses' },
+								{ label: 'canned-responses', link: '/commands/canned-response' },
 								{ label: 'ticket', link: '/commands/ticket' },
-								{ label: 'mytickets', link: '/commands/tickets/mytickets' },
+								{ label: 'mytickets', link: '/commands/mytickets' },
 							],
 						},
 						{
