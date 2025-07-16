@@ -53,14 +53,8 @@ The modlog system is well-structured and covers a wide range of Discord events. 
 ### 15. **No Notification on Disable**
 - When modlog is disabled, there is no notification sent to the log channel or admins.
 
-### 16. **No Bot Owner Override**
-- There is no override for bot owners to always be able to configure modlog, regardless of Discord permissions.
-
 ### 17. **No Logging of Configuration Changes**
 - Changes to modlog settings (e.g., enabling/disabling events, changing channels) are not logged anywhere.
-
-### 18. **No Support for Ephemeral Logging**
-- All logs are public; there is no option to send logs as ephemeral messages to admins.
 
 ### 19. **No Handling for Guild Removal**
 - If the bot is removed from a guild, modlog data is not cleaned up.
