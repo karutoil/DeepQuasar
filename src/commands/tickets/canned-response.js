@@ -92,11 +92,11 @@ module.exports = {
 
             // Initialize canned responses if not exists
             if (!config.cannedResponses) {
-                config.cannedResponses = new Map();
+                config.cannedResponses = {};
             }
 
             // Check if response already exists
-            if (config.cannedResponses.has(name)) {
+            if (config.cannedResponses[name]) {
                 return interaction.editReply({
                     embeds: [Utils.createErrorEmbed('Response Exists', 
                         `A canned response with the name "${name}" already exists. Use \`/canned-response edit\` to modify it.`)]
@@ -104,12 +104,12 @@ module.exports = {
             }
 
             // Add the response
-            config.cannedResponses.set(name, {
+            config.cannedResponses[name] = {
                 content: content,
                 createdBy: interaction.user.id,
                 createdAt: new Date(),
                 usageCount: 0
-            });
+            };
 
             await config.save();
 
@@ -134,7 +134,7 @@ module.exports = {
 
             const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
-            if (!config || !config.cannedResponses || config.cannedResponses.size === 0) {
+            if (!config || !config.cannedResponses || Object.keys(config.cannedResponses).length === 0) {
                 return interaction.editReply({
                     embeds: [Utils.createEmbed({
                         title: '📝 Canned Responses',
@@ -144,7 +144,7 @@ module.exports = {
                 });
             }
 
-            const responses = Array.from(config.cannedResponses.entries()).map(([name, data]) => {
+            const responses = Object.entries(config.cannedResponses).map(([name, data]) => {
                 const creator = interaction.guild.members.cache.get(data.createdBy);
                 return `**${name}**\n` +
                        `Usage: ${data.usageCount || 0} times\n` +
@@ -156,7 +156,7 @@ module.exports = {
                 title: '📝 Canned Responses',
                 description: responses,
                 color: 0x5865F2,
-                footer: { text: `Total: ${config.cannedResponses.size} responses` }
+                footer: { text: `Total: ${Object.keys(config.cannedResponses).length} responses` }
             });
 
             await interaction.editReply({ embeds: [embed] });
@@ -175,7 +175,7 @@ module.exports = {
         try {
             const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
-            if (!config || !config.cannedResponses || !config.cannedResponses.has(name)) {
+            if (!config || !config.cannedResponses || !config.cannedResponses[name]) {
                 return interaction.reply({
                     embeds: [Utils.createErrorEmbed('Not Found', 
                         `No canned response found with the name "${name}".`)],
@@ -183,7 +183,7 @@ module.exports = {
                 });
             }
 
-            const currentResponse = config.cannedResponses.get(name);
+            const currentResponse = config.cannedResponses[name];
 
             // Create modal for editing
             const modal = new ModalBuilder()
@@ -219,14 +219,14 @@ module.exports = {
 
             const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
-            if (!config || !config.cannedResponses || !config.cannedResponses.has(name)) {
+            if (!config || !config.cannedResponses || !config.cannedResponses[name]) {
                 return interaction.editReply({
                     embeds: [Utils.createErrorEmbed('Not Found', 
                         `No canned response found with the name "${name}".`)]
                 });
             }
 
-            config.cannedResponses.delete(name);
+            delete config.cannedResponses[name];
             await config.save();
 
             const successEmbed = Utils.createSuccessEmbed(
@@ -250,7 +250,7 @@ module.exports = {
         try {
             const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
-            if (!config || !config.cannedResponses || !config.cannedResponses.has(name)) {
+            if (!config || !config.cannedResponses || !config.cannedResponses[name]) {
                 return interaction.reply({
                     embeds: [Utils.createErrorEmbed('Not Found', 
                         `No canned response found with the name "${name}".`)],
@@ -258,11 +258,11 @@ module.exports = {
                 });
             }
 
-            const response = config.cannedResponses.get(name);
+            const response = config.cannedResponses[name];
 
             // Increment usage count
             response.usageCount = (response.usageCount || 0) + 1;
-            config.cannedResponses.set(name, response);
+            config.cannedResponses[name] = response;
             await config.save();
 
             // Send the canned response
