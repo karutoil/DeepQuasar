@@ -899,6 +899,29 @@ async function handleButtonInteraction(interaction, client) {
             return;
         }
 
+        // Handle dashboard buttons
+        if (
+            customId === 'dashboard_panels' ||
+            customId === 'dashboard_staff' ||
+            customId === 'dashboard_settings' ||
+            customId === 'dashboard_logs' ||
+            customId === 'dashboard_analytics' ||
+            customId === 'dashboard_refresh'
+        ) {
+            const dashboardCommand = client.commands.get('dashboard');
+            if (!dashboardCommand) {
+                await interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Handler Error', 'Dashboard command handler not found.')],
+                    ephemeral: true
+                });
+                return;
+            }
+            // You can add more granular logic here for each button if needed
+            // For now, just re-run the dashboard command to refresh the view
+            await dashboardCommand.execute(interaction);
+            return;
+        }
+
         // Handle ticket confirmation buttons
         if (customId.startsWith('confirm_delete_')) {
             await handleTicketDeleteConfirmation(interaction, client);
