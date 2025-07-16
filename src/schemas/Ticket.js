@@ -144,6 +144,16 @@ const ticketSchema = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: Date.now
+    },
+
+    // Soft delete support
+    isDeleted: {
+        type: Boolean,
+        default: false
+    },
+    deletedAt: {
+        type: Date,
+        default: null
     }
 });
 
