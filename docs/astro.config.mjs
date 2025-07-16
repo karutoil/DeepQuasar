@@ -153,7 +153,7 @@ export default defineConfig({
 							],
 						},
 						{
-							label: 'lfg Commands',
+							label: 'LFG Commands',
 							collapsed: true,
 							items: [
 								{ label: 'setup-lfg', link: '/commands/lfg/setup-lfg' },
@@ -163,6 +163,14 @@ export default defineConfig({
 								{ label: 'lfg-test', link: '/commands/lfg/lfg-test' },
 								{ label: 'lfg', link: '/commands/lfg/lfg' },
 								{ label: 'my-lfg', link: '/commands/lfg/my-lfg' },
+							],
+						},
+						{
+							label: 'Reminder Commands',
+							collapsed: true,
+							items: [
+								{ label: 'remind-me', link: '/commands/remind/remind' },
+								{ label: 'reminders', link: '/commands/remind/reminders' },
 							],
 						},
 					],
