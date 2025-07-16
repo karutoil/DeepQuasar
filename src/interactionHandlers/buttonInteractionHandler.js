@@ -971,6 +971,16 @@ async function handleButtonInteraction(interaction, client) {
                 if (dashboardCommand && typeof dashboardCommand.getTicketAnalytics === 'function') {
                     const analytics = await dashboardCommand.getTicketAnalytics(interaction.guild.id);
 
+                    // Fetch member display names for top agents
+                    let topAgentsText = 'No agent assignments found';
+                    if (analytics.topAgents && analytics.topAgents.length > 0) {
+                        topAgentsText = analytics.topAgents.map((agent, idx) => {
+                            const member = interaction.guild.members.cache.get(agent.userId);
+                            const name = member ? member.displayName : `<@${agent.userId}>`;
+                            return `**${idx + 1}.** ${name} — ${agent.count} tickets`;
+                        }).join('\n');
+                    }
+
                     const analyticsEmbed = Utils.createEmbed({
                         title: '📊 Ticket Analytics',
                         color: 0x2ecc71,
@@ -982,6 +992,11 @@ async function handleButtonInteraction(interaction, client) {
                                     `🔴 **Closed:** ${analytics.statusCounts.closed}\n` +
                                     `⚫ **Deleted:** ${analytics.statusCounts.deleted}\n` +
                                     `📁 **Archived:** ${analytics.statusCounts.archived}`,
+                                inline: false
+                            },
+                            {
+                                name: 'Top Agents (Assigned Tickets)',
+                                value: topAgentsText,
                                 inline: false
                             },
                             {

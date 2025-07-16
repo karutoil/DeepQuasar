@@ -264,6 +264,9 @@ module.exports = {
             archived: 0
         };
 
+        // Agent breakdown
+        const agentCounts = {};
+
         for (const ticket of recentTickets) {
             // Type
             typeCounts[ticket.type] = (typeCounts[ticket.type] || 0) + 1;
@@ -285,6 +288,14 @@ module.exports = {
                 const hours = (ticket.closedBy.closedAt.getTime() - ticket.createdAt.getTime()) / (1000 * 60 * 60);
                 closeTimes.push(hours);
             }
+            // Agent assignment (top agents)
+            if (
+                ticket.assignedTo &&
+                ticket.assignedTo.userId &&
+                ticket.assignedTo.userId !== ticket.userId // Only count staff, not ticket creator
+            ) {
+                agentCounts[ticket.assignedTo.userId] = (agentCounts[ticket.assignedTo.userId] || 0) + 1;
+            }
         }
 
         // Format for embed fields
@@ -295,12 +306,19 @@ module.exports = {
             ? (closeTimes.reduce((a, b) => a + b, 0) / closeTimes.length).toFixed(2)
             : null;
 
+        // Top 4 agents
+        const topAgents = Object.entries(agentCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 4)
+            .map(([userId, count]) => ({ userId, count }));
+
         return {
             types,
             priorities,
             tags,
             avgCloseTime,
-            statusCounts
+            statusCounts,
+            topAgents
         };
     }
 };
