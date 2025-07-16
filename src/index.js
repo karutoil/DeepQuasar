@@ -160,18 +160,34 @@ class MusicBot {
             const lavalinkVersion = node.version || 'Unknown';
 
             logger.info(`
-            ╔══════════════════════════════════════════════════════════════╗
-            ║                     Moonlink.js Initialized                  ║
-            ║                                                              ║
-            ║   Moonlink.js Version: ${moonlinkVersion.padEnd(45)}║
-            ║   Lavalink Server Version: ${lavalinkVersion.padEnd(40)}║
-            ║                                                              ║
-            ║   Node Identifier: ${node.identifier.padEnd(50)}║
-            ║   Host: ${node.host.padEnd(50)}║
-            ║   Port: ${node.port.toString().padEnd(50)}║
-            ║   Secure: ${node.secure ? 'No'.padEnd(50) : 'Yes'.padEnd(50)}║
-            ║                                                              ║
-            ╚══════════════════════════════════════════════════════════════╝
+            const formatBoxLine = (content, width = 60) => {
+                const padding = width - content.length;
+                const leftPad = Math.floor(padding / 2);
+                const rightPad = padding - leftPad;
+                return `║${' '.repeat(leftPad)}${content}${' '.repeat(rightPad)}║`;
+            };
+
+            const boxWidth = 60;
+            const boxLines = [
+                'Moonlink.js Initialized',
+                '',
+                `Moonlink.js Version: ${moonlinkVersion}`,
+                `Lavalink Server Version: ${lavalinkVersion}`,
+                '',
+                `Node Identifier: ${node.identifier}`,
+                `Host: ${node.host}`,
+                `Port: ${node.port}`,
+                `Secure: ${node.secure ? 'No' : 'Yes'}`,
+                ''
+            ];
+
+            const formattedBox = [
+                `╔${'═'.repeat(boxWidth)}╗`,
+                ...boxLines.map(line => formatBoxLine(line, boxWidth)),
+                `╚${'═'.repeat(boxWidth)}╝`
+            ].join('\n');
+
+            logger.info(formattedBox);
             `);
         });
 
