@@ -213,6 +213,42 @@ module.exports = {
         }
     },
 
+    // Modal submit handler for editing canned response content
+    async handleModalSubmit(interaction) {
+        // CustomId format: edit_canned_response_<name>
+        const customId = interaction.customId;
+        if (!customId.startsWith('edit_canned_response_')) return;
+
+        const name = customId.replace('edit_canned_response_', '').toLowerCase();
+        const content = interaction.fields.getTextInputValue('content');
+
+        try {
+            let config = await TicketConfig.findOne({ guildId: interaction.guild.id });
+            if (!config || !config.cannedResponses || !config.cannedResponses[name]) {
+                return interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Not Found', `No canned response found with the name "${name}".`)],
+                    ephemeral: true
+                });
+            }
+
+            config.cannedResponses[name].content = content;
+            config.cannedResponses[name].updatedAt = new Date();
+            config.markModified('cannedResponses');
+            await config.save();
+
+            await interaction.reply({
+                embeds: [Utils.createSuccessEmbed('Canned Response Updated', `Successfully updated canned response "${name}".`)],
+                ephemeral: true
+            });
+        } catch (error) {
+            console.error('Error updating canned response:', error);
+            await interaction.reply({
+                embeds: [Utils.createErrorEmbed('Error', 'Failed to update canned response.')],
+                ephemeral: true
+            });
+        }
+    },
+
     async deleteResponse(interaction) {
         const name = interaction.options.getString('name');
         const lookupName = name.toLowerCase();
@@ -229,6 +265,7 @@ module.exports = {
                 });
             }
 
+            config.markModified('cannedResponses');
             delete config.cannedResponses[lookupName];
             await config.save();
 
@@ -267,6 +304,7 @@ module.exports = {
             // Increment usage count
             response.usageCount = (response.usageCount || 0) + 1;
             config.cannedResponses[lookupName] = response;
+            config.markModified('cannedResponses');
             await config.save();
 
             // Send the canned response
