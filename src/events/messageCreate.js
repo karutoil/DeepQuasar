@@ -51,11 +51,7 @@ async function handleMessageLinkEmbed(message) {
 
     // Get guild config
     const guildConfig = await Guild.findByGuildId(message.guild.id);
-    if (!guildConfig || !guildConfig.messageLinkEmbed?.enabled || !guildConfig.messageLinkEmbed?.targetChannelId) return;
-
-    // Only proceed if the target channel exists
-    const targetChannel = message.guild.channels.cache.get(guildConfig.messageLinkEmbed.targetChannelId);
-    if (!targetChannel || !targetChannel.isTextBased()) return;
+    if (!guildConfig || !guildConfig.messageLinkEmbed?.enabled) return;
 
     for (const match of matches) {
         const [, guildId, channelId, messageId] = match;
@@ -96,7 +92,13 @@ async function handleMessageLinkEmbed(message) {
 
             const row = new ActionRowBuilder().addComponents(button);
 
-            await targetChannel.send({ embeds: [embed], components: [row] });
+            // Send embed in the same channel as the message link
+            await message.channel.send({ embeds: [embed], components: [row] });
+
+            // Optionally delete the original message containing the link
+            if (message.deletable) {
+                await message.delete();
+            }
         } catch (err) {
             // Optionally log error
             console.error('Message Link Embed error:', err);
