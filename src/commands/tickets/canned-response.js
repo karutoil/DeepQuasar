@@ -104,6 +104,7 @@ module.exports = {
             }
 
             // Add the response
+            config.markModified('cannedResponses');
             config.cannedResponses[name] = {
                 content: content,
                 createdBy: interaction.user.id,
