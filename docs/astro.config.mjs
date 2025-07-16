@@ -178,6 +178,18 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Self Host',
+					items: [
+						{
+							label: 'Getting Started',
+							collapsed: true,
+							items: [
+								{ label: 'Setup', link: '/self-hosted/docker-setup' },
+							],
+						},
+					],
+				},
+				{
 					label: 'DEVELOPER REFERENCE',
 					collapsed: true,
 					// Autogenerate a group of links for the 'constellations' directory.

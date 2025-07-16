@@ -1,3 +1,8 @@
+---
+title: canned-response
+description: Manage canned responses for quick replies
+---
+
 # Self-Hosting DeepQuasar Bot with Docker Compose
 
 The **recommended** and supported way to host DeepQuasar Bot is via Docker Compose. This guide will walk you through setting up Docker and running the bot on the most common Linux distributions.
@@ -56,17 +61,17 @@ docker compose version
 
 ## 3. Download the Required Files
 
-- [docker-compose.yml](https://raw.githubusercontent.com/karutoil/deepquasarv2/main/docker-compose.yml)
-- [.env.example](https://raw.githubusercontent.com/karutoil/deepquasarv2/main/.env.example)
-- [data/application.yml](https://raw.githubusercontent.com/karutoil/deepquasarv2/main/data/application.yml)
+- [docker-compose.yml](https://raw.githubusercontent.com/karutoil/deepquasar/main/docker-compose.yml)
+- [.env.example](https://raw.githubusercontent.com/karutoil/deepquasar/main/.env.example)
+- [lavalink/application.yml](https://raw.githubusercontent.com/karutoil/deepquasar/main/lavalink/application.yml)
 
 You can download these files using `curl` or `wget`:
 
 ```bash
-curl -O https://raw.githubusercontent.com/karutoil/deepquasarv2/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/karutoil/deepquasarv2/main/.env.example
+curl -O https://raw.githubusercontent.com/karutoil/deepquasar/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/karutoil/deepquasar/main/.env.example
 mkdir -p data
-curl -o data/application.yml https://raw.githubusercontent.com/karutoil/deepquasarv2/main/data/application.yml
+curl -o lavalink/application.yml https://raw.githubusercontent.com/karutoil/deepquasar/main/lavalink/application.yml
 ```
 
 ---
