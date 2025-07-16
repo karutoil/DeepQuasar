@@ -966,14 +966,60 @@ async function handleButtonInteraction(interaction, client) {
                 return;
             }
             if (customId === 'dashboard_analytics') {
-                // Show a simple embed for analytics (feature stub)
-                await interaction.followUp({
-                    embeds: [Utils.createInfoEmbed(
-                        'Ticket Analytics',
-                        'Analytics dashboard is coming soon! For now, see the statistics in the main dashboard.'
-                    )],
-                    ephemeral: true
-                });
+                // Show the analytics embed from the dashboard command
+                const dashboardCommand = client.commands.get('dashboard');
+                if (dashboardCommand && typeof dashboardCommand.getTicketAnalytics === 'function') {
+                    const analytics = await dashboardCommand.getTicketAnalytics(interaction.guild.id);
+
+                    const analyticsEmbed = Utils.createEmbed({
+                        title: '📊 Ticket Analytics',
+                        color: 0x2ecc71,
+                        fields: [
+                            {
+                                name: 'Ticket Types',
+                                value: analytics.types.length > 0
+                                    ? analytics.types.map(t => `• **${t._id || 'Unknown'}**: ${t.count}`).join('\n')
+                                    : 'No data',
+                                inline: true
+                            },
+                            {
+                                name: 'Priorities',
+                                value: analytics.priorities.length > 0
+                                    ? analytics.priorities.map(p => `• **${p._id || 'Unknown'}**: ${p.count}`).join('\n')
+                                    : 'No data',
+                                inline: true
+                            },
+                            {
+                                name: 'Average Close Time',
+                                value: analytics.avgCloseTime
+                                    ? `${analytics.avgCloseTime} hours`
+                                    : 'N/A',
+                                inline: true
+                            },
+                            {
+                                name: 'Tag Usage',
+                                value: analytics.tags.length > 0
+                                    ? analytics.tags.map(tag => `• **${tag._id || 'Unknown'}**: ${tag.count}`).join('\n')
+                                    : 'No tags used',
+                                inline: true
+                            }
+                        ],
+                        footer: { text: 'Analytics based on recent 100 tickets' }
+                    });
+
+                    await interaction.followUp({
+                        embeds: [analyticsEmbed],
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        embeds: [Utils.createInfoEmbed(
+                            'Ticket Analytics',
+                            'Analytics dashboard is not available. Please check the main dashboard for statistics.'
+                        )],
+                        ephemeral: true
+                    });
+                }
                 return;
             }
             if (customId === 'dashboard_refresh') {
