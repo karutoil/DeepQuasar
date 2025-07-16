@@ -597,26 +597,50 @@ module.exports = {
             let config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
             if (!config) {
-                return interaction.reply({
-                    embeds: [Utils.createErrorEmbed('No Configuration', 'Please run `/tickets setup` first.')],
-                    ephemeral: true
-                });
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.editReply({
+                        embeds: [Utils.createErrorEmbed('No Configuration', 'Please run `/tickets setup` first.')],
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.reply({
+                        embeds: [Utils.createErrorEmbed('No Configuration', 'Please run `/tickets setup` first.')],
+                        ephemeral: true
+                    });
+                }
+                return;
             }
 
             switch (action) {
                 case 'add':
                     if (!role) {
-                        return interaction.reply({
-                            embeds: [Utils.createErrorEmbed('Missing Role', 'Please specify a role to add.')],
-                            ephemeral: true
-                        });
+                        if (interaction.replied || interaction.deferred) {
+                            await interaction.editReply({
+                                embeds: [Utils.createErrorEmbed('Missing Role', 'Please specify a role to add.')],
+                                ephemeral: true
+                            });
+                        } else {
+                            await interaction.reply({
+                                embeds: [Utils.createErrorEmbed('Missing Role', 'Please specify a role to add.')],
+                                ephemeral: true
+                            });
+                        }
+                        return;
                     }
 
                     if (config.staffRoles.some(staffRole => staffRole.roleId === role.id)) {
-                        return interaction.reply({
-                            embeds: [Utils.createErrorEmbed('Role Exists', 'This role is already a staff role.')],
-                            ephemeral: true
-                        });
+                        if (interaction.replied || interaction.deferred) {
+                            await interaction.editReply({
+                                embeds: [Utils.createErrorEmbed('Role Exists', 'This role is already a staff role.')],
+                                ephemeral: true
+                            });
+                        } else {
+                            await interaction.reply({
+                                embeds: [Utils.createErrorEmbed('Role Exists', 'This role is already a staff role.')],
+                                ephemeral: true
+                            });
+                        }
+                        return;
                     }
 
                     config.staffRoles.push({
@@ -634,35 +658,65 @@ module.exports = {
 
                     await config.save();
 
-                    await interaction.reply({
-                        embeds: [Utils.createSuccessEmbed('Staff Role Added', `${role} has been added as a staff role.`)],
-                        ephemeral: true
-                    });
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.editReply({
+                            embeds: [Utils.createSuccessEmbed('Staff Role Added', `${role} has been added as a staff role.`)],
+                            ephemeral: true
+                        });
+                    } else {
+                        await interaction.reply({
+                            embeds: [Utils.createSuccessEmbed('Staff Role Added', `${role} has been added as a staff role.`)],
+                            ephemeral: true
+                        });
+                    }
                     break;
 
                 case 'remove':
                     if (!role) {
-                        return interaction.reply({
-                            embeds: [Utils.createErrorEmbed('Missing Role', 'Please specify a role to remove.')],
-                            ephemeral: true
-                        });
+                        if (interaction.replied || interaction.deferred) {
+                            await interaction.editReply({
+                                embeds: [Utils.createErrorEmbed('Missing Role', 'Please specify a role to remove.')],
+                                ephemeral: true
+                            });
+                        } else {
+                            await interaction.reply({
+                                embeds: [Utils.createErrorEmbed('Missing Role', 'Please specify a role to remove.')],
+                                ephemeral: true
+                            });
+                        }
+                        return;
                     }
 
                     const roleIndex = config.staffRoles.findIndex(staffRole => staffRole.roleId === role.id);
                     if (roleIndex === -1) {
-                        return interaction.reply({
-                            embeds: [Utils.createErrorEmbed('Role Not Found', 'This role is not a staff role.')],
-                            ephemeral: true
-                        });
+                        if (interaction.replied || interaction.deferred) {
+                            await interaction.editReply({
+                                embeds: [Utils.createErrorEmbed('Role Not Found', 'This role is not a staff role.')],
+                                ephemeral: true
+                            });
+                        } else {
+                            await interaction.reply({
+                                embeds: [Utils.createErrorEmbed('Role Not Found', 'This role is not a staff role.')],
+                                ephemeral: true
+                            });
+                        }
+                        return;
                     }
 
                     config.staffRoles.splice(roleIndex, 1);
                     await config.save();
 
-                    await interaction.reply({
-                        embeds: [Utils.createSuccessEmbed('Staff Role Removed', `${role} has been removed as a staff role.`)],
-                        ephemeral: true
-                    });
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.editReply({
+                            embeds: [Utils.createSuccessEmbed('Staff Role Removed', `${role} has been removed as a staff role.`)],
+                            ephemeral: true
+                        });
+                    } else {
+                        await interaction.reply({
+                            embeds: [Utils.createSuccessEmbed('Staff Role Removed', `${role} has been removed as a staff role.`)],
+                            ephemeral: true
+                        });
+                    }
                     break;
 
                 case 'list':
@@ -677,23 +731,41 @@ module.exports = {
                         }).join('\n')
                         : 'No staff roles configured';
 
-                    await interaction.reply({
-                        embeds: [Utils.createEmbed({
-                            title: '👥 Staff Roles',
-                            description: staffList,
-                            color: 0x5865F2
-                        })],
-                        ephemeral: true
-                    });
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.editReply({
+                            embeds: [Utils.createEmbed({
+                                title: '👥 Staff Roles',
+                                description: staffList,
+                                color: 0x5865F2
+                            })],
+                            ephemeral: true
+                        });
+                    } else {
+                        await interaction.reply({
+                            embeds: [Utils.createEmbed({
+                                title: '👥 Staff Roles',
+                                description: staffList,
+                                color: 0x5865F2
+                            })],
+                            ephemeral: true
+                        });
+                    }
                     break;
             }
 
         } catch (error) {
             console.error('Error managing staff:', error);
-            await interaction.reply({
-                embeds: [Utils.createErrorEmbed('Error', 'Failed to manage staff roles.')],
-                ephemeral: true
-            });
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({
+                    embeds: [Utils.createErrorEmbed('Error', 'Failed to manage staff roles.')],
+                    ephemeral: true
+                });
+            } else {
+                await interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Error', 'Failed to manage staff roles.')],
+                    ephemeral: true
+                });
+            }
         }
     },
 
