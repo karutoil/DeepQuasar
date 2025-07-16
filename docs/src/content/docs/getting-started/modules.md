@@ -103,6 +103,55 @@ To configure custom welcome and leave messages for your server:
     ```
 *   For more details, refer to the [welcome command documentation](/commands/welcome).
 
+### ⏰ Reminder System
+
+To enable and use reminders for yourself, other users, or channels:
+
+*   Use the `/remind` command to set reminders.
+*   **Example:** 
+    ```sh
+    /remind me time:"in 10m" task:"Check the oven"
+    /remind user user:@Alice time:"on 2025-07-20 14:00" task:"Team meeting"
+    /remind channel channel:#general time:"in 1h" task:"Daily standup" role:@Team
+    ```
+*   Use `/reminders list` to view and manage your reminders.
+*   For more details, refer to the [remind command documentation](/commands/remind/remind) and [reminders command documentation](/commands/remind/reminders).
+
+### 🎶 Music Player
+
+To enable and use the music player features:
+
+*   Use the `/play` command to start playing music in a voice channel.
+*   **Example:** 
+    ```sh
+    /play query:"Never Gonna Give You Up"
+    ```
+*   Use `/queue`, `/skip`, `/stop`, `/history`, and other music commands to manage playback.
+*   For more details, refer to the [music command documentation](/commands/music).
+
+### 🚫 Profanity Filter
+
+To enable and configure the profanity filter:
+
+*   Use the `/profanity toggle` command to enable or disable the filter.
+*   **Example:** 
+    ```sh
+    /profanity toggle enabled:True
+    ```
+*   For more details, refer to the [profanity command documentation](/commands/profanity).
+
+### 🧩 Templates System
+
+To manage embed templates for your server:
+
+*   Use the `/templates list` command to view templates.
+*   Use `/templates create`, `/templates delete`, and `/templates info` to manage them.
+*   **Example:** 
+    ```sh
+    /templates create name:"Announcement" content:"This is an announcement!"
+    ```
+*   For more details, refer to the [templates command documentation](/commands/templates).
+
 ---
 
-After enabling a module, remember to explore its specific configuration commands (e.g., `/chatbot api`, `/autorole settings`, `/modlog configure`) to tailor it to your server's needs.
+After enabling a module, remember to explore its specific configuration commands (e.g., `/chatbot api`, `/autorole settings`, `/modlog configure`, `/remind`, `/music settings`, `/profanity settings`, `/templates edit`) to tailor it to your server's needs.
