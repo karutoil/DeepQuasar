@@ -147,17 +147,20 @@ module.exports = {
                         .setCustomId('dashboard_panels')
                         .setLabel('Manage Panels')
                         .setEmoji('🎛️')
-                        .setStyle(ButtonStyle.Primary),
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(false),
                     new ButtonBuilder()
                         .setCustomId('dashboard_staff')
                         .setLabel('Staff Settings')
                         .setEmoji('👥')
-                        .setStyle(ButtonStyle.Secondary),
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(false),
                     new ButtonBuilder()
                         .setCustomId('dashboard_settings')
                         .setLabel('System Settings')
                         .setEmoji('⚙️')
                         .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(false)
                 );
 
             const actionRow2 = new ActionRowBuilder()
@@ -166,18 +169,25 @@ module.exports = {
                         .setCustomId('dashboard_logs')
                         .setLabel('View Logs')
                         .setEmoji('📋')
-                        .setStyle(ButtonStyle.Secondary),
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(false),
                     new ButtonBuilder()
                         .setCustomId('dashboard_analytics')
                         .setLabel('Analytics')
                         .setEmoji('📊')
-                        .setStyle(ButtonStyle.Success),
+                        .setStyle(ButtonStyle.Success)
+                        .setDisabled(false),
                     new ButtonBuilder()
                         .setCustomId('dashboard_refresh')
                         .setLabel('Refresh')
                         .setEmoji('🔄')
                         .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(false)
                 );
+
+            // Patch: Mark this as a message with buttons for interaction handlers
+            // This is required for Discord.js to recognize the buttons as interactive
+            // If you use a custom interaction handler, ensure it listens for these customIds
 
             await interaction.editReply({
                 embeds: [dashboardEmbed, activityEmbed, settingsEmbed],
