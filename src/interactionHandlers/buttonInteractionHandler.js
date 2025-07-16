@@ -924,7 +924,20 @@ async function handleButtonInteraction(interaction, client) {
         }
 
         // Handle panel customizer buttons
-        if (customId.startsWith('panel_edit_') || customId.startsWith('panel_button_') || customId.startsWith('panel_manage_') || customId.startsWith('panel_preview_') || customId.startsWith('panel_save_') || customId.startsWith('panel_remove_') || customId.startsWith('confirm_remove_button_') || customId === 'panel_customizer_back' || customId === 'panel_button_edit_back') {
+        if (
+            customId.startsWith('panel_edit_') ||
+            customId.startsWith('panel_button_') ||
+            customId.startsWith('panel_manage_') ||
+            customId.startsWith('panel_preview_') ||
+            customId.startsWith('panel_save_') ||
+            customId.startsWith('panel_remove_') ||
+            customId.startsWith('confirm_remove_button_') ||
+            customId.startsWith('panel_add_button_') ||
+            customId.startsWith('panel_select_button_') ||
+            customId === 'panel_customizer_back' ||
+            customId.startsWith('panel_customizer_back_') ||
+            customId === 'panel_button_edit_back'
+        ) {
             await handlePanelCustomizerButton(interaction, client);
             return;
         }
