@@ -68,15 +68,6 @@ module.exports = {
         const tracks = searchResult.tracks.slice(0, limit);
 
         // Create embed with search results (classic style)
-        const embed = new EmbedBuilder()
-            .setColor('#5865F2')
-            .setAuthor({ name: `Search Results`, iconURL: client.user.displayAvatarURL() })
-            .setTitle(`🔍 ${query}`)
-            .setDescription(`**Source:** ${source.charAt(0).toUpperCase() + source.slice(1)}\n**Results:** ${tracks.length}`)
-            .setFooter({ text: `Requested by ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
-            .setTimestamp();
-
-        // Add track list to embed (classic style)
         const trackList = tracks.map((track, index) => {
             const duration = client.musicPlayerManager.formatDuration(track.duration);
             const url = track.uri || track.url || track.permalink_url || null;
@@ -84,9 +75,17 @@ module.exports = {
             return `**${index + 1}.** ${title}\n└ ${track.author} • ${duration}`;
         }).join('\n\n');
 
-        embed.addFields({
-            name: '🎵 Tracks',
-            value: trackList.length > 1024 ? trackList.substring(0, 1021) + '...' : trackList
+        const embed = client.musicPlayerManager.createBeautifulEmbed({
+            title: `Search Results`,
+            description: `🔍 **${query}**\n**Source:** ${source.charAt(0).toUpperCase() + source.slice(1)}\n**Results:** ${tracks.length}`,
+            color: '#5865F2',
+            fields: [
+                {
+                    name: '🎵 Tracks',
+                    value: trackList.length > 1024 ? trackList.substring(0, 1021) + '...' : trackList
+                }
+            ],
+            footer: { text: `Requested by ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() }
         });
 
         // Create select menu for track selection (allow multiple selection)

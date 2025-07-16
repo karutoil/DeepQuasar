@@ -75,10 +75,11 @@ module.exports = {
         await player.seek(positionMs);
 
         return interaction.reply({
-            embeds: [new EmbedBuilder()
-                .setColor('#00ff00')
-                .setDescription(`⏩ Seeked to: **${client.musicPlayerManager.formatDuration(positionMs)}**`)
-            ]
+            embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                title: 'Seek',
+                description: `⏩ Seeked to: **${client.musicPlayerManager.formatDuration(positionMs)}**`,
+                color: '#43b581'
+            })]
         });
     }
 };

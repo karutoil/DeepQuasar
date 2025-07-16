@@ -58,10 +58,11 @@ module.exports = {
             player.skip();
             
             return interaction.reply({
-                embeds: [new EmbedBuilder()
-                    .setColor('#00ff00')
-                    .setDescription(`⏭️ Skipped: **${currentTrack.title}** by **${artist}**`)
-                ]
+                embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Skipped',
+                    description: `⏭️ Skipped: **${currentTrack.title}** by **${artist}**`,
+                    color: '#43b581'
+                })]
             });
         } else {
             // Skip multiple tracks
@@ -81,12 +82,13 @@ module.exports = {
             // Skip the current track
             player.skip();
 
-            const embed = new EmbedBuilder()
-                .setColor('#00ff00')
-                .setTitle(`⏭️ Skipped ${skippedTracks} Track${skippedTracks > 1 ? 's' : ''}`)
-                .setDescription(skippedList.map((title, index) => 
+            const embed = client.musicPlayerManager.createBeautifulEmbed({
+                title: `Skipped ${skippedTracks} Track${skippedTracks > 1 ? 's' : ''}`,
+                description: skippedList.map((title, index) => 
                     `${index + 1}. ${title}`
-                ).join('\n'));
+                ).join('\n'),
+                color: '#43b581'
+            });
 
             return interaction.reply({ embeds: [embed] });
         }

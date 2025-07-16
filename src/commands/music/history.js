@@ -69,18 +69,18 @@ module.exports = {
             const start = (page - 1) * PAGE_SIZE;
             const end = start + PAGE_SIZE;
             const tracks = history.slice(start, end);
-            const embed = new EmbedBuilder()
-                .setTitle('🎶 Your Play History')
-                .setDescription(tracks.map((track, i) => {
+            return interaction.client.musicPlayerManager.createBeautifulEmbed({
+                title: 'Your Play History',
+                description: tracks.map((track, i) => {
                     const url = track.uri || track.url || null;
                     const title = track.title || 'Unknown Title';
                     return url
                         ? `${getSourceEmoji(track.source)} ${start + i + 1}. [${title}](${url})`
                         : `${getSourceEmoji(track.source)} ${start + i + 1}. ${title}`;
-                }).join('\n') || 'No tracks.')
-                .setFooter({ text: `Page ${page}/${totalPages}` })
-                .setColor('#7289da');
-            return embed;
+                }).join('\n') || 'No tracks.',
+                color: '#7289da',
+                footer: { text: `Page ${page}/${totalPages}` }
+            });
         }
         function buildComponents(page) {
             const start = (page - 1) * PAGE_SIZE;

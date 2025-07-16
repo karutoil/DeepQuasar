@@ -27,10 +27,11 @@ module.exports = {
 
         if (!player) {
             return interaction.reply({
-                embeds: [new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setDescription('❌ There is nothing playing in this server!')
-                ],
+                embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Error',
+                    description: '❌ There is nothing playing in this server!',
+                    color: '#ED4245'
+                })],
                 ephemeral: true
             });
         }
@@ -38,10 +39,11 @@ module.exports = {
         // Check if user is in the same voice channel
         if (!client.musicPlayerManager.isInSameVoiceChannel(interaction.member, player)) {
             return interaction.reply({
-                embeds: [new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setDescription('❌ You need to be in the same voice channel as the bot to use this command!')
-                ],
+                embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Error',
+                    description: '❌ You need to be in the same voice channel as the bot to use this command!',
+                    color: '#ED4245'
+                })],
                 ephemeral: true
             });
         }
@@ -53,13 +55,13 @@ module.exports = {
             const activeFilters = player.filters || {};
             const filterNames = Object.keys(activeFilters).filter(key => activeFilters[key]);
             return interaction.reply({
-                embeds: [new EmbedBuilder()
-                    .setColor('#0099ff')
-                    .setTitle('🎛️ Audio Filters')
-                    .setDescription(filterNames.length > 0 ? 
+                embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Audio Filters',
+                    description: filterNames.length > 0 ? 
                         `**Active filters:**\n${filterNames.join(', ')}` : 
-                        'No filters are currently active.')
-                ]
+                        'No filters are currently active.',
+                    color: '#0099ff'
+                })]
             });
         }
 
@@ -121,27 +123,30 @@ module.exports = {
                 default:
                     client.logger.warn(`Unsupported filter requested: ${filter}`);
                     return interaction.editReply({
-                        embeds: [new EmbedBuilder()
-                            .setColor('#ff0000')
-                            .setDescription('❌ Unknown filter!')
-                        ]
+                        embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                            title: 'Error',
+                            description: '❌ Unknown filter!',
+                            color: '#ED4245'
+                        })]
                     });
             }
 
             return interaction.editReply({
-                embeds: [new EmbedBuilder()
-                    .setColor('#00ff00')
-                    .setDescription(`🎛️ Applied filter: **${filter}**`)
-                ]
+                embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Filter Applied',
+                    description: `🎛️ Applied filter: **${filter}**`,
+                    color: '#43b581'
+                })]
             });
 
         } catch (error) {
             client.logger.error('Error applying filter:', error);
             return interaction.editReply({
-                embeds: [new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setDescription('❌ Failed to apply filter. Please try again.')
-                ]
+                embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Error',
+                    description: '❌ Failed to apply filter. Please try again.',
+                    color: '#ED4245'
+                })]
             });
         }
     }

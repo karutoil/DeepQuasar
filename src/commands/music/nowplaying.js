@@ -54,25 +54,23 @@ module.exports = {
         }
 
         // --- Embed formatting ---
-        const embed = new EmbedBuilder()
-            .setColor('#43b581')
-            .setTitle('🎶 Now Playing')
-            .setDescription(`${title}`)
-            .addFields(
+        const beautifulEmbed = client.musicPlayerManager.createBeautifulEmbed({
+            title: 'Now Playing',
+            description: `${title}`,
+            color: '#43b581',
+            thumbnail: track.artworkUrl || track.thumbnail,
+            fields: [
                 { name: '⏱️ Duration', value: duration, inline: true },
                 { name: '🙋 Requested by', value: requester, inline: true },
                 { name: '🔊 Volume', value: volume, inline: true },
                 { name: '📋 Queue', value: `${queueSize} track(s) in queue`, inline: true },
                 { name: '📊 Progress', value: durationMs > 0 ? `\`${posStr}  ${progressBar}  ${duration}\`` : `\`${progressBar}\``, inline: false },
                 { name: '🎤 Artist', value: artist, inline: true },
-                { name: '🔄 Loop', value: player.loop === 'track' ? '🔂 Track' : player.loop === 'queue' ? '🔁 Queue' : 'Off', inline: true }
-            );
-        if (track.artworkUrl || track.thumbnail) embed.setThumbnail(track.artworkUrl || track.thumbnail);
-        if (player.paused) {
-            embed.addFields({ name: '⏸️ Status', value: 'Paused', inline: true });
-        }
-        embed.setFooter({ text: `DeepQuasar Music`, iconURL: client.user.displayAvatarURL() });
-        embed.setTimestamp();
-        return interaction.reply({ embeds: [embed] });
+                { name: '🔄 Loop', value: player.loop === 'track' ? '🔂 Track' : player.loop === 'queue' ? '🔁 Queue' : 'Off', inline: true },
+                ...(player.paused ? [{ name: '⏸️ Status', value: 'Paused', inline: true }] : [])
+            ],
+            footer: { text: `DeepQuasar Music`, iconURL: client.user.displayAvatarURL() }
+        });
+        return interaction.reply({ embeds: [beautifulEmbed] });
     }
 };

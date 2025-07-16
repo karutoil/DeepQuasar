@@ -20,10 +20,11 @@ module.exports = {
         
         if (!player) {
             return interaction.reply({
-                embeds: [new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setDescription('❌ There is nothing playing in this server!')
-                ],
+                embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Error',
+                    description: '❌ There is nothing playing in this server!',
+                    color: '#ED4245'
+                })],
                 ephemeral: true
             });
         }
@@ -31,10 +32,11 @@ module.exports = {
         // Check if user is in the same voice channel
         if (!client.musicPlayerManager.isInSameVoiceChannel(interaction.member, player)) {
             return interaction.reply({
-                embeds: [new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setDescription('❌ You need to be in the same voice channel as the bot to use this command!')
-                ],
+                embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Error',
+                    description: '❌ You need to be in the same voice channel as the bot to use this command!',
+                    color: '#ED4245'
+                })],
                 ephemeral: true
             });
         }
@@ -44,10 +46,11 @@ module.exports = {
         if (volumeLevel === null) {
             // Show current volume
             return interaction.reply({
-                embeds: [new EmbedBuilder()
-                    .setColor('#0099ff')
-                    .setDescription(`🔊 Current volume: **${player.volume}%**`)
-                ]
+                embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Volume',
+                    description: `🔊 Current volume: **${player.volume}%**`,
+                    color: '#0099ff'
+                })]
             });
         }
 
@@ -70,10 +73,11 @@ module.exports = {
                            volumeLevel < 70 ? '🔉' : '🔊';
 
         return interaction.reply({
-            embeds: [new EmbedBuilder()
-                .setColor('#00ff00')
-                .setDescription(`${volumeEmoji} Volume set to **${volumeLevel}%**`)
-            ]
+            embeds: [client.musicPlayerManager.createBeautifulEmbed({
+                title: 'Volume',
+                description: `${volumeEmoji} Volume set to **${volumeLevel}%**`,
+                color: '#43b581'
+            })]
         });
     }
 };

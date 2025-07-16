@@ -274,15 +274,36 @@ module.exports = {
 
         // Only build embed if tracks were added
         if (addedTracks > 0) {
-            embed = await createClassicPlayEmbed({
-                searchResult,
-                addedTracks: tracksToAdd,
-                isPlaylist,
-                player,
-                interaction,
-                playNext,
-                shuffle
-            });
+            // Use beautiful embed for play confirmation
+            if (isPlaylist) {
+                embed = client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Playlist Added to Queue',
+                    description: `**${searchResult.playlistInfo?.name || 'Unknown Playlist'}**\n\n${tracksToAdd[0]?.title || 'Unknown'} - ${tracksToAdd[0]?.author || 'Unknown'}`,
+                    color: '#9B00FF',
+                    fields: [
+                        { name: '📊 Tracks Added', value: tracksToAdd.length.toString(), inline: true },
+                        { name: '⏱️ Total Duration', value: client.musicPlayerManager.formatDuration(tracksToAdd.reduce((acc, t) => acc + (t.duration || 0), 0)), inline: true },
+                        { name: '🎵 Queue Position', value: `${player.queue.size - tracksToAdd.length + 1}-${player.queue.size}`, inline: true },
+                        ...(shuffle ? [{ name: '🔀 Shuffled', value: 'Playlist order was shuffled', inline: true }] : [])
+                    ],
+                    thumbnail: tracksToAdd[0]?.thumbnail,
+                    footer: { text: `Requested by ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() }
+                });
+            } else {
+                const track = tracksToAdd[0];
+                embed = client.musicPlayerManager.createBeautifulEmbed({
+                    title: 'Added to Queue',
+                    description: `**[${track.title || 'Unknown Title'}](${track.uri || '#'})**\n${track.author || 'Unknown Artist'}`,
+                    color: '#9B00FF',
+                    fields: [
+                        { name: '⏱️ Duration', value: client.musicPlayerManager.formatDuration(track.duration), inline: true },
+                        { name: '🎵 Queue Position', value: playNext ? '1' : player.queue.size.toString(), inline: true },
+                        { name: '🔊 Volume', value: `${player.volume || 100}%`, inline: true }
+                    ],
+                    thumbnail: track.thumbnail,
+                    footer: { text: `Requested by ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() }
+                });
+            }
         }
 
         // Start playback if not already playing

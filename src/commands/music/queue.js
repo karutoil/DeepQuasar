@@ -19,8 +19,8 @@ function createQueueDisplay(client, player, page = 1) {
     } else if (Array.isArray(player.queue)) {
         queue = player.queue;
     }
-    const itemsPerPage = interaction.client.config.itemsPerPage || 10; // Configurable items per page
-    const totalPages = Math.max(1, Math.ceil(queue.length / itemsPerPage)); // Ensure at least one page
+    const tracksPerPage = client.config.itemsPerPage || 10;
+    const totalPages = Math.max(1, Math.ceil(queue.length / tracksPerPage));
     const currentPage = Math.max(1, Math.min(page, totalPages));
     const start = (currentPage - 1) * tracksPerPage;
     const end = start + tracksPerPage;
@@ -43,10 +43,12 @@ function createQueueDisplay(client, player, page = 1) {
         description += '_No more tracks in the queue._';
     }
 
-    const embed = new EmbedBuilder()
-        .setColor('#5865F2')
-        .setTitle('Music Queue')
-        .setDescription(description);
+    const embed = client.musicPlayerManager.createBeautifulEmbed({
+        title: 'Music Queue',
+        description: description,
+        color: '#5865F2',
+        footer: { text: `Page ${currentPage}/${totalPages}` }
+    });
 
     // Add navigation buttons if there are multiple pages
     let components = [];
