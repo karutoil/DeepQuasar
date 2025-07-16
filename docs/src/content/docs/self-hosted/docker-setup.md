@@ -1,6 +1,6 @@
 ---
-title: canned-response
-description: Manage canned responses for quick replies
+title: Self Host
+description: Self Host DeepQuasar for urself!
 ---
 
 # Self-Hosting DeepQuasar Bot with Docker Compose
