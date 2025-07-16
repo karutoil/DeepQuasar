@@ -120,7 +120,22 @@ module.exports = {
 
     async handleSetup(interaction) {
         const channel = interaction.options.getChannel('channel');
-        
+
+        // Permissions check for setup/configuration
+        const botMember = interaction.guild.members.me;
+        if (!botMember) {
+            const embed = Utils.createErrorEmbed('Setup Failed', 'Bot is not present in this guild.');
+            return await interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+        const permissions = channel.permissionsFor(botMember);
+        if (!permissions.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
+            const embed = Utils.createErrorEmbed(
+                'Missing Permissions',
+                `Bot needs **Send Messages** and **Embed Links** permissions in ${channel} to log events.`
+            );
+            return await interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
         let modLog = await ModLog.findOne({ guildId: interaction.guild.id });
         if (!modLog) {
             modLog = new ModLog({ guildId: interaction.guild.id });
@@ -129,6 +144,8 @@ module.exports = {
         modLog.enabled = true;
         modLog.defaultChannel = channel.id;
         await modLog.save();
+
+        await modLog.logConfigChange(`Modlog enabled. Default channel set to ${channel.id}`);
 
         const embed = Utils.createSuccessEmbed(
             'Modlog Setup Complete',
@@ -150,6 +167,16 @@ module.exports = {
 
         modLog.enabled = false;
         await modLog.save();
+
+        await modLog.logConfigChange('Modlog disabled.');
+
+        // Notify admins/log channel on disable
+        const defaultChannel = interaction.guild.channels.cache.get(modLog.defaultChannel);
+        if (defaultChannel && defaultChannel.permissionsFor(interaction.guild.members.me).has(PermissionFlagsBits.SendMessages)) {
+            await defaultChannel.send({
+                embeds: [Utils.createWarningEmbed('Modlog Disabled', 'Moderation logging has been disabled for this server.')]
+            });
+        }
 
         const embed = Utils.createSuccessEmbed(
             'Modlog Disabled',
@@ -297,8 +324,43 @@ module.exports = {
             return await interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
+        // Validate event type
+        if (!modLog.events[eventType]) {
+            const embed = Utils.createErrorEmbed('Invalid Event', 'The specified event type is not valid.');
+            return await interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
+        // Permissions check for channel
+        if (channel) {
+            const botMember = interaction.guild.members.me;
+            if (!botMember) {
+                const embed = Utils.createErrorEmbed('Setup Failed', 'Bot is not present in this guild.');
+                return await interaction.reply({ embeds: [embed], ephemeral: true });
+            }
+            const permissions = channel.permissionsFor(botMember);
+            if (!permissions.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
+                const embed = Utils.createErrorEmbed(
+                    'Missing Permissions',
+                    `Bot needs **Send Messages** and **Embed Links** permissions in ${channel} to log events.`
+                );
+                return await interaction.reply({ embeds: [embed], ephemeral: true });
+            }
+        }
+
+        // Feedback for already-set channel
+        const prevChannel = modLog.events[eventType].channel;
+        if (prevChannel === (channel ? channel.id : null)) {
+            const embed = Utils.createWarningEmbed(
+                'No Change',
+                `The channel for **${ModLogManager.getEventDisplayName(eventType)}** is already set to ${channel ? channel.toString() : 'Default channel'}.`
+            );
+            return await interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
         modLog.events[eventType].channel = channel ? channel.id : null;
         await modLog.save();
+
+        await modLog.logConfigChange(`Channel for event ${eventType} set to ${channel ? channel.id : 'default'}`);
 
         const displayName = ModLogManager.getEventDisplayName(eventType);
         const channelText = channel ? channel.toString() : 'Default channel';
@@ -324,9 +386,26 @@ module.exports = {
             return await interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
+        // Validate event type
+        if (!modLog.events[eventType]) {
+            const embed = Utils.createErrorEmbed('Invalid Event', 'The specified event type is not valid.');
+            return await interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
+        // Feedback for already-set state
         const currentState = modLog.events[eventType].enabled;
+        if (interaction.options.getBoolean('enabled') === currentState) {
+            const embed = Utils.createWarningEmbed(
+                'No Change',
+                `The event **${ModLogManager.getEventDisplayName(eventType)}** is already ${currentState ? 'enabled' : 'disabled'}.`
+            );
+            return await interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
         modLog.events[eventType].enabled = !currentState;
         await modLog.save();
+
+        await modLog.logConfigChange(`Event ${eventType} toggled to ${!currentState ? 'enabled' : 'disabled'}`);
 
         const displayName = ModLogManager.getEventDisplayName(eventType);
         const newState = !currentState ? 'enabled' : 'disabled';

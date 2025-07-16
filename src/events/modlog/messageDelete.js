@@ -67,6 +67,13 @@ module.exports = {
             });
         }
 
-        await ModLogManager.logEvent(message.guild, 'messageDelete', embed, auditLogEntry?.executor);
+        await ModLogManager.logEvent(
+            message.guild,
+            'messageDelete',
+            embed,
+            auditLogEntry?.executor,
+            message.author?.id,
+            message.member?.roles.cache.map(r => r.id) || []
+        );
     }
 };

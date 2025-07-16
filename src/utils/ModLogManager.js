@@ -154,41 +154,59 @@ class ModLogManager {
     };
 
     /**
-     * Log an event to the appropriate channel
+     * Log an event to the appropriate channel(s) or webhook(s)
+     * Includes rate limiting, filtering, template support, and audit log integration.
      */
-    static async logEvent(guild, eventType, embedOptions, executor) {
+    static _rateLimitMap = new Map();
+
+    static async logEvent(guild, eventType, embedOptions, executor, userId = null, roleIds = []) {
         try {
-            const modLog = await ModLog.findOne({ guildId: guild.id });
+            const modLog = await ModLog.getOrCreate(guild.id);
             if (!modLog || !modLog.isEventEnabled(eventType)) {
                 return;
             }
 
-            const channelId = modLog.getEventChannel(eventType);
-            if (!channelId) return;
-
-            const channel = guild.channels.cache.get(channelId);
-            if (!channel || !channel.isTextBased()) return;
-
-            // Check bot permissions
-            const botMember = guild.members.me;
-            if (!botMember) return;
-
-            const permissions = channel.permissionsFor(botMember);
-            if (!permissions.has([PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.EmbedLinks])) {
+            // Event filtering by user/role
+            if (userId && modLog.isExcluded(eventType, userId, roleIds)) {
                 return;
             }
 
-            const embed = new EmbedBuilder()
-                .setColor(this.colors[eventType] || 0x5865F2)
-                .setTimestamp()
-                .setFooter({ text: `Event: ${eventType}` });
-
-            // Apply custom embed options
-            if (embedOptions.title) {
-                const emoji = this.emojis[eventType] || '📋';
-                embed.setTitle(`${emoji} ${embedOptions.title}`);
+            // Rate limiting (per event per guild)
+            const key = `${guild.id}:${eventType}`;
+            const now = Date.now();
+            const last = this._rateLimitMap.get(key) || 0;
+            if (now - last < 1000) { // 1 event/sec per type per guild
+                return;
             }
-            if (embedOptions.description) embed.setDescription(embedOptions.description);
+            this._rateLimitMap.set(key, now);
+
+            // Get all targets (channels/webhooks)
+            const targets = modLog.getEventTargets(eventType);
+            if (!targets.length) return;
+
+            // Build embed with template support
+            let embed;
+            const template = modLog.getTemplate(eventType);
+            if (template) {
+                // Simple template replacement
+                let desc = template;
+                if (embedOptions.description) desc = desc.replace('{description}', embedOptions.description);
+                embed = new EmbedBuilder()
+                    .setColor(this.colors[eventType] || 0x5865F2)
+                    .setDescription(desc)
+                    .setTimestamp()
+                    .setFooter({ text: `Event: ${eventType}` });
+            } else {
+                embed = new EmbedBuilder()
+                    .setColor(this.colors[eventType] || 0x5865F2)
+                    .setTimestamp()
+                    .setFooter({ text: `Event: ${eventType}` });
+                if (embedOptions.title) {
+                    const emoji = this.emojis[eventType] || '📋';
+                    embed.setTitle(`${emoji} ${embedOptions.title}`);
+                }
+                if (embedOptions.description) embed.setDescription(embedOptions.description);
+            }
             if (embedOptions.fields) embed.addFields(embedOptions.fields);
             if (embedOptions.thumbnail) embed.setThumbnail(embedOptions.thumbnail);
             if (embedOptions.image) embed.setImage(embedOptions.image);
@@ -198,7 +216,23 @@ class ModLogManager {
                 embed.addFields({ name: 'Responsible User', value: this.formatUser(executor), inline: true });
             }
 
-            await channel.send({ embeds: [embed] });
+            // Send to all channels/webhooks
+            for (const target of targets) {
+                const channel = guild.channels.cache.get(target);
+                if (channel && channel.isTextBased()) {
+                    // Check bot permissions
+                    const botMember = guild.members.me;
+                    if (!botMember) continue;
+                    const permissions = channel.permissionsFor(botMember);
+                    if (!permissions.has([PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.EmbedLinks])) {
+                        continue;
+                    }
+                    await channel.send({ embeds: [embed] });
+                } else if (/^https?:\/\//.test(target)) {
+                    // Webhook support
+                    await Utils.sendWebhook(target, { embeds: [embed] });
+                }
+            }
         } catch (error) {
             console.error(`Error logging ${eventType} event:`, error);
         }
