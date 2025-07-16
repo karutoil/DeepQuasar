@@ -83,19 +83,12 @@ class Utils {
      */
     static formatDuration(ms) {
         if (!ms || ms < 0) return '00:00';
-        
-        const seconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-
-        const secs = seconds % 60;
-        const mins = minutes % 60;
-
-        if (hours > 0) {
-            return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        } else {
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        }
+        const seconds = Math.floor(ms / 1000) % 60;
+        const minutes = Math.floor(ms / (1000 * 60)) % 60;
+        const hours = Math.floor(ms / (1000 * 60 * 60));
+        return hours > 0
+            ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+            : `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
     /**
@@ -176,7 +169,7 @@ class Utils {
                     .setDisabled(currentPage === 0),
                 new ButtonBuilder()
                     .setCustomId('page_info')
-                    .setLabel(`${currentPage + 1}/${totalPages}`)
+                    .setLabel(`Page ${currentPage + 1} of ${totalPages}`)
                     .setStyle(ButtonStyle.Secondary)
                     .setDisabled(true),
                 new ButtonBuilder()
@@ -211,7 +204,7 @@ class Utils {
             if (!member.permissions.has(permission)) {
                 return {
                     hasPermission: false,
-                    reason: `You need the \`${permission}\` permission to use this command.`
+                    reason: `❌ You need the \`${permission}\` permission to use this command.`
                 };
             }
         }
@@ -449,8 +442,9 @@ class Utils {
     static isBotOwner(interaction) {
         try {
             // Check if application owner is available
-            if (interaction.client.application?.owner?.id) {
-                return interaction.client.application.owner.id === interaction.user.id;
+            const ownerId = interaction.client.application?.owner?.id || interaction.client.config.botOwnerId;
+            if (ownerId) {
+                return ownerId === interaction.user.id;
             }
             
             // If application owner is not available, log a warning

@@ -71,9 +71,11 @@ module.exports = {
             // Skip additional tracks from the queue
             for (let i = 1; i < amount && player.queue.size > 0; i++) {
                 const nextTrack = player.queue.tracks[0];
-                player.queue.remove(0);
-                skippedList.push(nextTrack.title);
-                skippedTracks++;
+                if (nextTrack) {
+                    player.queue.remove(0);
+                    skippedList.push(nextTrack.title);
+                    skippedTracks++;
+                }
             }
 
             // Skip the current track

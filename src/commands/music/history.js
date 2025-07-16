@@ -18,7 +18,16 @@ module.exports = {
             return interaction.reply({ content: 'You must be in a voice channel to use this command.', ephemeral: true });
         }
 
-        // Helper to ensure history is always an array
+        // Helper to ensure history is always an array and deduplicate tracks
+        const deduplicateTracks = (tracks) => {
+            const seenUris = new Set();
+            return tracks.filter(track => {
+                if (!track.uri) return true; // Keep tracks with missing URI
+                if (seenUris.has(track.uri)) return false;
+                seenUris.add(track.uri);
+                return true;
+            });
+        };
         function toHistoryArray(historyField) {
             if (Array.isArray(historyField)) return historyField;
             if (historyField && typeof historyField === 'object' && typeof historyField.values === 'function') {
@@ -111,9 +120,22 @@ module.exports = {
         await interaction.reply({ embeds: [buildEmbed(page)], components: buildComponents(page), ephemeral: true });
 
         // Collector for buttons and select menu
+        const collectorTimeout = interaction.client.config.collectorTimeout || 60_000; // Configurable timeout
         const collector = interaction.channel.createMessageComponentCollector({
             filter: i => i.user.id === userId,
-            time: 60_000
+            time: collectorTimeout
+        });
+
+        collector.on('collect', async i => {
+            history = await getHistory();
+            const totalPages = Math.ceil(history.length / PAGE_SIZE) || 1;
+            if (i.customId === 'history_back') {
+                page = Math.max(1, page - 1);
+                await i.update({ embeds: [buildEmbed(page)], components: buildComponents(page) });
+            } else if (i.customId === 'history_forward') {
+                page = Math.min(totalPages, page + 1);
+                await i.update({ embeds: [buildEmbed(page)], components: buildComponents(page) });
+            }
         });
 
         collector.on('collect', async i => {

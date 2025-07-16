@@ -14,13 +14,13 @@ function createQueueDisplay(client, player, page = 1) {
     let queue = [];
     if (player.queue && typeof player.queue.toArray === 'function') {
         queue = player.queue.toArray();
-    } else if (Array.isArray(player.queue)) {
-        queue = player.queue;
     } else if (Array.isArray(player.queue?.tracks)) {
         queue = player.queue.tracks;
+    } else if (Array.isArray(player.queue)) {
+        queue = player.queue;
     }
-    const tracksPerPage = 10;
-    const totalPages = Math.max(1, Math.ceil(queue.length / tracksPerPage));
+    const itemsPerPage = interaction.client.config.itemsPerPage || 10; // Configurable items per page
+    const totalPages = Math.max(1, Math.ceil(queue.length / itemsPerPage)); // Ensure at least one page
     const currentPage = Math.max(1, Math.min(page, totalPages));
     const start = (currentPage - 1) * tracksPerPage;
     const end = start + tracksPerPage;

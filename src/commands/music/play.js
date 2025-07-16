@@ -86,7 +86,7 @@ module.exports = {
                 return interaction.editReply({
                     embeds: [new EmbedBuilder()
                         .setColor('#ff0000')
-                        .setDescription('❌ Failed to connect to voice channel!')
+                        .setDescription('❌ Unable to connect to the voice channel. Please check your permissions and try again.')
                     ]
                 });
             }
@@ -114,28 +114,37 @@ module.exports = {
         let isPlaylist = false;
         let tracksToAdd = [];
 
-        switch (searchResult.loadType) {
+        // Normalize loadType for Moonlink.js v4.44.4
+        let loadType = searchResult.loadType;
+        if (loadType === 'PLAYLIST_LOADED') loadType = 'playlist';
+        if (loadType === 'TRACK_LOADED') loadType = 'track';
+        if (loadType === 'SEARCH_RESULT') loadType = 'search';
+        if (loadType === 'NO_MATCHES') loadType = 'empty';
+
+        switch (loadType) {
             case 'playlist':
                 isPlaylist = true;
                 tracksToAdd = searchResult.tracks;
                 if (shuffle) tracksToAdd = shuffleArray([...tracksToAdd]);
 
                 // Check queue limits
-                const maxQueueSize = interaction.guildData?.premium ? 
-                    client.config.bot.premiumMaxQueueSize : 
-                    client.config.bot.maxQueueSize;
+                {
+                    const maxQueueSize = interaction.guildData?.premium ? 
+                        client.config.bot.premiumMaxQueueSize : 
+                        client.config.bot.maxQueueSize;
 
-                if (player.queue.size + tracksToAdd.length > maxQueueSize) {
-                    const allowedTracks = maxQueueSize - player.queue.size;
-                    if (allowedTracks <= 0) {
-                        return interaction.editReply({
-                            embeds: [new EmbedBuilder()
-                                .setColor('#ff0000')
-                                .setDescription(`❌ Queue is full! Maximum ${maxQueueSize} tracks allowed.`)
-                            ]
-                        });
+                    if (player.queue.size + tracksToAdd.length > maxQueueSize) {
+                        const allowedTracks = maxQueueSize - player.queue.size;
+                        if (allowedTracks <= 0) {
+                            return interaction.editReply({
+                                embeds: [new EmbedBuilder()
+                                    .setColor('#ff0000')
+                                    .setDescription(`❌ Queue is full! Maximum ${maxQueueSize} tracks allowed.`)
+                                ]
+                            });
+                        }
+                        tracksToAdd = tracksToAdd.slice(0, allowedTracks);
                     }
-                    tracksToAdd = tracksToAdd.slice(0, allowedTracks);
                 }
 
                 // Add tracks to queue
@@ -156,17 +165,16 @@ module.exports = {
                 tracksToAdd = [searchResult.tracks[0]];
 
                 // Check queue limit
-                const maxSize = interaction.guildData?.premium ? 
-                    client.config.bot.premiumMaxQueueSize : 
-                    client.config.bot.maxQueueSize;
-
-                if (player.queue.size >= maxSize) {
-                    return interaction.editReply({
-                        embeds: [new EmbedBuilder()
-                            .setColor('#ff0000')
-                            .setDescription(`❌ Queue is full! Maximum ${maxSize} tracks allowed.`)
-                        ]
-                    });
+                {
+                    const queueLimit = client.config.queueLimit || 100; // Centralized queue limit
+                    if (player.queue.size >= queueLimit) {
+                        return interaction.editReply({
+                            embeds: [new EmbedBuilder()
+                                .setColor('#ff0000')
+                                .setDescription(`❌ Queue limit of ${queueLimit} reached. Please remove some tracks.`)
+                            ]
+                        });
+                    }
                 }
 
                 // Add track to queue
@@ -278,7 +286,7 @@ module.exports = {
         }
 
         // Start playback if not already playing
-        if (!player.playing && !player.paused && player.queue.size > 0) {
+        if ((!player.playing && !player.paused && player.queue.size > 0) || (!player.current && player.queue.size > 0)) {
             await player.play();
         }
 
@@ -359,7 +367,11 @@ module.exports = {
             }
             // Combine, prioritizing history, but always showing both
             const combined = [...historyChoices, ...searchChoices].slice(0, 25);
-            await interaction.respond(combined);
+            if (interaction.isAutocomplete()) {
+                await interaction.respond(combined);
+            } else {
+                client.logger.warn('Attempted to respond to an invalid interaction.');
+            }
         } catch (error) {
             client.logger.error('Autocomplete error:', error);
             await interaction.respond([]);

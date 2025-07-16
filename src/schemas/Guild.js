@@ -89,7 +89,7 @@ const guildSchema = new mongoose.Schema({
         },
         searchEngine: {
             type: String,
-            enum: ['youtube', 'soundcloud', 'spotify', 'apple'],
+            enum: ['youtube', 'spotify', 'soundcloud'], // Restrict to valid options
             default: 'youtube'
         },
         allowExplicit: {

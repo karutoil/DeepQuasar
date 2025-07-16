@@ -1,3 +1,24 @@
+// --- Fallback for very early errors (before logger loads) ---
+process.on('uncaughtException', (err) => {
+    try {
+        // Try to use logger if available
+        if (global.logger && typeof global.logger.error === 'function') {
+            global.logger.error('Early uncaught exception:', err);
+        }
+    } catch {}
+    // Always log to console as last resort
+    console.error('Early uncaught exception:', err);
+});
+process.on('unhandledRejection', (err) => {
+    try {
+        if (global.logger && typeof global.logger.error === 'function') {
+            global.logger.error('Early unhandled rejection:', err);
+        }
+    } catch {}
+    console.error('Early unhandled rejection:', err);
+});
+// --- End fallback ---
+
 require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
 const { Manager } = require('moonlink.js');
@@ -125,12 +146,17 @@ class MusicBot {
 
     setupMoonlinkEvents() {
         // Node connection events
-        this.client.manager.on('nodeConnect', (node) => {
+        // Node connection events (Moonlink.js 4.44.4 event names)
+        this.client.manager.on('nodeReady', (node, stats) => {
+            logger.info(`Moonlink node "${node.identifier}" is ready. Stats:`, stats);
+        });
+
+        this.client.manager.on('nodeConnected', (node) => {
             logger.info(`Moonlink node "${node.identifier}" connected successfully`);
         });
 
-        this.client.manager.on('nodeDisconnect', (node) => {
-            logger.warn(`Moonlink node "${node.identifier}" disconnected`);
+        this.client.manager.on('nodeDisconnected', (node, code, reason) => {
+            logger.warn(`Moonlink node "${node.identifier}" disconnected. Code: ${code}, Reason: ${reason}`);
         });
 
         this.client.manager.on('nodeError', (node, error) => {
@@ -143,33 +169,11 @@ class MusicBot {
 
         // Track events
         this.client.manager.on('trackStart', (player, track) => {
-/*             const channel = this.client.channels.cache.get(player.textChannelId);
-            if (channel) {
-                // logger.info(`Now playing: ${track.title} in ${player.guildId}`);
-                // Send now playing message (optional - you can customize this)
-                // channel.send(`🎵 Now playing: **${track.title}**`);
-            } */
+            // Optionally log or send a message
         });
 
-        // Player connection events
-        this.client.manager.on('playerConnect', (player) => {
-            logger.info(`Player connected to voice channel ${player.voiceChannelId} in guild ${player.guildId}`);
-        });
-
-        this.client.manager.on('playerDisconnect', (player) => {
-            logger.info(`Player disconnected from voice channel in guild ${player.guildId}`);
-        });
-
-        this.client.manager.on('playerDestroy', (player) => {
-            logger.info(`Player destroyed in guild ${player.guildId}`);
-        });
-
-        this.client.manager.on('playerCreate', (player) => {
-            logger.info(`Player created for guild ${player.guildId}, voice channel ${player.voiceChannelId}`);
-        });
-
-        this.client.manager.on('trackEnd', (player, track) => {
-            logger.debug(`Track ended: ${track.title} in ${player.guildId}`);
+        this.client.manager.on('trackEnd', (player, track, type, payload) => {
+            logger.debug(`Track ended: ${track.title} in ${player.guildId} (type: ${type})`);
         });
 
         this.client.manager.on('queueEnd', (player) => {
@@ -189,12 +193,28 @@ class MusicBot {
             }, 30000);
         });
 
-        // Add voice connection events
-        this.client.manager.on('playerMove', (player, oldChannelId, newChannelId) => {
-            logger.info(`Player moved from channel ${oldChannelId} to ${newChannelId} in guild ${player.guildId}`);
+        // Player events
+        this.client.manager.on('playerCreate', (player) => {
+            logger.info(`Player created for guild ${player.guildId}, voice channel ${player.voiceChannelId}`);
         });
 
-        this.client.manager.on('playerUpdate', (player) => {
+        this.client.manager.on('playerDestroy', (player, reason) => {
+            logger.info(`Player destroyed in guild ${player.guildId}. Reason: ${reason || 'N/A'}`);
+        });
+
+        this.client.manager.on('playerConnected', (player) => {
+            logger.info(`Player connected to voice channel ${player.voiceChannelId} in guild ${player.guildId}`);
+        });
+
+        this.client.manager.on('playerDisconnected', (player) => {
+            logger.info(`Player disconnected from voice channel in guild ${player.guildId}`);
+        });
+
+        this.client.manager.on('playerMoved', (player, oldChannel, newChannel) => {
+            logger.info(`Player moved from channel ${oldChannel} to ${newChannel} in guild ${player.guildId}`);
+        });
+
+        this.client.manager.on('playerUpdate', (player, track, payload) => {
             logger.debug(`Player updated for guild ${player.guildId}, connected: ${player.connected}, state: ${player.state}`);
         });
     }
@@ -436,12 +456,44 @@ process.on('SIGHUP', () => {
     bot.shutdown();
 });
 
+const util = require('util');
+
+// Diagnose stuck Node.js event loop
+try {
+    require('why-is-node-running');
+    console.log('why-is-node-running enabled: will print open handles if process does not exit.');
+} catch (e) {
+    console.warn('why-is-node-running not installed. Run: npm install why-is-node-running');
+}
+
+// Ensure all errors are logged to console as well as logger
+function logErrorDetails(prefix, error) {
+    try {
+        logger.error(`${prefix}:`, util.inspect(error, { depth: 5, colors: false }));
+        console.error(`${prefix}:`, util.inspect(error, { depth: 5, colors: true }));
+
+        // Log stack trace if available
+        if (error && error.stack) {
+            logger.error('Stack trace:', error.stack);
+            console.error('Stack trace:', error.stack);
+        }
+
+        // Log error object properties
+        if (error && typeof error === 'object') {
+            logger.error('Error details (JSON):', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+            console.error('Error details (JSON):', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+        }
+    } catch (e) {
+        console.error('Failed to log error details:', e);
+    }
+}
+
 process.on('unhandledRejection', (error) => {
-    logger.error('Unhandled promise rejection:', error);
+    logErrorDetails('Unhandled promise rejection', error);
 });
 
 process.on('uncaughtException', (error) => {
-    logger.error('Uncaught exception:', error);
+    logErrorDetails('Uncaught exception', error);
     bot.shutdown();
 });
 
@@ -451,5 +503,33 @@ process.on('SIGQUIT', () => {
     bot.shutdown();
 });
 
-// Start the bot
-bot.start();
+/**
+ * Start the bot and log full error stack if startup fails
+ */
+// Ensure startup errors are logged to console as well as logger
+// Ensure startup errors are logged with full details
+// Ensure startup errors are logged with full details
+// --- TEST: Simulate a startup error to confirm logging works ---
+// Uncomment the next line to test error logging on startup
+// throw new Error('Simulated startup error for logging test');
+// --- END TEST ---
+
+(async () => {
+    try {
+        await bot.start();
+        console.log('Bot startup completed.'); // Confirm startup reached here
+    } catch (err) {
+        logErrorDetails('Fatal error during bot startup', err);
+        process.exit(1);
+    }
+    // If process is still running and no error, log a message
+    setTimeout(() => {
+        logErrorDetails('Startup appears to be stuck. No error was thrown, but bot did not finish startup.', {});
+        // Force an error to test error logging
+        try {
+            throw new Error('Forced error: Startup stuck after 15 seconds');
+        } catch (err) {
+            logErrorDetails('Forced error thrown after 15s', err);
+        }
+    }, 15000);
+})();

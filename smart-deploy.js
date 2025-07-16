@@ -48,56 +48,100 @@ class SmartCommandDeployer {
 
     // Compare two commands to see if they're different
     commandsEqual(cmd1, cmd2) {
-        const normalize = (cmd) => {
-            const normalizeOptions = (options) => {
-                if (!options) return [];
-                
-                // Create new, normalized option objects, sorting them and their choices
-                return options.map(opt => {
-                    const newOpt = {
-                        type: opt.type,
-                        name: opt.name,
-                        description: opt.description,
-                        required: opt.required || false,
-                    };
-                    if (opt.choices) {
-                        // Create a sorted copy of choices
-                        newOpt.choices = [...opt.choices].sort((a, b) => a.name.localeCompare(b.name));
-                    }
-                    if (opt.options) {
-                        // Recursively normalize sub-options
-                        newOpt.options = normalizeOptions(opt.options);
-                    }
-                    // Add other valid option fields if they exist
-                    if ('channel_types' in opt) newOpt.channel_types = opt.channel_types;
-                    if ('min_value' in opt) newOpt.min_value = opt.min_value;
-                    if ('max_value' in opt) newOpt.max_value = opt.max_value;
-                    if ('min_length' in opt) newOpt.min_length = opt.min_length;
-                    if ('max_length' in opt) newOpt.max_length = opt.max_length;
-                    if ('autocomplete' in opt) newOpt.autocomplete = opt.autocomplete;
-
-                    return newOpt;
-                }).sort((a, b) => a.name.localeCompare(b.name));
-            };
-
-            // Normalize the top-level command object
+        // Only keep fields relevant for registration
+        const filterCommandFields = (cmd) => {
+            // Only include fields that are actually sent to Discord for registration
+            const {
+                name,
+                description,
+                type,
+                options,
+                default_member_permissions,
+                dm_permission
+            } = cmd;
             return {
-                name: cmd.name,
-                description: cmd.description || '',
-                type: cmd.type || 1,
-                options: normalizeOptions(cmd.options),
-                default_member_permissions: cmd.default_member_permissions ? String(cmd.default_member_permissions) : null,
-                dm_permission: cmd.dm_permission === false ? false : true, // API defaults to true if undefined
+                name,
+                description,
+                type: typeof type === 'undefined' ? 1 : type,
+                options,
+                default_member_permissions: default_member_permissions !== undefined && default_member_permissions !== null
+                    ? String(default_member_permissions)
+                    : undefined,
+                dm_permission: typeof dm_permission === 'boolean' ? dm_permission : true
             };
         };
 
-        const norm1 = normalize(cmd1);
-        const norm2 = normalize(cmd2);
-        
-        const str1 = JSON.stringify(norm1);
-        const str2 = JSON.stringify(norm2);
+        // Normalize options for comparison
+        const normalizeOptions = (options) => {
+            if (!options) return [];
+            return options.map(opt => {
+                const {
+                    type,
+                    name,
+                    description,
+                    required,
+                    choices,
+                    options: subOptions,
+                    channel_types,
+                    min_value,
+                    max_value,
+                    min_length,
+                    max_length,
+                    autocomplete
+                } = opt;
+                const newOpt = {
+                    type,
+                    name,
+                    description,
+                    required: !!required
+                };
+                if (choices) {
+                    newOpt.choices = [...choices].map(choice => ({
+                        name: choice.name,
+                        value: choice.value
+                    })).sort((a, b) => a.name.localeCompare(b.name));
+                }
+                if (subOptions) {
+                    newOpt.options = normalizeOptions(subOptions);
+                }
+                if (Array.isArray(channel_types) && channel_types.length > 0) newOpt.channel_types = [...channel_types].sort();
+                if (typeof min_value !== 'undefined') newOpt.min_value = min_value;
+                if (typeof max_value !== 'undefined') newOpt.max_value = max_value;
+                if (typeof min_length !== 'undefined') newOpt.min_length = min_length;
+                if (typeof max_length !== 'undefined') newOpt.max_length = max_length;
+                if (typeof autocomplete !== 'undefined') newOpt.autocomplete = !!autocomplete;
+                return newOpt;
+            }).sort((a, b) => a.name.localeCompare(b.name));
+        };
 
-        return str1 === str2;
+        // Remove Discord-only fields from remote command before comparison
+        const stripDiscordFields = (cmd) => {
+            const filtered = filterCommandFields(cmd);
+            // Always ensure options is an array
+            filtered.options = normalizeOptions(filtered.options);
+            return filtered;
+        };
+
+        // Remove undefined/null fields for comparison
+        const clean = obj => {
+            // Remove keys with undefined or null values
+            if (Array.isArray(obj)) {
+                return obj.map(clean);
+            } else if (obj && typeof obj === 'object') {
+                const out = {};
+                for (const [k, v] of Object.entries(obj)) {
+                    if (v !== undefined && v !== null) out[k] = clean(v);
+                }
+                return out;
+            }
+            return obj;
+        };
+
+        // Compare only the relevant fields
+        const local = clean(stripDiscordFields(cmd2));
+        const remote = clean(stripDiscordFields(cmd1));
+
+        return JSON.stringify(local) === JSON.stringify(remote);
     }
 
     async checkDailyLimit() {
@@ -133,7 +177,7 @@ class SmartCommandDeployer {
         return this.makeRequest(deleteEndpoint, 'DELETE');
     }
 
-    async smartDeploy(isGuild = false, guildId = null, isCheckOnly = false) {
+    async smartDeploy(isGuild = false, guildId = null, isCheckOnly = false, isDebug = false) {
         try {
             const mode = isCheckOnly ? 'check' : 'deployment';
             console.log(`🤖 Smart ${mode} started ${isGuild ? `for guild ${guildId}` : 'globally'}...`);
@@ -159,7 +203,7 @@ class SmartCommandDeployer {
                 if (currentCommandsMap.has(name)) {
                     const currentCmd = currentCommandsMap.get(name);
                     if (!this.commandsEqual(currentCmd, newCmd)) {
-                        toUpdate.push({ id: currentCmd.id, data: newCmd });
+                        toUpdate.push({ id: currentCmd.id, data: newCmd, current: currentCmd });
                     } 
                 } else {
                     toCreate.push(newCmd);
@@ -177,7 +221,7 @@ class SmartCommandDeployer {
                 return;
             }
 
-            this.displayChanges(toCreate, toUpdate, toDelete);
+            this.displayChanges(toCreate, toUpdate, toDelete, isDebug);
 
             if (isCheckOnly) {
                 console.log('\nRun the command without --check-only to apply these changes.');
@@ -220,11 +264,12 @@ class SmartCommandDeployer {
                 }
                 console.log(`\n✅ Command sync complete!`);
                 console.log(`📊 Summary: ${created} created, ${updated} updated, ${deleted} deleted.`);
-                return;
+                process.exit(0);
             }
 
             console.log('\n✅ Command sync complete!');
             console.log(`📊 Summary: ${toCreate.length} created, ${toUpdate.length} updated, ${toDelete.length} deleted.`);
+            process.exit(0);
 
         } catch (error) {
             console.error(`❌ Smart ${isCheckOnly ? 'check' : 'deployment'} failed:`, error.message);
@@ -233,10 +278,11 @@ class SmartCommandDeployer {
                 console.log('1. Wait for the daily reset (midnight UTC).');
                 console.log(`2. Deploy to a specific guild: node ${path.basename(__filename)} guild <guildId>`);
             }
+            process.exit(1);
         }
     }
 
-    displayChanges(toCreate, toUpdate, toDelete) {
+    displayChanges(toCreate, toUpdate, toDelete, isDebug = false) {
         console.log('\n🔍 Change Summary (Dry Run):');
         
         if (toCreate.length > 0) {
@@ -246,7 +292,18 @@ class SmartCommandDeployer {
 
         if (toUpdate.length > 0) {
             console.log(`\n🔄 Commands to be UPDATED (${toUpdate.length}):`);
-            toUpdate.forEach(cmd => console.log(`  - ${cmd.data.name}`));
+            toUpdate.forEach(cmd => {
+                console.log(`  - ${cmd.data.name}`);
+                if (isDebug) {
+                    try {
+                        const diff = getObjectDiff(cmd.current, cmd.data);
+                        if (Object.keys(diff).length > 0) {
+                            console.log(`    └─ Diff:`);
+                            console.log(JSON.stringify(diff, null, 2));
+                        }
+                    } catch (e) {}
+                }
+            });
         }
 
         if (toDelete.length > 0) {
@@ -294,24 +351,84 @@ class SmartCommandDeployer {
     }
 }
 
-// Main execution
+function getObjectDiff(obj1, obj2) {
+    // Returns a shallow diff of obj1 vs obj2 (fields that differ)
+    const diff = {};
+    for (const key of Object.keys(obj1)) {
+        if (typeof obj1[key] === 'object' && obj1[key] !== null && typeof obj2[key] === 'object' && obj2[key] !== null) {
+            if (JSON.stringify(obj1[key]) !== JSON.stringify(obj2[key])) {
+                diff[key] = { remote: obj1[key], local: obj2[key] };
+            }
+        } else if (obj1[key] !== obj2[key]) {
+            diff[key] = { remote: obj1[key], local: obj2[key] };
+        }
+    }
+    for (const key of Object.keys(obj2)) {
+        if (!(key in obj1)) {
+            diff[key] = { remote: undefined, local: obj2[key] };
+        }
+    }
+    return diff;
+}
+
+async function compareCommands() {
+    const deployer = new SmartCommandDeployer();
+    console.log('🔍 Comparing global commands with local commands...');
+    const localCommands = await deployer.loadCommands();
+    const endpoint = `/applications/${deployer.clientId}/commands`;
+    const remoteCommands = await deployer.makeRequest(endpoint);
+
+    const localMap = new Map(localCommands.map(cmd => [cmd.name, cmd]));
+    const remoteMap = new Map(remoteCommands.map(cmd => [cmd.name, cmd]));
+
+    const onlyLocal = [];
+    const onlyRemote = [];
+    const differing = [];
+
+    for (const [name, localCmd] of localMap.entries()) {
+        if (!remoteMap.has(name)) {
+            onlyLocal.push(name);
+        } else {
+            const remoteCmd = remoteMap.get(name);
+            if (!deployer.commandsEqual(remoteCmd, localCmd)) {
+                differing.push(name);
+            }
+        }
+    }
+    for (const [name] of remoteMap.entries()) {
+        if (!localMap.has(name)) {
+            onlyRemote.push(name);
+        }
+    }
+
+    console.log('\n📦 Local-only commands:', onlyLocal.length ? onlyLocal.join(', ') : 'None');
+    console.log('🌐 Remote-only commands:', onlyRemote.length ? onlyRemote.join(', ') : 'None');
+    console.log('🔄 Differing commands:', differing.length ? differing.join(', ') : 'None');
+}
+
 async function main() {
     const deployer = new SmartCommandDeployer();
     const args = process.argv.slice(2);
-    
+
     const isCheckOnly = args.includes('--check-only');
-    const filteredArgs = args.filter(arg => arg !== '--check-only');
-    
+    const isDebug = args.includes('--debug');
+    const filteredArgs = args.filter(arg => arg !== '--check-only' && arg !== '--debug');
+
     const deployType = filteredArgs[0] || 'global';
     const guildId = filteredArgs[1] || process.env.GUILD_ID;
 
     try {
+        if (deployType === 'compare') {
+            await compareCommands();
+            return;
+        }
+
         if (deployType === 'guild' && !guildId) {
             console.error('❌ Guild ID required. Set GUILD_ID in .env or pass as an argument: node smart-deploy.js guild <guildId>');
             process.exit(1);
         }
 
-        await deployer.smartDeploy(deployType === 'guild', guildId, isCheckOnly);
+        await deployer.smartDeploy(deployType === 'guild', guildId, isCheckOnly, isDebug);
 
     } catch (error) {
         console.error(`💥 Deployment script failed: ${error.message}`);

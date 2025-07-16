@@ -38,6 +38,15 @@ module.exports = {
 
         const positionInput = interaction.options.getString('position');
         const positionMs = parseTimeToMs(positionInput);
+        if (positionMs < 0 || isNaN(positionMs)) {
+            return interaction.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ Invalid time format! Use formats like: `1:30`, `90s`, `2m30s`')
+                ],
+                ephemeral: true
+            });
+        }
 
         if (positionMs === null) {
             return interaction.reply({
@@ -56,7 +65,7 @@ module.exports = {
             return interaction.reply({
                 embeds: [new EmbedBuilder()
                     .setColor('#ff0000')
-                    .setDescription(`❌ Position exceeds track duration! Track length: ${client.musicPlayerManager.formatDuration(track.duration)}`)
+                    .setDescription(`❌ The specified time exceeds the track duration of ${client.musicPlayerManager.formatDuration(track.duration)}.`)
                 ],
                 ephemeral: true
             });

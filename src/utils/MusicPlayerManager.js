@@ -24,17 +24,14 @@ class MusicPlayerManager {
     async createPlayer(options) {
         const { guildId, voiceChannelId, textChannelId, autoPlay = true } = options;
         
-        // Check if player already exists - Moonlink.js V4 PlayerManager
+        // Check if player already exists - Moonlink.js V4.44+ PlayerManager
         let player;
         try {
-            player = this.client.manager.players.cache ? 
-                this.client.manager.players.cache.get(guildId) : 
-                this.client.manager.getPlayer(guildId);
+            player = this.client.manager.players.get(guildId);
         } catch (error) {
-            // Player doesn't exist, we'll create one
             player = null;
         }
-        
+
         if (player) {
             // Update voice channel if different
             if (player.voiceChannelId !== voiceChannelId) {
@@ -55,8 +52,11 @@ class MusicPlayerManager {
             return player;
         }
 
-        // Create new player
-        player = this.client.manager.createPlayer({
+        // Create new player (use manager.players.create)
+        if (Object.keys(this.client.manager.players).length >= this.client.config.maxPlayers) {
+            throw new Error('Maximum number of players reached.');
+        }
+        player = this.client.manager.players.create({
             guildId,
             voiceChannelId,
             textChannelId,
@@ -83,9 +83,11 @@ class MusicPlayerManager {
      */
     getPlayer(guildId) {
         try {
-            return this.client.manager.players.cache ? 
-                this.client.manager.players.cache.get(guildId) : 
-                this.client.manager.getPlayer(guildId);
+            const player = this.client.manager.players.get(guildId);
+            if (!player) {
+                throw new Error(`Player not found for guild ID: ${guildId}`);
+            }
+            return player;
         } catch (error) {
             return null;
         }
@@ -265,7 +267,7 @@ class MusicPlayerManager {
      * @returns {Map} Map of guild IDs to player objects
      */
     getAllPlayers() {
-        return this.client.manager.players.cache || new Map();
+        return this.client.manager.players.all || new Map();
     }
 
     /**
@@ -362,7 +364,14 @@ class MusicPlayerManager {
         const { guildId, voiceChannelId, textChannelId, query, source = 'youtube', requester } = options;
         // Search for tracks
         const searchResult = await this.search({ query, source, requester });
-        if (searchResult.loadType === 'error' || !searchResult.tracks?.length) {
+        // Normalize loadType for Moonlink.js v4.44.4
+        let loadType = searchResult.loadType;
+        if (loadType === 'PLAYLIST_LOADED') loadType = 'playlist';
+        if (loadType === 'TRACK_LOADED') loadType = 'track';
+        if (loadType === 'SEARCH_RESULT') loadType = 'search';
+        if (loadType === 'NO_MATCHES') loadType = 'empty';
+
+        if (loadType === 'error' || !searchResult.tracks?.length) {
             return { error: searchResult.error || 'No tracks found', searchResult };
         }
         // Get or create player
@@ -372,7 +381,7 @@ class MusicPlayerManager {
             player.setVoiceChannel(voiceChannelId);
         }
         // Add tracks to queue
-        if (searchResult.loadType === 'PLAYLIST_LOADED') {
+        if (loadType === 'playlist') {
             for (const track of searchResult.tracks) {
                 player.queue.add(track);
             }
@@ -380,7 +389,7 @@ class MusicPlayerManager {
             player.queue.add(searchResult.tracks[0]);
         }
         // Start playing if not already
-        if (!player.playing && !player.paused) {
+        if ((!player.playing && !player.paused) || (!player.current && player.queue.size > 0)) {
             player.play();
         }
         return { player, searchResult };
