@@ -6,6 +6,12 @@ const ticketConfigSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+
+    // Canned responses for quick replies
+    cannedResponses: {
+        type: Object,
+        default: {}
+    },
     
     // Channel configuration
     channels: {
