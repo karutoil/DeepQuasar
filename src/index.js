@@ -169,7 +169,7 @@ class MusicBot {
             ║   Node Identifier: ${node.identifier.padEnd(50)}║
             ║   Host: ${node.host.padEnd(50)}║
             ║   Port: ${node.port.toString().padEnd(50)}║
-            ║   Secure: ${node.secure ? 'Yes'.padEnd(50) : 'No'.padEnd(50)}║
+            ║   Secure: ${node.secure ? 'No'.padEnd(50) : 'Yes'.padEnd(50)}║
             ║                                                              ║
             ╚══════════════════════════════════════════════════════════════╝
             `);
