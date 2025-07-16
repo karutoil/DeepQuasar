@@ -1,9 +1,10 @@
-const { Events } = require('discord.js');
+const { Events, EmbedBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js');
 const ChatBot = require('../utils/ChatBot');
 const LFGMessageHandler = require('../handlers/lfg/LFGMessageHandler');
 const timeParser = require('../utils/timeParser');
 const Reminder = require('../schemas/Reminder');
 const User = require('../schemas/User');
+const Guild = require('../schemas/Guild');
 
 module.exports = {
     name: Events.MessageCreate,
@@ -23,6 +24,9 @@ module.exports = {
             await handleLegacyRemind(message);
         }
 
+        // Message Link Embed Feature
+        await handleMessageLinkEmbed(message);
+
         // Handle LFG message detection
         await LFGMessageHandler.handleMessage(message);
 
@@ -35,6 +39,70 @@ module.exports = {
         }
     }
 };
+
+async function handleMessageLinkEmbed(message) {
+    // Only in guilds
+    if (!message.guild) return;
+
+    // Find message links in the message
+    const linkRegex = /https:\/\/discord\.com\/channels\/(\d+)\/(\d+)\/(\d+)/g;
+    const matches = [...message.content.matchAll(linkRegex)];
+    if (matches.length === 0) return;
+
+    // Get guild config
+    const guildConfig = await Guild.findByGuildId(message.guild.id);
+    if (!guildConfig || !guildConfig.messageLinkEmbed?.enabled || !guildConfig.messageLinkEmbed?.targetChannelId) return;
+
+    // Only proceed if the target channel exists
+    const targetChannel = message.guild.channels.cache.get(guildConfig.messageLinkEmbed.targetChannelId);
+    if (!targetChannel || !targetChannel.isTextBased()) return;
+
+    for (const match of matches) {
+        const [, guildId, channelId, messageId] = match;
+
+        // Only process links for this guild
+        if (guildId !== message.guild.id) continue;
+
+        try {
+            const linkedChannel = message.guild.channels.cache.get(channelId);
+            if (!linkedChannel || !linkedChannel.isTextBased()) continue;
+
+            // Fetch the linked message
+            const linkedMsg = await linkedChannel.messages.fetch(messageId);
+            if (!linkedMsg) continue;
+
+            // Build the embed
+            const embed = new EmbedBuilder()
+                .setColor('#5865F2')
+                .setAuthor({
+                    name: linkedMsg.author?.tag || linkedMsg.author?.username || 'Unknown User',
+                    iconURL: linkedMsg.author?.displayAvatarURL?.() || undefined
+                })
+                .setDescription(linkedMsg.content || '[No content]')
+                .setTimestamp(linkedMsg.createdTimestamp)
+                .setFooter({ text: `From #${linkedChannel.name}` });
+
+            // Add attachments (first image only)
+            const imageAttachment = linkedMsg.attachments.find(att => att.contentType?.startsWith('image/'));
+            if (imageAttachment) {
+                embed.setImage(imageAttachment.url);
+            }
+
+            // Add button
+            const button = new ButtonBuilder()
+                .setLabel('Go to Message')
+                .setStyle(ButtonStyle.Link)
+                .setURL(`https://discord.com/channels/${guildId}/${channelId}/${messageId}`);
+
+            const row = new ActionRowBuilder().addComponents(button);
+
+            await targetChannel.send({ embeds: [embed], components: [row] });
+        } catch (err) {
+            // Optionally log error
+            console.error('Message Link Embed error:', err);
+        }
+    }
+}
 
 async function handleLegacyRemind(message) {
     // Example: "@Bot remind me in 10m to do something"

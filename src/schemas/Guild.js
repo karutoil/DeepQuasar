@@ -246,6 +246,18 @@ const guildSchema = new mongoose.Schema({
         }
     },
 
+    // Message Link Embed System
+    messageLinkEmbed: {
+        enabled: {
+            type: Boolean,
+            default: false
+        },
+        targetChannelId: {
+            type: String,
+            default: null
+        }
+    },
+
     // Welcome and Leave System
     welcomeSystem: {
         welcome: {
