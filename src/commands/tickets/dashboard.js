@@ -127,14 +127,14 @@ module.exports = {
                     },
                     {
                         name: 'Transcript Settings',
-                        value: `**Format:** ${config.transcripts.format}\n` +
-                               `**Include attachments:** ${config.transcripts.includeAttachments ? 'Yes' : 'No'}`,
+                        value: `**Format:** ${config.transcripts?.format || 'N/A'}\n` +
+                               `**Include attachments:** ${config.transcripts?.includeAttachments ? 'Yes' : 'No'}`,
                         inline: true
                     },
                     {
                         name: 'Channel Naming',
-                        value: `**Pattern:** \`${config.channelNaming.pattern}\`\n` +
-                               `**Max length:** ${config.channelNaming.maxLength}`,
+                        value: `**Pattern:** \`${(config.channelNaming && config.channelNaming.pattern) || (config.naming && config.naming.pattern) || 'ticket-username'}\`\n` +
+                               `**Max length:** ${(config.channelNaming && config.channelNaming.maxLength) || 32}`,
                         inline: true
                     }
                 ]
