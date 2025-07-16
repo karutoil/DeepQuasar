@@ -976,6 +976,15 @@ async function handleButtonInteraction(interaction, client) {
                         color: 0x2ecc71,
                         fields: [
                             {
+                                name: 'Current Ticket Status',
+                                value:
+                                    `🟢 **Open:** ${analytics.statusCounts.open}\n` +
+                                    `🔴 **Closed:** ${analytics.statusCounts.closed}\n` +
+                                    `⚫ **Deleted:** ${analytics.statusCounts.deleted}\n` +
+                                    `📁 **Archived:** ${analytics.statusCounts.archived}`,
+                                inline: false
+                            },
+                            {
                                 name: 'Ticket Types',
                                 value: analytics.types.length > 0
                                     ? analytics.types.map(t => `• **${t._id || 'Unknown'}**: ${t.count}`).join('\n')

@@ -141,53 +141,7 @@ module.exports = {
             });
 
             // --- Ticket Analytics Embed ---
-            // Aggregate ticket analytics
-            const analytics = await this.getTicketAnalytics(interaction.guild.id);
-
-            const analyticsEmbed = Utils.createEmbed({
-                title: '📊 Ticket Analytics',
-                color: 0x2ecc71,
-                fields: [
-                    {
-                        name: 'Current Ticket Status',
-                        value:
-                            `🟢 **Open:** ${analytics.statusCounts.open}\n` +
-                            `🔴 **Closed:** ${analytics.statusCounts.closed}\n` +
-                            `⚫ **Deleted:** ${analytics.statusCounts.deleted}\n` +
-                            `📁 **Archived:** ${analytics.statusCounts.archived}`,
-                        inline: false
-                    },
-                    {
-                        name: 'Ticket Types',
-                        value: analytics.types.length > 0
-                            ? analytics.types.map(t => `• **${t._id || 'Unknown'}**: ${t.count}`).join('\n')
-                            : 'No data',
-                        inline: true
-                    },
-                    {
-                        name: 'Priorities',
-                        value: analytics.priorities.length > 0
-                            ? analytics.priorities.map(p => `• **${p._id || 'Unknown'}**: ${p.count}`).join('\n')
-                            : 'No data',
-                        inline: true
-                    },
-                    {
-                        name: 'Average Close Time',
-                        value: analytics.avgCloseTime
-                            ? `${analytics.avgCloseTime} hours`
-                            : 'N/A',
-                        inline: true
-                    },
-                    {
-                        name: 'Tag Usage',
-                        value: analytics.tags.length > 0
-                            ? analytics.tags.map(tag => `• **${tag._id || 'Unknown'}**: ${tag.count}`).join('\n')
-                            : 'No tags used',
-                        inline: true
-                    }
-                ],
-                footer: { text: 'Analytics based on recent 100 tickets' }
-            });
+            // (Removed from main dashboard, now only shown via Analytics button)
 
             // Create action buttons
             const actionRow1 = new ActionRowBuilder()
@@ -239,7 +193,7 @@ module.exports = {
             // If you use a custom interaction handler, ensure it listens for these customIds
 
             await interaction.editReply({
-                embeds: [dashboardEmbed, activityEmbed, settingsEmbed, analyticsEmbed],
+                embeds: [dashboardEmbed, activityEmbed, settingsEmbed],
                 components: [actionRow1, actionRow2]
             });
 
