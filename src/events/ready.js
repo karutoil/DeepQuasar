@@ -126,7 +126,7 @@ async function cleanupInactivePlayers(client) {
     const players = client.musicPlayerManager.getAllPlayers();
     let cleanedCount = 0;
 
-    for (const [guildId, player] of players) {
+    for (const [guildId, player] of players.entries()) {
         // Remove players that have been inactive for more than 10 minutes
         if (!player.playing && !player.paused && player.queue.size === 0) {
             const lastActivity = player.lastActivity || Date.now();
