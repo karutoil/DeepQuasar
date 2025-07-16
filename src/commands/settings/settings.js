@@ -172,6 +172,32 @@ module.exports = {
                         .setDescription('Confirm reset (required)')
                         .setRequired(true)
                 )
+        )
+        .addSubcommandGroup(group =>
+            group
+                .setName('message-link-embed')
+                .setDescription('Configure message link embed feature')
+                .addSubcommand(subcommand =>
+                    subcommand
+                        .setName('enable')
+                        .setDescription('Enable message link embed feature')
+                        .addChannelOption(option =>
+                            option
+                                .setName('channel')
+                                .setDescription('Channel to send embeds to')
+                                .setRequired(true)
+                        )
+                )
+                .addSubcommand(subcommand =>
+                    subcommand
+                        .setName('disable')
+                        .setDescription('Disable message link embed feature')
+                )
+                .addSubcommand(subcommand =>
+                    subcommand
+                        .setName('view')
+                        .setDescription('View message link embed settings')
+                )
         ),
 
     async execute(interaction, client) {
@@ -184,6 +210,8 @@ module.exports = {
             await handlePermissionSettings(interaction, client, subcommand);
         } else if (subcommandGroup === 'commands') {
             await handleCommandSettings(interaction, client, subcommand);
+        } else if (subcommandGroup === 'message-link-embed') {
+            await handleMessageLinkEmbedSettings(interaction, client, subcommand);
         } else if (subcommand === 'view') {
             await handleViewSettings(interaction, client);
         } else if (subcommand === 'reset') {
@@ -491,6 +519,16 @@ async function handleViewSettings(interaction, client) {
         inline: false
     });
 
+    // Message Link Embed Feature
+    const mleStatus = guildData.messageLinkEmbed?.enabled
+        ? `✅ Enabled\nTarget Channel: ${guildData.messageLinkEmbed.targetChannelId ? `<#${guildData.messageLinkEmbed.targetChannelId}>` : 'Not set'}`
+        : '❌ Disabled';
+    embed.addFields({
+        name: '🔗 Message Link Embed',
+        value: mleStatus,
+        inline: false
+    });
+
     // Premium Status
     const premiumStatus = guildData.isPremium() ? 
         `✅ Active${guildData.premium.expiresAt ? ` (expires ${guildData.premium.expiresAt.toDateString()})` : ''}` : 
@@ -508,6 +546,55 @@ async function handleViewSettings(interaction, client) {
     });
 
     await interaction.reply({ embeds: [embed] });
+}
+
+// Message Link Embed settings handler
+async function handleMessageLinkEmbedSettings(interaction, client, subcommand) {
+    const guildData = interaction.guildData;
+
+    if (subcommand === 'enable') {
+        const channel = interaction.options.getChannel('channel');
+        if (!channel || !channel.isTextBased()) {
+            return await interaction.reply({
+                embeds: [Utils.createErrorEmbed('Invalid Channel', 'Please select a text channel.')],
+                ephemeral: true
+            });
+        }
+        guildData.messageLinkEmbed.enabled = true;
+        guildData.messageLinkEmbed.targetChannelId = channel.id;
+        await guildData.save();
+
+        await interaction.reply({
+            embeds: [Utils.createSuccessEmbed(
+                'Message Link Embed Enabled',
+                `Message link embed feature is now **enabled**.\nEmbeds will be sent to ${channel}.`
+            )]
+        });
+    } else if (subcommand === 'disable') {
+        guildData.messageLinkEmbed.enabled = false;
+        guildData.messageLinkEmbed.targetChannelId = null;
+        await guildData.save();
+
+        await interaction.reply({
+            embeds: [Utils.createSuccessEmbed(
+                'Message Link Embed Disabled',
+                'Message link embed feature is now **disabled**.'
+            )]
+        });
+    } else if (subcommand === 'view') {
+        const enabled = guildData.messageLinkEmbed?.enabled;
+        const targetChannelId = guildData.messageLinkEmbed?.targetChannelId;
+        const embed = new EmbedBuilder()
+            .setTitle('🔗 Message Link Embed Settings')
+            .setColor(enabled ? 0x57F287 : 0xED4245)
+            .addFields([
+                { name: 'Status', value: enabled ? 'Enabled' : 'Disabled', inline: true },
+                { name: 'Target Channel', value: targetChannelId ? `<#${targetChannelId}>` : 'Not set', inline: true }
+            ])
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [embed] });
+    }
 }
 
 async function handleResetSettings(interaction, client) {
