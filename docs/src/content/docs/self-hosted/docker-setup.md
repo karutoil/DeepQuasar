@@ -70,7 +70,7 @@ You can download these files using `curl` or `wget`:
 ```bash
 curl -O https://raw.githubusercontent.com/karutoil/deepquasar/main/docker-compose.yml
 curl -O https://raw.githubusercontent.com/karutoil/deepquasar/main/.env.example
-mkdir -p data
+mkdir -p lavalink
 curl -o lavalink/application.yml https://raw.githubusercontent.com/karutoil/deepquasar/main/lavalink/application.yml
 ```
 
@@ -130,7 +130,7 @@ docker compose up -d
 
 ## Useful Links
 
-- [DeepQuasarV2 GitHub](https://github.com/karutoil/deepquasarv2)
+- [DeepQuasar GitHub](https://github.com/karutoil/deepquasar)
 - [Docker Documentation](https://docs.docker.com/get-docker/)
 - [Lavalink Documentation](https://github.com/lavalink-devs/Lavalink)
 
