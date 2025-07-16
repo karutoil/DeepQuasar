@@ -181,12 +181,6 @@ module.exports = {
                     subcommand
                         .setName('enable')
                         .setDescription('Enable message link embed feature')
-                        .addChannelOption(option =>
-                            option
-                                .setName('channel')
-                                .setDescription('Channel to send embeds to')
-                                .setRequired(true)
-                        )
                 )
                 .addSubcommand(subcommand =>
                     subcommand
@@ -553,21 +547,14 @@ async function handleMessageLinkEmbedSettings(interaction, client, subcommand) {
     const guildData = interaction.guildData;
 
     if (subcommand === 'enable') {
-        const channel = interaction.options.getChannel('channel');
-        if (!channel || !channel.isTextBased()) {
-            return await interaction.reply({
-                embeds: [Utils.createErrorEmbed('Invalid Channel', 'Please select a text channel.')],
-                ephemeral: true
-            });
-        }
         guildData.messageLinkEmbed.enabled = true;
-        guildData.messageLinkEmbed.targetChannelId = channel.id;
+        guildData.messageLinkEmbed.targetChannelId = null;
         await guildData.save();
 
         await interaction.reply({
             embeds: [Utils.createSuccessEmbed(
                 'Message Link Embed Enabled',
-                `Message link embed feature is now **enabled**.\nEmbeds will be sent to ${channel}.`
+                `Message link embed feature is now **enabled**.\nAny posted Discord message link will be automatically replaced with an embed in the same channel.`
             )]
         });
     } else if (subcommand === 'disable') {
@@ -583,13 +570,12 @@ async function handleMessageLinkEmbedSettings(interaction, client, subcommand) {
         });
     } else if (subcommand === 'view') {
         const enabled = guildData.messageLinkEmbed?.enabled;
-        const targetChannelId = guildData.messageLinkEmbed?.targetChannelId;
         const embed = new EmbedBuilder()
             .setTitle('🔗 Message Link Embed Settings')
             .setColor(enabled ? 0x57F287 : 0xED4245)
             .addFields([
                 { name: 'Status', value: enabled ? 'Enabled' : 'Disabled', inline: true },
-                { name: 'Target Channel', value: targetChannelId ? `<#${targetChannelId}>` : 'Not set', inline: true }
+                { name: 'Behavior', value: enabled ? 'Message links are replaced with embeds in the same channel.' : 'Feature is disabled.', inline: true }
             ])
             .setTimestamp();
 
