@@ -185,9 +185,9 @@ class MusicBot {
             ];
 
             const formattedBox = [
-                `╔${'═'.repeat(boxWidth)}╗`,
+                `╔════════════════════════════════════════════════════════════╗`,
                 ...boxLines.map(line => formatBoxLine(line, boxWidth)),
-                `╚${'═'.repeat(boxWidth)}╝`
+                `╚════════════════════════════════════════════════════════════╝`
             ].join('\n');
 
             logger.info(formattedBox);
