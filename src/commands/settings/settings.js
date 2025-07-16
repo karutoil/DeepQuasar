@@ -173,6 +173,21 @@ module.exports = {
                         .setRequired(true)
                 )
         )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('music-toggle')
+                .setDescription('Enable or disable the music module')
+                .addStringOption(option =>
+                    option
+                        .setName('state')
+                        .setDescription('Enable or disable music module')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'On', value: 'on' },
+                            { name: 'Off', value: 'off' }
+                        )
+                )
+        )
         .addSubcommandGroup(group =>
             group
                 .setName('message-link-embed')
@@ -210,6 +225,8 @@ module.exports = {
             await handleViewSettings(interaction, client);
         } else if (subcommand === 'reset') {
             await handleResetSettings(interaction, client);
+        } else if (subcommand === 'music-toggle') {
+            await handleMusicToggle(interaction, client);
         }
     },
 
@@ -540,6 +557,62 @@ async function handleViewSettings(interaction, client) {
     });
 
     await interaction.reply({ embeds: [embed] });
+}
+
+/**
+ * Handle music module toggle
+ */
+async function handleMusicToggle(interaction, client) {
+    const state = interaction.options.getString('state');
+    const guildData = interaction.guildData;
+
+    if (state === 'on') {
+        if (guildData.musicEnabled === true) {
+            return interaction.reply({
+                embeds: [Utils.createInfoEmbed(
+                    'Music Module',
+                    'The music module is already enabled.'
+                )],
+                ephemeral: true
+            });
+        }
+        guildData.musicEnabled = true;
+        await guildData.save();
+        return interaction.reply({
+            embeds: [Utils.createSuccessEmbed(
+                'Music Module Enabled',
+                'The music module is now **enabled**. All music commands are available.'
+            )],
+            ephemeral: true
+        });
+    } else if (state === 'off') {
+        if (guildData.musicEnabled === false) {
+            return interaction.reply({
+                embeds: [Utils.createInfoEmbed(
+                    'Music Module',
+                    'The music module is already disabled.'
+                )],
+                ephemeral: true
+            });
+        }
+        guildData.musicEnabled = false;
+        await guildData.save();
+        return interaction.reply({
+            embeds: [Utils.createSuccessEmbed(
+                'Music Module Disabled',
+                'The music module is now **disabled**. All music commands are unavailable until re-enabled.'
+            )],
+            ephemeral: true
+        });
+    } else {
+        return interaction.reply({
+            embeds: [Utils.createErrorEmbed(
+                'Invalid State',
+                'Please specify either "on" or "off".'
+            )],
+            ephemeral: true
+        });
+    }
 }
 
 // Message Link Embed settings handler

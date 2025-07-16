@@ -12,6 +12,12 @@ const guildSchema = new mongoose.Schema({
         required: true
     },
 
+    // Music module on/off switch
+    musicEnabled: {
+        type: Boolean,
+        default: true
+    },
+
     // Premium features
     premium: {
         enabled: {

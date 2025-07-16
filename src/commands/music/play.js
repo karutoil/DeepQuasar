@@ -40,6 +40,17 @@ module.exports = {
     async execute(interaction, client) {
         await interaction.deferReply();
 
+        // Music module toggle check
+        if (interaction.guildData && interaction.guildData.musicEnabled === false) {
+            return interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ED4245')
+                    .setTitle('❌ Music Disabled')
+                    .setDescription('The music module is currently disabled on this server. An admin can enable it with `/settings music-toggle state:on`.')],
+                ephemeral: true
+            });
+        }
+
         const query = interaction.options.getString('query');
         const source = interaction.options.getString('source') || interaction.guildData?.musicSettings?.searchEngine || 'youtube';
         const playNext = interaction.options.getBoolean('next') || false;
