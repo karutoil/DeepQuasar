@@ -159,6 +159,10 @@ class MusicBot {
             const moonlinkVersion = require('moonlink.js').version || 'Unknown';
             const lavalinkVersion = node.version || 'Unknown';
 
+            if (lavalinkVersion === 'Unknown') {
+                logger.warn('Lavalink server version could not be determined. Ensure the server is running and accessible.');
+            }
+
             const formatBoxLine = (content, width = 60) => {
                 const padding = width - content.length;
                 const leftPad = Math.floor(padding / 2);
