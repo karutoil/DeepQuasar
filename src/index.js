@@ -135,6 +135,25 @@ class MusicBot {
             }
         });
 
+        // Log Moonlink.js and Lavalink versions
+        const moonlinkVersion = require('moonlink.js/package.json').version;
+        const lavalinkVersion = this.client.manager.nodes.cache.get('main')?.version || 'Unknown';
+
+        logger.info(`
+        ╔══════════════════════════════════════════════════════════════╗
+        ║                     Moonlink.js Initialized                  ║
+        ║                                                              ║
+        ║   Moonlink.js Version: ${moonlinkVersion.padEnd(45)}║
+        ║   Lavalink Server Version: ${lavalinkVersion.padEnd(40)}║
+        ║                                                              ║
+        ║   Node Identifier: main                                      ║
+        ║   Host: ${config.lavalink.host.padEnd(50)}║
+        ║   Port: ${config.lavalink.port.toString().padEnd(50)}║
+        ║   Secure: ${config.lavalink.secure ? 'Yes'.padEnd(50) : 'No'.padEnd(50)}║
+        ║                                                              ║
+        ╚══════════════════════════════════════════════════════════════╝
+        `);
+
         // Setup Moonlink event handlers
         this.setupMoonlinkEvents();
 
