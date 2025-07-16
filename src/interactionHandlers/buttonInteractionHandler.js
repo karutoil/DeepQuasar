@@ -729,13 +729,12 @@ async function handleTempVCButton(interaction, client) {
 }
 
 async function handleButtonInteraction(interaction, client) {
+    // Always define customId at the top for use in all branches and in catch
+    const customId = interaction.customId;
     try {
         // Handle LFG button interactions first
         const lfgHandled = await LFGInteractionHandler.handleButtonInteraction(interaction);
         if (lfgHandled) return;
-
-        // Always define customId at the top for use in all branches
-        const customId = interaction.customId;
 
         // Remove reminder select menu handler from here.
         // It should be handled in the selectMenuHandler file.
@@ -1031,7 +1030,9 @@ async function handleButtonInteraction(interaction, client) {
         }
 
     } catch (error) {
-        client.logger.error(`Error handling button interaction ${customId}:`, error);
+        // customId is always defined at the top, but fallback just in case
+        const safeCustomId = typeof customId !== 'undefined' ? customId : '[unknown]';
+        client.logger.error(`Error handling button interaction ${safeCustomId}:`, error);
         
         const errorEmbed = Utils.createErrorEmbed(
             'Button Error',

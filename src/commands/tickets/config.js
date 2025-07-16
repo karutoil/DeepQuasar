@@ -447,10 +447,18 @@ module.exports = {
             const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
             if (!config) {
-                return interaction.reply({
-                    embeds: [Utils.createErrorEmbed('No Configuration', 'Ticket system is not configured. Use `/tickets setup` to get started.')],
-                    ephemeral: true
-                });
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.editReply({
+                        embeds: [Utils.createErrorEmbed('No Configuration', 'Ticket system is not configured. Use `/tickets setup` to get started.')],
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.reply({
+                        embeds: [Utils.createErrorEmbed('No Configuration', 'Ticket system is not configured. Use `/tickets setup` to get started.')],
+                        ephemeral: true
+                    });
+                }
+                return;
             }
 
             const openCategory = interaction.guild.channels.cache.get(config.channels.openCategory);
@@ -517,14 +525,25 @@ module.exports = {
                 ]
             });
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({ embeds: [embed], ephemeral: true });
+            } else {
+                await interaction.reply({ embeds: [embed], ephemeral: true });
+            }
 
         } catch (error) {
             console.error('Error showing config:', error);
-            await interaction.reply({
-                embeds: [Utils.createErrorEmbed('Error', 'Failed to load configuration.')],
-                ephemeral: true
-            });
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({
+                    embeds: [Utils.createErrorEmbed('Error', 'Failed to load configuration.')],
+                    ephemeral: true
+                });
+            } else {
+                await interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Error', 'Failed to load configuration.')],
+                    ephemeral: true
+                });
+            }
         }
     },
 
