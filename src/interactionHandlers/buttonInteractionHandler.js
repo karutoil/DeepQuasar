@@ -734,6 +734,7 @@ async function handleButtonInteraction(interaction, client) {
         const lfgHandled = await LFGInteractionHandler.handleButtonInteraction(interaction);
         if (lfgHandled) return;
 
+        // Always define customId at the top for use in all branches
         const customId = interaction.customId;
 
         // Remove reminder select menu handler from here.

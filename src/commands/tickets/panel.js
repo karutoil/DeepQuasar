@@ -336,10 +336,19 @@ module.exports = {
             const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
             
             if (!config || config.panels.length === 0) {
-                return interaction.reply({
-                    embeds: [Utils.createErrorEmbed('No Panels', 'No ticket panels found in this server.')],
-                    ephemeral: true
-                });
+                // If already replied or deferred, use editReply
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.editReply({
+                        embeds: [Utils.createErrorEmbed('No Panels', 'No ticket panels found in this server.')],
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.reply({
+                        embeds: [Utils.createErrorEmbed('No Panels', 'No ticket panels found in this server.')],
+                        ephemeral: true
+                    });
+                }
+                return;
             }
 
             const panelList = config.panels.map(panel => {
@@ -357,14 +366,26 @@ module.exports = {
                 color: 0x5865F2
             });
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            // If already replied or deferred, use editReply
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({ embeds: [embed], ephemeral: true });
+            } else {
+                await interaction.reply({ embeds: [embed], ephemeral: true });
+            }
 
         } catch (error) {
             console.error('Error listing panels:', error);
-            await interaction.reply({
-                embeds: [Utils.createErrorEmbed('Error', 'Failed to list ticket panels.')],
-                ephemeral: true
-            });
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({
+                    embeds: [Utils.createErrorEmbed('Error', 'Failed to list ticket panels.')],
+                    ephemeral: true
+                });
+            } else {
+                await interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Error', 'Failed to list ticket panels.')],
+                    ephemeral: true
+                });
+            }
         }
     },
 
