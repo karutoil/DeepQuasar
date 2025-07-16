@@ -149,6 +149,15 @@ module.exports = {
                 color: 0x2ecc71,
                 fields: [
                     {
+                        name: 'Current Ticket Status',
+                        value:
+                            `🟢 **Open:** ${analytics.statusCounts.open}\n` +
+                            `🔴 **Closed:** ${analytics.statusCounts.closed}\n` +
+                            `⚫ **Deleted:** ${analytics.statusCounts.deleted}\n` +
+                            `📁 **Archived:** ${analytics.statusCounts.archived}`,
+                        inline: false
+                    },
+                    {
                         name: 'Ticket Types',
                         value: analytics.types.length > 0
                             ? analytics.types.map(t => `• **${t._id || 'Unknown'}**: ${t.count}`).join('\n')
@@ -293,6 +302,14 @@ module.exports = {
         const tagCounts = {};
         let closeTimes = [];
 
+        // Status breakdown
+        const statusCounts = {
+            open: 0,
+            closed: 0,
+            deleted: 0,
+            archived: 0
+        };
+
         for (const ticket of recentTickets) {
             // Type
             typeCounts[ticket.type] = (typeCounts[ticket.type] || 0) + 1;
@@ -304,6 +321,11 @@ module.exports = {
                     tagCounts[tag] = (tagCounts[tag] || 0) + 1;
                 }
             }
+            // Status
+            if (ticket.status === 'open') statusCounts.open++;
+            else if (ticket.status === 'closed') statusCounts.closed++;
+            else if (ticket.status === 'deleted') statusCounts.deleted++;
+            else if (ticket.status === 'archived') statusCounts.archived++;
             // Average close time
             if (ticket.status === 'closed' && ticket.closedBy && ticket.closedBy.closedAt && ticket.createdAt) {
                 const hours = (ticket.closedBy.closedAt.getTime() - ticket.createdAt.getTime()) / (1000 * 60 * 60);
@@ -323,7 +345,8 @@ module.exports = {
             types,
             priorities,
             tags,
-            avgCloseTime
+            avgCloseTime,
+            statusCounts
         };
     }
 };
