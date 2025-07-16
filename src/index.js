@@ -136,7 +136,7 @@ class MusicBot {
         });
 
         // Log Moonlink.js and Lavalink versions
-        const moonlinkVersion = require('moonlink.js/package.json').version;
+        const moonlinkVersion = require('moonlink.js').version || 'Unknown';
         const lavalinkVersion = this.client.manager.nodes.cache.get('main')?.version || 'Unknown';
 
         logger.info(`
