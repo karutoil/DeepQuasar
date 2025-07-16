@@ -267,6 +267,9 @@ module.exports = {
         // Agent breakdown
         const agentCounts = {};
 
+        // Soft deleted count (isDeleted: true)
+        const totalSoftDeleted = await Ticket.countDocuments({ guildId, isDeleted: true });
+
         for (const ticket of recentTickets) {
             // Type
             typeCounts[ticket.type] = (typeCounts[ticket.type] || 0) + 1;
@@ -318,7 +321,8 @@ module.exports = {
             tags,
             avgCloseTime,
             statusCounts,
-            topAgents
+            topAgents,
+            totalSoftDeleted
         };
     }
 };

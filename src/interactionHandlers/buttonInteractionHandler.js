@@ -991,7 +991,8 @@ async function handleButtonInteraction(interaction, client) {
                                     `🟢 **Open:** ${analytics.statusCounts.open}\n` +
                                     `🔴 **Closed:** ${analytics.statusCounts.closed}\n` +
                                     `⚫ **Deleted:** ${analytics.statusCounts.deleted}\n` +
-                                    `📁 **Archived:** ${analytics.statusCounts.archived}`,
+                                    `📁 **Archived:** ${analytics.statusCounts.archived}\n` +
+                                    `🗑️ **Total Deleted (Soft):** ${analytics.totalSoftDeleted || 0}`,
                                 inline: false
                             },
                             {
