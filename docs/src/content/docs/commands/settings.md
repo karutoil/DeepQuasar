@@ -151,6 +151,19 @@ Use the `/settings` command followed by a subcommand group or a direct subcomman
                     *   **Required:** Yes
             *   **Usage:** `/settings commands enable command:play`
 
+*   `message-link-embed`
+    *   **Description:** Configure automatic embedding of Discord message links.
+    *   **Subcommands:**
+        *   `enable`
+            *   **Description:** Enables the message link embed feature. When enabled, any Discord message link posted in a channel will be automatically replaced with an embed showing the linked message's content (or embed), plus a "Go to Message" button.
+            *   **Usage:** `/settings message-link-embed enable`
+        *   `disable`
+            *   **Description:** Disables the message link embed feature.
+            *   **Usage:** `/settings message-link-embed disable`
+        *   `view`
+            *   **Description:** View the current status of the message link embed feature.
+            *   **Usage:** `/settings message-link-embed view`
+
 ### Subcommands (Top-Level)
 
 *   `view`
@@ -177,6 +190,15 @@ Use the `/settings` command followed by a subcommand group or a direct subcomman
 
 # Disable the play command
 /settings commands disable command:play
+
+# Enable automatic message link embedding
+/settings message-link-embed enable
+
+# Disable automatic message link embedding
+/settings message-link-embed disable
+
+# View message link embed status
+/settings message-link-embed view
 
 # View all current settings
 /settings view
