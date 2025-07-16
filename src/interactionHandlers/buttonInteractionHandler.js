@@ -908,18 +908,82 @@ async function handleButtonInteraction(interaction, client) {
             customId === 'dashboard_analytics' ||
             customId === 'dashboard_refresh'
         ) {
-            const dashboardCommand = client.commands.get('dashboard');
-            if (!dashboardCommand) {
-                await interaction.reply({
-                    embeds: [Utils.createErrorEmbed('Handler Error', 'Dashboard command handler not found.')],
+            await interaction.deferUpdate();
+            // Feature: Show a modal or embed for each dashboard button
+            if (customId === 'dashboard_panels') {
+                // Show panel list and quick links
+                const panelCommand = client.commands.get('panel');
+                if (panelCommand && typeof panelCommand.listPanels === 'function') {
+                    await panelCommand.listPanels(interaction);
+                } else {
+                    await interaction.followUp({
+                        embeds: [Utils.createErrorEmbed('Handler Error', 'Panel command handler not found.')],
+                        ephemeral: true
+                    });
+                }
+                return;
+            }
+            if (customId === 'dashboard_staff') {
+                // Show staff roles and quick management info
+                const configCommand = client.commands.get('tickets');
+                if (configCommand && typeof configCommand.manageStaff === 'function') {
+                    // Simulate 'list' action for staff roles
+                    interaction.options = {
+                        getString: (name) => name === 'action' ? 'list' : null,
+                        getRole: () => null
+                    };
+                    await configCommand.manageStaff(interaction);
+                } else {
+                    await interaction.followUp({
+                        embeds: [Utils.createErrorEmbed('Handler Error', 'Staff management handler not found.')],
+                        ephemeral: true
+                    });
+                }
+                return;
+            }
+            if (customId === 'dashboard_settings') {
+                // Show current ticket system settings
+                const configCommand = client.commands.get('tickets');
+                if (configCommand && typeof configCommand.showConfig === 'function') {
+                    await configCommand.showConfig(interaction);
+                } else {
+                    await interaction.followUp({
+                        embeds: [Utils.createErrorEmbed('Handler Error', 'Settings handler not found.')],
+                        ephemeral: true
+                    });
+                }
+                return;
+            }
+            if (customId === 'dashboard_logs') {
+                // Show a simple embed for logs (feature stub)
+                await interaction.followUp({
+                    embeds: [Utils.createInfoEmbed(
+                        'Ticket Logs',
+                        'Log viewing is not yet implemented. Check your configured log channel for ticket events.'
+                    )],
                     ephemeral: true
                 });
                 return;
             }
-            // You can add more granular logic here for each button if needed
-            // For now, just re-run the dashboard command to refresh the view
-            await dashboardCommand.execute(interaction);
-            return;
+            if (customId === 'dashboard_analytics') {
+                // Show a simple embed for analytics (feature stub)
+                await interaction.followUp({
+                    embeds: [Utils.createInfoEmbed(
+                        'Ticket Analytics',
+                        'Analytics dashboard is coming soon! For now, see the statistics in the main dashboard.'
+                    )],
+                    ephemeral: true
+                });
+                return;
+            }
+            if (customId === 'dashboard_refresh') {
+                // Refresh the dashboard view
+                const dashboardCommand = client.commands.get('dashboard');
+                if (dashboardCommand) {
+                    await dashboardCommand.execute(interaction);
+                }
+                return;
+            }
         }
 
         // Handle ticket confirmation buttons
