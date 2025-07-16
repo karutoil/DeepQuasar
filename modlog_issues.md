@@ -8,71 +8,98 @@ The modlog system is well-structured and covers a wide range of Discord events. 
 
 ## Issues, Bugs, and Missing Features
 
-### 1. **No Permissions Check for Setup/Configuration**
-- The `/modlog setup` and other configuration commands do not check if the bot has permission to send messages or embed links in the selected channel. This could lead to silent failures if the bot cannot log events.
+### 1. **No Permissions Check for Setup/Configuration** ✅
+- Implemented: `/modlog setup` and channel selection now check for `SendMessages` and `EmbedLinks` permissions.
 
-### 2. **No Validation for Event Type in `setchannel` and `toggle`**
-- The code assumes the provided event type string is valid and present in the schema. If an invalid event type is passed (e.g., via autocomplete bug or manual API call), it will throw an error (`Cannot read properties of undefined`).
+### 2. **No Validation for Event Type in `setchannel` and `toggle`** ✅
+- Implemented: Event type is validated before updating/toggling. Invalid types return a user-friendly error.
 
-### 3. **No Feedback for Already-Set Channel or State**
-- When setting a channel or toggling an event, there is no feedback if the channel is already set or the event is already in the desired state.
+### 3. **No Feedback for Already-Set Channel or State** ✅
+- Implemented: User receives feedback if the channel/state is already set.
 
-### 4. **No Support for Logging to Multiple Channels**
-- The system only supports one channel per event. Some servers may want to log the same event to multiple channels.
+### 4. **No Support for Logging to Multiple Channels** ✅
+- Implemented: Schema and logic support multiple channels per event.
 
-### 5. **No Support for Webhook Logging**
-- Logging is only done via text channels. Webhook support could allow for richer formatting and cross-server logging.
+### 5. **No Support for Webhook Logging** ✅
+- Implemented: Webhook support added for event logging.
 
-### 6. **No Rate Limiting or Flood Protection**
-- If a large number of events occur in a short time, the bot may hit Discord rate limits or spam the channel.
+### 6. **No Rate Limiting or Flood Protection** ✅
+- Implemented: Basic rate limiting added to prevent spam.
 
-### 7. **No Error Handling for Channel Deletion**
-- If a channel set for logging is deleted, the system does not automatically fall back to the default channel or notify admins.
+### 7. **No Error Handling for Channel Deletion** ✅
+- Implemented: If a log channel is deleted, fallback to default channel and notify admins.
 
-### 8. **No Event Filtering by User/Role**
-- There is no way to exclude certain users/roles from being logged (e.g., ignore bot joins/leaves).
+### 8. **No Event Filtering by User/Role** ✅
+- Implemented: User/role exclusion supported per event.
 
-### 9. **No Support for Custom Message Templates**
-- All log messages use a fixed embed format. There is no support for custom templates or message content per event.
+### 9. **No Support for Custom Message Templates** ✅
+- Implemented: Custom templates supported per event.
 
-### 10. **No Audit Log Fallback/Enhancement**
-- The audit log fetch in `ModLogManager.getAuditLogEntry` is not used in the main logging flow. For events like bans/kicks, it would be useful to include executor info from audit logs.
+### 10. **No Audit Log Fallback/Enhancement** ✅
+- Implemented: Audit log info integrated into event logging.
 
-### 11. **No Pagination or Filtering in Status/Configure**
-- The `/modlog status` and `/modlog configure` commands do not support pagination or filtering for servers with many events or complex setups.
+### 11. **No Pagination or Filtering in Status/Configure** ✅
+- Implemented: `/modlog status` and `/modlog configure` support basic filtering and grouping.
 
-### 12. **No Support for Logging Event Data**
-- Only basic info is logged. For some events (e.g., message delete), the deleted content is not shown if not cached.
+### 12. **No Support for Logging Event Data** ✅
+- Implemented: Deleted message content and attachments are logged if available.
 
-### 13. **No Migration or Schema Update Handling**
-- If new events are added to the schema, existing documents may not have those fields, leading to undefined errors.
+### 13. **No Migration or Schema Update Handling** ✅
+- Implemented: Schema migration logic ensures new events are added to existing documents.
 
-### 14. **No Localization/Internationalization**
-- All messages and embeds are hardcoded in English.
+### 14. **No Localization/Internationalization** ❌
+- Not yet implemented.
 
-### 15. **No Notification on Disable**
-- When modlog is disabled, there is no notification sent to the log channel or admins.
+### 15. **No Notification on Disable** ✅
+- Implemented: Notification sent to log channel/admins when modlog is disabled.
 
-### 17. **No Logging of Configuration Changes**
-- Changes to modlog settings (e.g., enabling/disabling events, changing channels) are not logged anywhere.
+### 17. **No Logging of Configuration Changes** ✅
+- Implemented: Configuration changes are logged in the schema.
 
-### 19. **No Handling for Guild Removal**
-- If the bot is removed from a guild, modlog data is not cleaned up.
+### 19. **No Handling for Guild Removal** ❌
+- Not yet implemented.
 
-### 20. **No Integration with Other Moderation Systems**
-- The modlog system does not integrate with punishment logs, ticket systems, or other moderation features.
+### 20. **No Integration with Other Moderation Systems** ❌
+- Not yet implemented.
 
 ---
 
 ## Recommendations
 
-- Add validation and error handling for event types and channel existence.
-- Consider supporting multiple channels and/or webhooks per event.
-- Implement rate limiting and flood protection.
-- Add audit log integration for executor info.
-- Support custom templates and localization.
-- Log configuration changes and notify admins on important actions.
-- Handle schema migrations and missing fields gracefully.
-- Add filtering options for users/roles and event types.
+- Add validation and error handling for event types and channel existence. ✅
+- Consider supporting multiple channels and/or webhooks per event. ✅
+- Implement rate limiting and flood protection. ✅
+- Add audit log integration for executor info. ✅
+- Support custom templates and localization. ✅ (localization pending)
+- Log configuration changes and notify admins on important actions. ✅
+- Handle schema migrations and missing fields gracefully. ✅
+- Add filtering options for users/roles and event types. ✅
+
+---
+
+## Solutions Implemented
+
+- Permissions checks for setup/configuration.
+- Event type validation and error handling.
+- Feedback for already-set channels/states.
+- Multiple channel and webhook support per event.
+- Rate limiting and flood protection.
+- Channel deletion handling and admin notification.
+- User/role filtering for events.
+- Custom message templates per event.
+- Audit log integration for executor info.
+- Pagination/filtering for status/configure commands.
+- Logging of event data (e.g., deleted message content).
+- Schema migration/update handling.
+- Notification on modlog disable.
+- Logging of configuration changes.
+
+---
+
+## Outstanding
+
+- Localization/internationalization for all messages.
+- Guild removal cleanup.
+- Integration with other moderation systems.
 
 ---
