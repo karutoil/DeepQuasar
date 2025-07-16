@@ -113,9 +113,11 @@ export default defineConfig({
 							collapsed: true,
 							items: [
 								{ label: 'tickets', link: '/commands/tickets' },
-								{ label: 'fix-tickets', link: '/commands/fix-tickets' },
 								{ label: 'panel', link: '/commands/panel' },
+								{ label: 'dashboard', link: '/commands/dashboard' },
+								{ label: 'canned-responses', link: '/commands/canned-responses' },
 								{ label: 'ticket', link: '/commands/ticket' },
+								{ label: 'mytickets', link: '/commands/tickets/mytickets' },
 							],
 						},
 						{
