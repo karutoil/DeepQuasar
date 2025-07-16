@@ -67,6 +67,12 @@ async function handleMessageLinkEmbed(message) {
             const linkedMsg = await linkedChannel.messages.fetch(messageId);
             if (!linkedMsg) continue;
 
+            // Add "Quoted By" embed first
+            const quotedByEmbed = new EmbedBuilder()
+                .setColor('#5DADE2')
+                .setDescription(`**Quoted By:** ${message.author}`)
+                .setTimestamp();
+
             // If the linked message has embeds, use those instead of just .content
             let embedsToSend = [];
             if (linkedMsg.embeds && linkedMsg.embeds.length > 0) {
@@ -100,8 +106,8 @@ async function handleMessageLinkEmbed(message) {
 
             const row = new ActionRowBuilder().addComponents(button);
 
-            // Send embed(s) in the same channel as the message link
-            await message.channel.send({ embeds: embedsToSend, components: [row] });
+            // Send "Quoted By" embed and then the quoted message embed(s)
+            await message.channel.send({ embeds: [quotedByEmbed, ...embedsToSend], components: [row] });
 
             // Optionally delete the original message containing the link
             if (message.deletable) {
