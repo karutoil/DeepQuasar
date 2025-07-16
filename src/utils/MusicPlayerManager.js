@@ -13,6 +13,28 @@ class MusicPlayerManager {
     }
 
     /**
+     * Helper to create a beautiful embed
+     * @param {Object} options - Embed options
+     * @returns {EmbedBuilder}
+     */
+    createBeautifulEmbed(options = {}) {
+        const { title, description, color = '#8e44ad', thumbnail, author, footer, fields = [], image } = options;
+        const embed = new EmbedBuilder()
+            .setColor(color)
+            .setTitle(title ? `🌈 ${title}` : undefined)
+            .setDescription(description ? `\n━━━━━━━━━━━━━━━━━━\n${description}\n━━━━━━━━━━━━━━━━━━` : undefined)
+            .setTimestamp();
+
+        if (author) embed.setAuthor(author);
+        if (footer) embed.setFooter(footer);
+        if (thumbnail) embed.setThumbnail(thumbnail);
+        if (image) embed.setImage(image);
+        if (fields.length > 0) embed.addFields(fields);
+
+        return embed;
+    }
+
+    /**
      * Create or get an existing player for a guild
      * @param {Object} options - Player options
      * @param {string} options.guildId - Guild ID
@@ -189,29 +211,18 @@ class MusicPlayerManager {
      * @returns {EmbedBuilder} Discord embed
      */
     createNowPlayingEmbed(track, player) {
-        const embed = new EmbedBuilder()
-            .setTitle('🎵 Now Playing')
-            .setDescription(`**[${track.title}](${track.uri})**`)
-            .setColor('#00ff00')
-            .addFields(
+        return this.createBeautifulEmbed({
+            title: 'Now Playing',
+            description: `**[${track.title}](${track.uri})**\n\n🎤 **Artist:** ${track.author || 'Unknown'}\n👤 **Requested by:** <@${track.requester}>`,
+            color: '#43b581',
+            thumbnail: track.thumbnail,
+            fields: [
                 { name: '⏱️ Duration', value: this.formatDuration(track.duration), inline: true },
-                { name: '👤 Requested by', value: `<@${track.requester}>`, inline: true },
-                { name: '🔊 Volume', value: `${player.volume}%`, inline: true }
-            );
-
-        if (track.thumbnail) {
-            embed.setThumbnail(track.thumbnail);
-        }
-
-        if (player.queue.size > 0) {
-            embed.addFields({
-                name: '📋 Queue',
-                value: `${player.queue.size} track(s) in queue`,
-                inline: true
-            });
-        }
-
-        return embed;
+                { name: '🔊 Volume', value: `${player.volume}%`, inline: true },
+                { name: '📋 Queue', value: `${player.queue.size} track(s) in queue`, inline: true }
+            ],
+            footer: { text: 'Enjoy your music! 🎶', iconURL: player.client.user.displayAvatarURL() }
+        });
     }
 
     /**
@@ -221,45 +232,29 @@ class MusicPlayerManager {
      * @returns {EmbedBuilder} Discord embed
      */
     createQueueEmbed(player, page = 1) {
-        const embed = new EmbedBuilder()
-            .setTitle('📋 Music Queue')
-            .setColor('#0099ff');
+        const tracksPerPage = 10;
+        const startIndex = (page - 1) * tracksPerPage;
+        const endIndex = startIndex + tracksPerPage;
+        const queueTracks = player.queue.tracks.slice(startIndex, endIndex);
 
-        // Current track
-        if (player.current) {
-            embed.setDescription(`**Now Playing:**\n[${player.current.title}](${player.current.uri}) | \`${this.formatDuration(player.current.duration)}\``);
-        }
+        const trackList = queueTracks.map((track, index) => {
+            const position = startIndex + index + 1;
+            return `**${position}.** [${track.title}](${track.uri}) • ⏱️ ${this.formatDuration(track.duration)} • 👤 ${track.author || 'Unknown'}`;
+        }).join('\n');
 
-        // Queue tracks
-        if (player.queue.size > 0) {
-            const tracksPerPage = 10;
-            const startIndex = (page - 1) * tracksPerPage;
-            const endIndex = startIndex + tracksPerPage;
-            const queueTracks = player.queue.tracks.slice(startIndex, endIndex);
+        const totalPages = Math.ceil(player.queue.size / tracksPerPage);
 
-            const trackList = queueTracks.map((track, index) => {
-                const position = startIndex + index + 1;
-                return `${position}. [${track.title}](${track.uri}) | \`${this.formatDuration(track.duration)}\``;
-            }).join('\n');
-
-            embed.addFields({
-                name: `Up Next (${player.queue.size} total):`,
-                value: trackList || 'No tracks in queue'
-            });
-
-            // Add pagination info if needed
-            const totalPages = Math.ceil(player.queue.size / tracksPerPage);
-            if (totalPages > 1) {
-                embed.setFooter({ text: `Page ${page}/${totalPages}` });
-            }
-        } else {
-            embed.addFields({
-                name: 'Up Next:',
-                value: 'No tracks in queue'
-            });
-        }
-
-        return embed;
+        return this.createBeautifulEmbed({
+            title: 'Music Queue',
+            description: player.current
+                ? `**Now Playing:**\n[${player.current.title}](${player.current.uri}) | \`${this.formatDuration(player.current.duration)}\`\n\n${trackList || '_No tracks in queue._'}`
+                : trackList || '_No tracks in queue._',
+            color: '#0099ff',
+            fields: [
+                { name: 'Up Next', value: trackList || 'No tracks in queue' }
+            ],
+            footer: totalPages > 1 ? { text: `Page ${page}/${totalPages}` } : { text: 'Queue' }
+        });
     }
 
     /**
