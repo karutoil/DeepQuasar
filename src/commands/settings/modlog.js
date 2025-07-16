@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const ModLog = require('../../schemas/ModLog');
 const ModLogManager = require('../../utils/ModLogManager');
 const Utils = require('../../utils/utils');
@@ -111,7 +111,7 @@ module.exports = {
             const embed = Utils.createErrorEmbed('Error', 'An error occurred while processing the command.');
             
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             } else {
                 await interaction.reply({ embeds: [embed], ephemeral: true });
             }
@@ -125,7 +125,7 @@ module.exports = {
         const botMember = interaction.guild.members.me;
         if (!botMember) {
             const embed = Utils.createErrorEmbed('Setup Failed', 'Bot is not present in this guild.');
-            return await interaction.reply({ embeds: [embed], ephemeral: true });
+            return await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
         const permissions = channel.permissionsFor(botMember);
         if (!permissions.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
@@ -133,7 +133,7 @@ module.exports = {
                 'Missing Permissions',
                 `Bot needs **Send Messages** and **Embed Links** permissions in ${channel} to log events.`
             );
-            return await interaction.reply({ embeds: [embed], ephemeral: true });
+            return await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
 
         let modLog = await ModLog.findOne({ guildId: interaction.guild.id });
@@ -155,14 +155,14 @@ module.exports = {
             `Use \`/modlog configure\` to customize individual event settings.`
         );
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     },
 
     async handleDisable(interaction) {
         const modLog = await ModLog.findOne({ guildId: interaction.guild.id });
         if (!modLog || !modLog.enabled) {
             const embed = Utils.createErrorEmbed('Not Enabled', 'Moderation logging is not currently enabled.');
-            return await interaction.reply({ embeds: [embed], ephemeral: true });
+            return await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
 
         modLog.enabled = false;
@@ -183,7 +183,7 @@ module.exports = {
             'Moderation logging has been disabled for this server.'
         );
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     },
 
     async handleStatus(interaction) {
@@ -236,7 +236,7 @@ module.exports = {
         
         embed.addFields(fields);
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     },
 
     async handleConfigure(interaction) {
@@ -249,7 +249,7 @@ module.exports = {
                 'Modlog Not Enabled', 
                 'Please use `/modlog setup` first to enable moderation logging.'
             );
-            return await interaction.editReply({ embeds: [embed] });
+            return await interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
 
         const embed = Utils.createInfoEmbed(
@@ -307,7 +307,7 @@ module.exports = {
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
 
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        await interaction.editReply({ embeds: [embed], components: [row], flags: MessageFlags.Ephemeral });
     },
 
     async handleSetChannel(interaction) {
@@ -370,7 +370,7 @@ module.exports = {
             `**Event:** ${displayName}\n**Channel:** ${channelText}`
         );
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     },
 
     async handleToggle(interaction) {
