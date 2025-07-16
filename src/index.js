@@ -159,7 +159,6 @@ class MusicBot {
             const moonlinkVersion = require('moonlink.js').version || 'Unknown';
             const lavalinkVersion = node.version || 'Unknown';
 
-            logger.info(`
             const formatBoxLine = (content, width = 60) => {
                 const padding = width - content.length;
                 const leftPad = Math.floor(padding / 2);
@@ -188,15 +187,14 @@ class MusicBot {
             ].join('\n');
 
             logger.info(formattedBox);
-            `);
         });
 
         this.client.manager.on('nodeDisconnected', (node, code, reason) => {
-            logger.warn(`Moonlink node "${node.identifier}" disconnected. Code: ${code}, Reason: ${reason}`);
+            logger.warn(`Moonlink node "${node.identifier}" disconnected. Code: ${code}, Reason: ${reason || 'Unknown'}`);
         });
 
         this.client.manager.on('nodeError', (node, error) => {
-            logger.error(`Moonlink node "${node.identifier}" error:`, error);
+            logger.error(`Moonlink node "${node.identifier}" error:`, error || 'Unknown error');
         });
 
         this.client.manager.on('nodeReconnect', (node) => {
@@ -209,7 +207,7 @@ class MusicBot {
         });
 
         this.client.manager.on('trackEnd', (player, track, type, payload) => {
-            logger.debug(`Track ended: ${track.title} in ${player.guildId} (type: ${type})`);
+            logger.debug(`Track ended: ${track?.title || 'Unknown'} in ${player.guildId} (type: ${type || 'Unknown'})`);
         });
 
         this.client.manager.on('queueEnd', (player) => {
@@ -231,27 +229,27 @@ class MusicBot {
 
         // Player events
         this.client.manager.on('playerCreate', (player) => {
-            logger.info(`Player created for guild ${player.guildId}, voice channel ${player.voiceChannelId}`);
+            logger.info(`Player created for guild ${player.guildId}, voice channel ${player.voiceChannelId || 'Unknown'}`);
         });
 
         this.client.manager.on('playerDestroy', (player, reason) => {
-            logger.info(`Player destroyed in guild ${player.guildId}. Reason: ${reason || 'N/A'}`);
+            logger.info(`Player destroyed in guild ${player.guildId}. Reason: ${reason || 'Unknown'}`);
         });
 
         this.client.manager.on('playerConnected', (player) => {
-            logger.info(`Player connected to voice channel ${player.voiceChannelId} in guild ${player.guildId}`);
+            logger.info(`Player connected to voice channel ${player.voiceChannelId || 'Unknown'} in guild ${player.guildId}`);
         });
 
         this.client.manager.on('playerDisconnected', (player) => {
-            logger.info(`Player disconnected from voice channel in guild ${player.guildId}`);
+            logger.info(`Player disconnected from voice channel in guild ${player.guildId || 'Unknown'}`);
         });
 
         this.client.manager.on('playerMoved', (player, oldChannel, newChannel) => {
-            logger.info(`Player moved from channel ${oldChannel} to ${newChannel} in guild ${player.guildId}`);
+            logger.info(`Player moved from channel ${oldChannel || 'Unknown'} to ${newChannel || 'Unknown'} in guild ${player.guildId}`);
         });
 
         this.client.manager.on('playerUpdate', (player, track, payload) => {
-            logger.debug(`Player updated for guild ${player.guildId}, connected: ${player.connected}, state: ${player.state}`);
+            logger.debug(`Player updated for guild ${player.guildId}, connected: ${player.connected || 'Unknown'}, state: ${player.state || 'Unknown'}`);
         });
     }
 
@@ -367,7 +365,7 @@ class MusicBot {
                             cleanedUpCount++;
                         } catch (err) {
                             this.client.logger?.warn
-                                ? this.client.logger.warn(`[TempVC] Failed to delete channel ${channel.id}: ${err}`)
+                                ? this.client.logger.warn(`[TempVC] Failed to delete channel ${channel?.id || 'Unknown'}: ${err || 'Unknown error'}`)
                                 : null;
                         }
                     }
@@ -377,8 +375,8 @@ class MusicBot {
                 }
             } catch (err) {
                 this.client.logger?.error
-                    ? this.client.logger.error(`[TempVC] Error during startup cleanup: ${err}`)
-                    : console.error(`[TempVC] Error during startup cleanup: ${err}`);
+                    ? this.client.logger.error(`[TempVC] Error during startup cleanup: ${err || 'Unknown error'}`)
+                    : console.error(`[TempVC] Error during startup cleanup: ${err || 'Unknown error'}`);
             }
             // --- End Temp VC Cleanup ---
 
@@ -414,11 +412,11 @@ class MusicBot {
                     if (this.client.manager.players.cache) {
                         for (const [guildId, player] of this.client.manager.players.cache) {
                             try {
-                                logger.info(`Destroying player for guild: ${guildId}`);
+                                logger.info(`Destroying player for guild: ${guildId || 'Unknown'}`);
                                 await player.destroy();
                                 destroyedCount++;
                             } catch (error) {
-                                logger.error(`Error destroying player for guild ${guildId}:`, error);
+                                logger.error(`Error destroying player for guild ${guildId || 'Unknown'}:`, error || 'Unknown error');
                             }
                         }
                     }
@@ -438,10 +436,10 @@ class MusicBot {
                             try {
                                 if (node.disconnect) {
                                     node.disconnect();
-                                    logger.info(`Disconnected from Moonlink node: ${id}`);
+                                    logger.info(`Disconnected from Moonlink node: ${id || 'Unknown'}`);
                                 }
                             } catch (error) {
-                                logger.error(`Error disconnecting from Moonlink node ${id}:`, error);
+                                logger.error(`Error disconnecting from Moonlink node ${id || 'Unknown'}:`, error || 'Unknown error');
                             }
                         }
                     }
@@ -505,8 +503,8 @@ try {
 // Ensure all errors are logged to console as well as logger
 function logErrorDetails(prefix, error) {
     try {
-        logger.error(`${prefix}:`, util.inspect(error, { depth: 5, colors: false }));
-        console.error(`${prefix}:`, util.inspect(error, { depth: 5, colors: true }));
+        logger.error(`${prefix}:`, util.inspect(error || 'Unknown error', { depth: 5, colors: false }));
+        console.error(`${prefix}:`, util.inspect(error || 'Unknown error', { depth: 5, colors: true }));
 
         // Log stack trace if available
         if (error && error.stack) {
@@ -520,7 +518,7 @@ function logErrorDetails(prefix, error) {
             console.error('Error details (JSON):', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
         }
     } catch (e) {
-        console.error('Failed to log error details:', e);
+        console.error('Failed to log error details:', e || 'Unknown error');
     }
 }
 
