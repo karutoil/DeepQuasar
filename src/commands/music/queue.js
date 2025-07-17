@@ -10,15 +10,10 @@ function formatTrackLine(track, index) {
 }
 
 function createQueueDisplay(client, player, page = 1) {
-    // Get the queue as an array
-    let queue = [];
-    if (player.queue && typeof player.queue.toArray === 'function') {
-        queue = player.queue.toArray();
-    } else if (Array.isArray(player.queue?.tracks)) {
-        queue = player.queue.tracks;
-    } else if (Array.isArray(player.queue)) {
-        queue = player.queue;
-    }
+    // Get the queue from our queue management system
+    const guildQueue = client.musicPlayerManager.queues.get(player.guildId);
+    const queue = guildQueue ? guildQueue.tracks : [];
+    
     const tracksPerPage = client.config.itemsPerPage || 10;
     const totalPages = Math.max(1, Math.ceil(queue.length / tracksPerPage));
     const currentPage = Math.max(1, Math.min(page, totalPages));
@@ -27,10 +22,10 @@ function createQueueDisplay(client, player, page = 1) {
     const tracks = queue.slice(start, end);
 
     let description = '';
-    if (player.current) {
-        let artist = player.current.author || player.current.artist || player.current.uploader || 'Unknown';
-        let url = player.current.uri || player.current.url || player.current.permalink_url || undefined;
-        let nowPlaying = url ? `[${player.current.title}](${url})` : player.current.title;
+    if (guildQueue && guildQueue.current) {
+        let artist = guildQueue.current.author || guildQueue.current.artist || 'Unknown';
+        let url = guildQueue.current.uri || guildQueue.current.url || undefined;
+        let nowPlaying = url ? `[${guildQueue.current.title}](${url})` : guildQueue.current.title;
         description += `**Now Playing:**\n`;
         description += `${nowPlaying} | 👤 ${artist}\n\n`;
     }
@@ -39,7 +34,7 @@ function createQueueDisplay(client, player, page = 1) {
         tracks.forEach((track, i) => {
             description += formatTrackLine(track, start + i + 1) + '\n';
         });
-    } else if (!player.current) {
+    } else if (!guildQueue || !guildQueue.current) {
         description += '_No more tracks in the queue._';
     }
 

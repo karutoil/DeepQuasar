@@ -45,23 +45,24 @@ module.exports = {
 
         if (volumeLevel === null) {
             // Show current volume
+            const currentVolume = Math.round((player.volume || 1) * 100);
             return interaction.reply({
                 embeds: [client.musicPlayerManager.createBeautifulEmbed({
                     title: 'Volume',
-                    description: `🔊 Current volume: **${player.volume}%**`,
+                    description: `🔊 Current volume: **${currentVolume}%**`,
                     color: '#0099ff'
                 })]
             });
         }
 
-        // Set new volume
-        await player.setVolume(volumeLevel);
+        // Set new volume (convert percentage to decimal for Shoukaku)
+        await player.setVolume(volumeLevel / 100);
 
         // Save volume to DB
         try {
             const guildData = await Guild.findByGuildId(interaction.guild.id);
             if (guildData) {
-                guildData.musicSettings.defaultVolume = volumeLevel;
+                guildData.musicSettings.defaultVolume = volumeLevel / 100;  // Store as decimal
                 await guildData.save();
             }
         } catch (err) {

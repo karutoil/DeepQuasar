@@ -45,7 +45,7 @@ module.exports = {
         }
 
         // Resume the player
-        player.resume();
+        await player.setPaused(false);
 
         return interaction.reply({
             embeds: [client.musicPlayerManager.createBeautifulEmbed({

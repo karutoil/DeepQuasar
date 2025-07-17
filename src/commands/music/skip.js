@@ -39,7 +39,8 @@ module.exports = {
         }
 
         // Check if there is a current track
-        if (!player.current) {
+        const queue = client.musicPlayerManager.queues.get(interaction.guild.id);
+        if (!queue || !queue.current) {
             return interaction.reply({
                 embeds: [new EmbedBuilder()
                     .setColor('#ff0000')
@@ -50,12 +51,12 @@ module.exports = {
         }
 
         const amount = interaction.options.getInteger('amount') || 1;
-        const currentTrack = player.current;
+        const currentTrack = queue.current;
         const artist = currentTrack.author || currentTrack.artist || currentTrack.uploader || 'Unknown';
 
         if (amount === 1) {
             // Skip single track
-            player.skip();
+            await player.stopTrack();
             
             return interaction.reply({
                 embeds: [client.musicPlayerManager.createBeautifulEmbed({
@@ -70,17 +71,16 @@ module.exports = {
             const skippedList = [currentTrack.title];
 
             // Skip additional tracks from the queue
-            for (let i = 1; i < amount && player.queue.size > 0; i++) {
-                const nextTrack = player.queue.tracks[0];
+            for (let i = 1; i < amount && queue.tracks.length > 0; i++) {
+                const nextTrack = queue.tracks.shift();
                 if (nextTrack) {
-                    player.queue.remove(0);
                     skippedList.push(nextTrack.title);
                     skippedTracks++;
                 }
             }
 
-            // Skip the current track
-            player.skip();
+            // Stop the current track to trigger playing the next one
+            await player.stopTrack();
 
             const embed = client.musicPlayerManager.createBeautifulEmbed({
                 title: `Skipped ${skippedTracks} Track${skippedTracks > 1 ? 's' : ''}`,

@@ -45,7 +45,7 @@ module.exports = {
         }
 
         // Pause the player
-        player.pause();
+        await player.setPaused(true);
 
         return interaction.reply({
             embeds: [client.musicPlayerManager.createBeautifulEmbed({

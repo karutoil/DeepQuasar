@@ -8,8 +8,9 @@ module.exports = {
 
     async execute(interaction, client) {
         const player = client.musicPlayerManager.getPlayer(interaction.guild.id);
+        const queue = client.musicPlayerManager.queues.get(interaction.guild.id);
         
-        if (!player || !player.current) {
+        if (!player || !queue || !queue.current) {
             return interaction.reply({
                 embeds: [new EmbedBuilder()
                     .setColor('#ff0000')
@@ -19,27 +20,28 @@ module.exports = {
             });
         }
 
-        let track = player.current;
-        // Ensure full track data is loaded (for duration, url, etc.)
-        if (typeof track.isPartialTrack === 'function' && track.isPartialTrack()) {
-            await track.resolveData();
-        }
+        let track = queue.current;
+        
         // --- Fix broken variables and formatting ---
-        const url = track.url || track.uri || track.permalink_url || null;
-        const requester = track.requestedBy?.id ? `<@${track.requestedBy.id}>` : (track.requester?.id ? `<@${track.requester.id}>` : (track.requester ? `<@${track.requester}>` : 'Unknown'));
+        const url = track.uri || track.url || null;
+        const requester = track.requester ? `<@${track.requester}>` : 'Unknown';
         const artist = track.author || track.artist || track.uploader || 'Unknown';
         const title = url ? `[${track.title}](${url})` : track.title;
-        const volume = player.volume ? `${player.volume}%` : 'N/A';
-        const queueSize = player.queue?.size || player.queue?.length || 0;
+        const volume = player.volume ? `${Math.round(player.volume * 100)}%` : 'N/A';
+        const queueSize = player.queue?.size || 0;
+        
         // --- Robust duration/position handling ---
         let durationMs = typeof track.duration === 'number' ? track.duration : 0;
-        // Use player.position for current playback position (updated by event), fallback to player.player?.position
-        let positionMs = typeof player.current.position === 'number' ? player.current.position : 0;
+        // Get current position from player (Shoukaku provides this)
+        let positionMs = player.position || 0;
+        
         // Clamp position to duration
         if (durationMs > 0) positionMs = Math.min(positionMs, durationMs);
+        
         // Format times
         const duration = durationMs > 0 ? client.musicPlayerManager.formatDuration(durationMs) : 'LIVE';
         const posStr = durationMs > 0 ? client.musicPlayerManager.formatDuration(positionMs) : 'LIVE';
+        
         // --- Progress bar ---
         let progressBar = '';
         const barLength = 14;
@@ -58,7 +60,7 @@ module.exports = {
             title: 'Now Playing',
             description: `${title}`,
             color: '#43b581',
-            thumbnail: track.artworkUrl || track.thumbnail,
+            thumbnail: track.thumbnail,
             fields: [
                 { name: '⏱️ Duration', value: duration, inline: true },
                 { name: '🙋 Requested by', value: requester, inline: true },
@@ -66,7 +68,7 @@ module.exports = {
                 { name: '📋 Queue', value: `${queueSize} track(s) in queue`, inline: true },
                 { name: '📊 Progress', value: durationMs > 0 ? `\`${posStr}  ${progressBar}  ${duration}\`` : `\`${progressBar}\``, inline: false },
                 { name: '🎤 Artist', value: artist, inline: true },
-                { name: '🔄 Loop', value: player.loop === 'track' ? '🔂 Track' : player.loop === 'queue' ? '🔁 Queue' : 'Off', inline: true },
+                { name: '🔄 Loop', value: queue.loop ? '🔁 Queue' : 'Off', inline: true },
                 ...(player.paused ? [{ name: '⏸️ Status', value: 'Paused', inline: true }] : [])
             ],
             footer: { text: `DeepQuasar Music`, iconURL: client.user.displayAvatarURL() }

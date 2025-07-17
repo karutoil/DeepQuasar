@@ -435,7 +435,7 @@ class MusicPlayerManager {
      * @returns {boolean} True if in same channel, false otherwise
      */
     isInSameVoiceChannel(member, player) {
-        return member.voice.channel?.id === player.voiceChannelId;
+        return member.voice.channel?.id === (player.voiceId || player.voiceChannelId);
     }
 
     /**

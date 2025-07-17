@@ -33,8 +33,7 @@ module.exports = {
         }
 
         // Stop playback and clear queue
-        player.stop();
-        player.queue.clear();
+        await client.musicPlayerManager.destroyPlayer(interaction.guild.id);
 
         return interaction.reply({
             embeds: [client.musicPlayerManager.createBeautifulEmbed({
