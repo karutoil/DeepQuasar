@@ -20,7 +20,7 @@ process.on('unhandledRejection', (err) => {
 // --- End fallback ---
 
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, ActivityType, EmbedBuilder } = require('discord.js');
 const { Manager } = require('moonlink.js');
 const mongoose = require('mongoose');
 const path = require('path');
@@ -126,6 +126,8 @@ class MusicBot {
                 port: config.lavalink.port,
                 password: config.lavalink.password,
                 secure: config.lavalink.secure || false,
+                retryAmount: 10, // Number of reconnection attempts
+                retryDelay: 5000, // Initial delay between attempts (5 seconds)
             }],
             sendPayload: (guildId, payload) => {
                 const guild = this.client.guilds.cache.get(guildId);
@@ -145,6 +147,10 @@ class MusicBot {
             options: {
                 autoPlay: true,
                 disableNativeSources: true,
+                resume: true, // Enable session resuming
+                autoResume: true, // Auto-resume players after reconnection
+                movePlayersOnReconnect: true, // Move players to available nodes on reconnect
+                sortTypeNode: 'players', // Sort nodes by player count for load balancing
             }
         });
 
@@ -161,10 +167,7 @@ class MusicBot {
     setupMoonlinkEvents() {
         // Node connection events
         // Node connection events (Moonlink.js 4.44.4 event names)
-        this.client.manager.on('nodeReady', (node, stats) => {
-            logger.info(`Moonlink node "${node.identifier}" is ready. Stats:`, stats);
-        });
-
+        // Remove the old nodeReady handler since we moved it above
         this.client.manager.on('nodeConnected', (node) => {
             logger.info(`Moonlink node "${node.identifier}" connected successfully`);
 
@@ -208,6 +211,25 @@ class MusicBot {
 
         this.client.manager.on('nodeDisconnected', (node, code, reason) => {
             logger.warn(`Moonlink node "${node.identifier}" disconnected. Code: ${code}, Reason: ${reason || 'Unknown'}`);
+            
+            // Track disconnection for connection state management
+            node.lastDisconnected = Date.now();
+            
+            // Notify affected channels about the disconnection if there are active players
+            if (node.getPlayersCount > 0) {
+                const players = node.getPlayers();
+                players.forEach(player => {
+                    const channel = this.client.channels.cache.get(player.textChannelId);
+                    if (channel && player.playing) {
+                        const embed = new EmbedBuilder()
+                            .setColor('#ff9500')
+                            .setTitle('⚠️ Connection Issue')
+                            .setDescription('Lost connection to music server. Attempting to reconnect...')
+                            .setTimestamp();
+                        channel.send({ embeds: [embed] }).catch(() => {});
+                    }
+                });
+            }
         });
 
         this.client.manager.on('nodeError', (node, error) => {
@@ -216,6 +238,52 @@ class MusicBot {
 
         this.client.manager.on('nodeReconnect', (node) => {
             logger.info(`Moonlink node "${node.identifier}" reconnecting...`);
+            
+            // Reset disconnection tracking
+            delete node.lastDisconnected;
+            
+            // Notify channels about reconnection attempt
+            if (node.getPlayersCount > 0) {
+                const players = node.getPlayers();
+                players.forEach(player => {
+                    const channel = this.client.channels.cache.get(player.textChannelId);
+                    if (channel) {
+                        const embed = new EmbedBuilder()
+                            .setColor('#ffa500')
+                            .setTitle('🔄 Reconnecting')
+                            .setDescription('Attempting to reconnect to music server...')
+                            .setTimestamp();
+                        channel.send({ embeds: [embed] }).catch(() => {});
+                    }
+                });
+            }
+        });
+
+        // Add nodeReady event handler for successful reconnections
+        this.client.manager.on('nodeReady', (node, stats) => {
+            logger.info(`Moonlink node "${node.identifier}" is ready. Stats:`, stats);
+            
+            // Reset reconnection attempts counter
+            node.reconnectAttempts = 0;
+            
+            // Notify channels about successful reconnection if this was a reconnection
+            if (node.lastDisconnected && Date.now() - node.lastDisconnected < 300000) { // Within 5 minutes
+                if (node.getPlayersCount > 0) {
+                    const players = node.getPlayers();
+                    players.forEach(player => {
+                        const channel = this.client.channels.cache.get(player.textChannelId);
+                        if (channel) {
+                            const embed = new EmbedBuilder()
+                                .setColor('#00ff00')
+                                .setTitle('✅ Reconnected')
+                                .setDescription('Successfully reconnected to music server! Music playback has resumed.')
+                                .setTimestamp();
+                            channel.send({ embeds: [embed] }).catch(() => {});
+                        }
+                    });
+                }
+                delete node.lastDisconnected;
+            }
         });
 
         // Track events
