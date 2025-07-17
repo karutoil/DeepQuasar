@@ -29,6 +29,7 @@ Enhanced event handlers in `index.js`:
 - **Node Disconnection**: Notifies users about connection issues in active channels
 - **Reconnection Attempts**: Shows reconnecting status to users
 - **Successful Reconnection**: Confirms restoration of service
+- **Auto-Resume Complete**: Notifies when players are automatically restored after reconnection
 
 ### 4. Search Resilience
 

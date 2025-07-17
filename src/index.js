@@ -286,6 +286,24 @@ class MusicBot {
             }
         });
 
+        // Auto-resume event for successful player restoration after reconnection
+        this.client.manager.on('nodeAutoResumed', (node, players) => {
+            logger.info(`Node "${node.identifier}" auto-resumed ${players.length} player(s) successfully`);
+            
+            // Notify channels about successful auto-resume
+            players.forEach(player => {
+                const channel = this.client.channels.cache.get(player.textChannelId);
+                if (channel) {
+                    const embed = new EmbedBuilder()
+                        .setColor('#00ff00')
+                        .setTitle('🔄 Auto-Resume Complete')
+                        .setDescription(`Successfully restored music playback! ${players.length} player(s) resumed automatically.`)
+                        .setTimestamp();
+                    channel.send({ embeds: [embed] }).catch(() => {});
+                }
+            });
+        });
+
         // Track events
         this.client.manager.on('trackStart', (player, track) => {
             // Optionally log or send a message
