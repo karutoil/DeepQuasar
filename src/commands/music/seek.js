@@ -58,7 +58,7 @@ module.exports = {
             });
         }
 
-        const track = player.current;
+        const track = client.musicPlayerManager.queues.get(interaction.guild.id)?.current;
         
         // Check if position is within track duration
         if (positionMs > track.duration) {
@@ -72,7 +72,7 @@ module.exports = {
         }
 
         // Seek to position
-        await player.seek(positionMs);
+        await player.seekTo(positionMs);
 
         return interaction.reply({
             embeds: [client.musicPlayerManager.createBeautifulEmbed({

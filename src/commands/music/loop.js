@@ -44,16 +44,14 @@ module.exports = {
         }
 
         const mode = interaction.options.getString('mode');
+        const queue = client.musicPlayerManager.queues.get(interaction.guild.id);
 
         if (!mode) {
             // Show current loop mode
             let currentMode = 'Off';
             let emoji = '⏹️';
             
-            if (player.loop === 'track') {
-                currentMode = 'Track';
-                emoji = '🔂';
-            } else if (player.loop === 'queue') {
+            if (queue && queue.loop) {
                 currentMode = 'Queue';
                 emoji = '🔁';
             }
@@ -68,15 +66,14 @@ module.exports = {
         }
 
         // Set new loop mode
-        await player.setLoop(mode);
+        if (queue) {
+            queue.loop = (mode === 'queue');
+        }
 
         let modeText = 'Off';
         let emoji = '⏹️';
         
-        if (mode === 'track') {
-            modeText = 'Track';
-            emoji = '🔂';
-        } else if (mode === 'queue') {
+        if (mode === 'queue') {
             modeText = 'Queue';
             emoji = '🔁';
         }

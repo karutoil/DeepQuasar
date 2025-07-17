@@ -165,6 +165,12 @@ class MusicPlayerManager {
 
         // If track finished normally and autoPlay is enabled, play next track
         if (reason === 'FINISHED' || reason === 'LOAD_FAILED') {
+            // Handle queue looping
+            if (queue.loop && queue.current) {
+                // Add current track back to end of queue
+                queue.tracks.push(queue.current);
+            }
+
             if (queue.tracks.length > 0) {
                 const nextTrack = queue.tracks.shift();
                 queue.current = nextTrack;
