@@ -3,13 +3,15 @@ const Utils = require('./utils');
 const Guild = require('../schemas/Guild');
 
 /**
- * Music Player Manager for Moonlink.js
+ * Music Player Manager for Shoukaku
  * This class provides utility methods for managing music players
  * and handles common music operations
  */
 class MusicPlayerManager {
     constructor(client) {
         this.client = client;
+        // Create a Map to track queues since Shoukaku doesn't have built-in queue management
+        this.queues = new Map();
     }
 
     /**
@@ -41,82 +43,170 @@ class MusicPlayerManager {
      * @param {string} options.voiceChannelId - Voice channel ID
      * @param {string} options.textChannelId - Text channel ID
      * @param {boolean} options.autoPlay - Auto play next song
-     * @returns {Object} Moonlink player instance
+     * @returns {Object} Shoukaku player instance
      */
     async createPlayer(options) {
         const { guildId, voiceChannelId, textChannelId, autoPlay = true } = options;
         
-        // Check if player already exists - Moonlink.js V4.44+ PlayerManager
-        let player;
-        try {
-            player = this.client.manager.players.get(guildId);
-        } catch (error) {
-            player = null;
-        }
+        // Check if player already exists
+        let player = this.client.players.get(guildId);
 
         if (player) {
             // Update voice channel if different
-            if (player.voiceChannelId !== voiceChannelId) {
+            if (player.voiceId !== voiceChannelId) {
                 try {
-                    player.setVoiceChannel(voiceChannelId);
+                    await player.move(voiceChannelId);
                 } catch (error) {
                     this.client.logger.error('Error updating voice channel:', error);
                 }
             }
             // Update text channel if different
             if (player.textChannelId !== textChannelId) {
-                try {
-                    player.setTextChannel(textChannelId);
-                } catch (error) {
-                    this.client.logger.error('Error updating text channel:', error);
-                }
+                player.textChannelId = textChannelId;
             }
             return player;
         }
 
-        // Create new player (use manager.players.create)
-        if (Object.keys(this.client.manager.players).length >= this.client.config.maxPlayers) {
-            throw new Error('Maximum number of players reached.');
+        // Create new player using Shoukaku
+        try {
+            player = await this.client.shoukaku.joinVoiceChannel({
+                guildId,
+                channelId: voiceChannelId,
+                shardId: 0
+            });
+
+            // Add custom properties to match moonlink API
+            player.guildId = guildId;
+            player.voiceChannelId = voiceChannelId;
+            player.textChannelId = textChannelId;
+            player.autoPlay = autoPlay;
+
+            // Initialize queue for this guild
+            this.queues.set(guildId, {
+                tracks: [],
+                current: null,
+                loop: false,
+                size: 0
+            });
+
+            // Create queue object similar to moonlink
+            player.queue = {
+                tracks: this.queues.get(guildId).tracks,
+                get size() { return this.tracks.length; },
+                add: (track, position) => {
+                    const queue = this.tracks;
+                    if (typeof position === 'number') {
+                        queue.splice(position, 0, ...(Array.isArray(track) ? track : [track]));
+                    } else {
+                        queue.push(...(Array.isArray(track) ? track : [track]));
+                    }
+                    return this;
+                }
+            };
+
+            // Set up player event handlers
+            this.setupPlayerEvents(player);
+
+            // Set volume from DB
+            try {
+                const guildData = await Guild.findByGuildId(guildId);
+                if (guildData && guildData.musicSettings && typeof guildData.musicSettings.defaultVolume === 'number') {
+                    await player.setVolume(guildData.musicSettings.defaultVolume);
+                }
+            } catch (err) {
+                this.client.logger?.warn?.(`Failed to load default volume for guild ${guildId}:`, err);
+            }
+
+            // Store player
+            this.client.players.set(guildId, player);
+
+            return player;
+        } catch (error) {
+            this.client.logger.error('Error creating player:', error);
+            throw error;
         }
-        player = this.client.manager.players.create({
-            guildId,
-            voiceChannelId,
-            textChannelId,
-            autoPlay
+    }
+
+    /**
+     * Set up event handlers for a player
+     * @param {Object} player - Shoukaku player
+     */
+    setupPlayerEvents(player) {
+        player.on('start', () => {
+            this.client.logger.debug(`Track started in guild ${player.guildId}`);
         });
 
-        // Set volume from DB
-        try {
-            const guildData = await Guild.findByGuildId(guildId);
-            if (guildData && guildData.musicSettings && typeof guildData.musicSettings.defaultVolume === 'number') {
-                player.setVolume(guildData.musicSettings.defaultVolume);
-            }
-        } catch (err) {
-            this.client.logger?.warn?.(`Failed to load default volume for guild ${guildId}:`, err);
-        }
+        player.on('end', (data) => {
+            this.client.logger.debug(`Track ended in guild ${player.guildId}`);
+            this.handleTrackEnd(player, data);
+        });
 
-        return player;
+        player.on('closed', () => {
+            this.client.logger.info(`Player closed in guild ${player.guildId}`);
+            this.cleanupPlayer(player.guildId);
+        });
+
+        player.on('exception', (error) => {
+            this.client.logger.error(`Player exception in guild ${player.guildId}:`, error);
+            this.handleTrackEnd(player, { reason: 'LOAD_FAILED' });
+        });
+    }
+
+    /**
+     * Handle track end and auto-play next track
+     * @param {Object} player - Shoukaku player
+     * @param {Object} data - End data
+     */
+    async handleTrackEnd(player, data) {
+        const queue = this.queues.get(player.guildId);
+        if (!queue) return;
+
+        const { reason } = data;
+
+        // If track finished normally and autoPlay is enabled, play next track
+        if (reason === 'FINISHED' || reason === 'LOAD_FAILED') {
+            if (queue.tracks.length > 0) {
+                const nextTrack = queue.tracks.shift();
+                queue.current = nextTrack;
+                try {
+                    await player.playTrack(nextTrack);
+                } catch (error) {
+                    this.client.logger.error('Error playing next track:', error);
+                    this.handleTrackEnd(player, { reason: 'LOAD_FAILED' });
+                }
+            } else {
+                // Queue ended
+                queue.current = null;
+                const channel = this.client.channels.cache.get(player.textChannelId);
+                if (channel) {
+                    channel.send('Queue ended. Disconnecting in 30 seconds if no new tracks are added.');
+                }
+                
+                // Disconnect after a delay if no new tracks are added
+                setTimeout(() => {
+                    const currentQueue = this.queues.get(player.guildId);
+                    if (!currentQueue || (currentQueue.tracks.length === 0 && !currentQueue.current)) {
+                        this.destroyPlayer(player.guildId);
+                        if (channel) {
+                            channel.send('Disconnected due to inactivity.');
+                        }
+                    }
+                }, 30000);
+            }
+        }
     }
 
     /**
      * Get an existing player for a guild
      * @param {string} guildId - Guild ID
-     * @returns {Object|null} Moonlink player instance or null
+     * @returns {Object|null} Shoukaku player instance or null
      */
     getPlayer(guildId) {
-        try {
-            const player = this.client.manager.players.get(guildId);
-            if (!player) {
-                throw new Error(`Player not found for guild ID: ${guildId}`);
-            }
-            return player;
-        } catch (error) {
-            return null;
-        }
+        return this.client.players.get(guildId) || null;
     }
 
     /**
-     * Search for tracks using Moonlink
+     * Search for tracks using Shoukaku
      * @param {Object} options - Search options
      * @param {string} options.query - Search query
      * @param {string} options.source - Search source (youtube, soundcloud, etc.)
@@ -125,8 +215,9 @@ class MusicPlayerManager {
      */
     async search(options) {
         const { query, source = 'youtube', requester } = options;
-        // Use .cache for Moonlink.js v4
-        if (!this.client.manager.nodes.cache || this.client.manager.nodes.cache.size === 0) {
+        
+        // Check if any nodes are available
+        if (!this.client.shoukaku.nodes || this.client.shoukaku.nodes.size === 0) {
             this.client.logger.error('No Lavalink nodes are available for searching.');
             return {
                 loadType: 'error',
@@ -134,8 +225,9 @@ class MusicPlayerManager {
                 tracks: []
             };
         }
+
         // Check if at least one node is connected
-        const hasConnectedNode = Array.from(this.client.manager.nodes.cache.values()).some(node => node.connected);
+        const hasConnectedNode = Array.from(this.client.shoukaku.nodes.values()).some(node => node.state === 2); // 2 = CONNECTED
         if (!hasConnectedNode) {
             this.client.logger.error('No connected Lavalink nodes for searching.');
             return {
@@ -144,6 +236,7 @@ class MusicPlayerManager {
                 tracks: []
             };
         }
+
         let searchQuery = query;
         // Only add prefix for search terms, not URLs
         if (!this.isURL(query)) {
@@ -151,16 +244,36 @@ class MusicPlayerManager {
                 searchQuery = `spsearch:${query}`;
             } else if (source === 'soundcloud') {
                 searchQuery = `scsearch:${query}`;
+            } else {
+                searchQuery = `ytsearch:${query}`;
             }
         }
-        try {
-            const result = await this.client.manager.search({
-                query: searchQuery,  // Add prefix for Spotify/SoundCloud search terms
-                source: source,  // Specify source separately
-                requester
-            });
 
-            return result;
+        try {
+            const node = this.client.shoukaku.getIdealNode();
+            const result = await node.rest.resolve(searchQuery);
+
+            // Transform Shoukaku result to match moonlink format
+            const transformedResult = {
+                loadType: result.loadType.toLowerCase(),
+                tracks: result.data?.tracks?.map(track => ({
+                    title: track.info.title,
+                    author: track.info.author,
+                    uri: track.info.uri,
+                    identifier: track.info.identifier,
+                    duration: track.info.length,
+                    thumbnail: track.info.artworkUrl,
+                    sourceName: track.info.sourceName,
+                    requester: requester,
+                    track: track.encoded // Store encoded track for playback
+                })) || [],
+                playlistInfo: result.data?.info ? {
+                    name: result.data.info.name,
+                    selectedTrack: result.data.info.selectedTrack
+                } : null
+            };
+
+            return transformedResult;
         } catch (error) {
             this.client.logger.error('Error searching for tracks:', error);
             return {
@@ -218,10 +331,10 @@ class MusicPlayerManager {
             thumbnail: track.thumbnail,
             fields: [
                 { name: '⏱️ Duration', value: this.formatDuration(track.duration), inline: true },
-                { name: '🔊 Volume', value: `${player.volume}%`, inline: true },
+                { name: '🔊 Volume', value: `${Math.round(player.volume * 100)}%`, inline: true },
                 { name: '📋 Queue', value: `${player.queue.size} track(s) in queue`, inline: true }
             ],
-            footer: { text: 'Enjoy your music! 🎶', iconURL: player.client.user.displayAvatarURL() }
+            footer: { text: 'Enjoy your music! 🎶', iconURL: this.client.user.displayAvatarURL() }
         });
     }
 
@@ -243,11 +356,12 @@ class MusicPlayerManager {
         }).join('\n');
 
         const totalPages = Math.ceil(player.queue.size / tracksPerPage);
+        const queue = this.queues.get(player.guildId);
 
         return this.createBeautifulEmbed({
             title: 'Music Queue',
-            description: player.current
-                ? `**Now Playing:**\n[${player.current.title}](${player.current.uri}) | \`${this.formatDuration(player.current.duration)}\`\n\n${trackList || '_No tracks in queue._'}`
+            description: queue?.current
+                ? `**Now Playing:**\n[${queue.current.title}](${queue.current.uri}) | \`${this.formatDuration(queue.current.duration)}\`\n\n${trackList || '_No tracks in queue._'}`
                 : trackList || '_No tracks in queue._',
             color: '#0099ff',
             fields: [
@@ -262,7 +376,7 @@ class MusicPlayerManager {
      * @returns {Map} Map of guild IDs to player objects
      */
     getAllPlayers() {
-        return this.client.manager.players.all || new Map();
+        return this.client.players || new Map();
     }
 
     /**
@@ -281,7 +395,7 @@ class MusicPlayerManager {
         const promises = [];
 
         for (const [guildId, player] of players) {
-            promises.push(player.destroy().catch(error => 
+            promises.push(this.destroyPlayer(guildId).catch(error => 
                 this.client.logger.error(`Error destroying player for guild ${guildId}:`, error)
             ));
         }
@@ -290,9 +404,34 @@ class MusicPlayerManager {
     }
 
     /**
+     * Destroy a specific player
+     * @param {string} guildId - Guild ID
+     */
+    async destroyPlayer(guildId) {
+        const player = this.client.players.get(guildId);
+        if (player) {
+            try {
+                await player.destroy();
+            } catch (error) {
+                this.client.logger.error(`Error destroying player for guild ${guildId}:`, error);
+            }
+        }
+        this.cleanupPlayer(guildId);
+    }
+
+    /**
+     * Clean up player data
+     * @param {string} guildId - Guild ID
+     */
+    cleanupPlayer(guildId) {
+        this.client.players.delete(guildId);
+        this.queues.delete(guildId);
+    }
+
+    /**
      * Check if user is in the same voice channel as the bot
      * @param {Object} member - Discord guild member
-     * @param {Object} player - Moonlink player
+     * @param {Object} player - Shoukaku player
      * @returns {boolean} True if in same channel, false otherwise
      */
     isInSameVoiceChannel(member, player) {
@@ -357,36 +496,39 @@ class MusicPlayerManager {
      */
     async playOrQueue(options) {
         const { guildId, voiceChannelId, textChannelId, query, source = 'youtube', requester } = options;
+        
         // Search for tracks
         const searchResult = await this.search({ query, source, requester });
-        // Normalize loadType for Moonlink.js v4.44.4
-        let loadType = searchResult.loadType;
-        if (loadType === 'PLAYLIST_LOADED') loadType = 'playlist';
-        if (loadType === 'TRACK_LOADED') loadType = 'track';
-        if (loadType === 'SEARCH_RESULT') loadType = 'search';
-        if (loadType === 'NO_MATCHES') loadType = 'empty';
 
-        if (loadType === 'error' || !searchResult.tracks?.length) {
+        if (searchResult.loadType === 'error' || !searchResult.tracks?.length) {
             return { error: searchResult.error || 'No tracks found', searchResult };
         }
+
         // Get or create player
         const player = await this.createPlayer({ guildId, voiceChannelId, textChannelId });
-        // If player is not in a voice channel, set it (connect)
-        if (!player.voiceChannelId || player.voiceChannelId !== voiceChannelId) {
-            player.setVoiceChannel(voiceChannelId);
-        }
+
         // Add tracks to queue
-        if (loadType === 'playlist') {
+        if (searchResult.loadType === 'playlist') {
             for (const track of searchResult.tracks) {
                 player.queue.add(track);
             }
         } else {
             player.queue.add(searchResult.tracks[0]);
         }
+
         // Start playing if not already
-        if ((!player.playing && !player.paused) || (!player.current && player.queue.size > 0)) {
-            player.play();
+        const queue = this.queues.get(guildId);
+        if (!queue.current && player.queue.size > 0) {
+            const nextTrack = player.queue.tracks.shift();
+            queue.current = nextTrack;
+            try {
+                await player.playTrack({ track: nextTrack.track });
+            } catch (error) {
+                this.client.logger.error('Error starting playback:', error);
+                return { error: 'Failed to start playback', searchResult };
+            }
         }
+
         return { player, searchResult };
     }
 }

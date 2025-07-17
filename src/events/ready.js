@@ -18,19 +18,18 @@ module.exports = {
             client.logger.error('Failed to fetch application information:', error);
         }
 
-        // Initialize Moonlink Manager
-        client.manager.init(client.user.id);
-        client.logger.info('🎵 Moonlink Manager initialized');
+        // Initialize Shoukaku (it's automatically initialized on connection)
+        client.logger.info('🎵 Shoukaku initialized');
         
         // Log node status
         setTimeout(() => {
             try {
-                const nodeCount = client.manager.nodes.cache ? client.manager.nodes.cache.size : 0;
-                client.logger.info(`Moonlink nodes: ${nodeCount}`);
+                const nodeCount = client.shoukaku.nodes ? client.shoukaku.nodes.size : 0;
+                client.logger.info(`Shoukaku nodes: ${nodeCount}`);
                 
-                if (client.manager.nodes.cache) {
-                    for (const [id, node] of client.manager.nodes.cache) {
-                        client.logger.info(`Node ${id}: connected=${node.connected}, host=${node.host}:${node.port}`);
+                if (client.shoukaku.nodes) {
+                    for (const [name, node] of client.shoukaku.nodes) {
+                        client.logger.info(`Node ${name}: state=${node.state}, url=${node.url}`);
                     }
                 }
             } catch (error) {
@@ -128,13 +127,13 @@ async function cleanupInactivePlayers(client) {
 
     for (const [guildId, player] of players.entries()) {
         // Remove players that have been inactive for more than 10 minutes
-        if (!player.playing && !player.paused && player.queue.size === 0) {
+        if (!player.track && player.queue.size === 0) {
             const lastActivity = player.lastActivity || Date.now();
             const inactiveTime = Date.now() - lastActivity;
             
             if (inactiveTime > 10 * 60 * 1000) { // 10 minutes
                 try {
-                    await player.destroy();
+                    await client.musicPlayerManager.destroyPlayer(guildId);
                     cleanedCount++;
                 } catch (error) {
                     client.logger.error(`Error destroying inactive player for guild ${guildId}:`, error);

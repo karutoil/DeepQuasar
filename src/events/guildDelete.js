@@ -18,15 +18,16 @@ module.exports = {
                 }
             } else if (client.musicPlayerManager && typeof client.musicPlayerManager.getPlayer === 'function') {
                 const player = client.musicPlayerManager.getPlayer(guild.id);
-                if (player && typeof client.musicPlayerManager.destroy === 'function') {
-                    await client.musicPlayerManager.destroy(guild.id);
+                if (player) {
+                    await client.musicPlayerManager.destroyPlayer(guild.id);
                     client.logger.info(`Destroyed music player for guild: ${guild.name}`);
                     destroyed = true;
                 }
-            } else if (client.manager && client.manager.players && typeof client.manager.players.get === 'function') {
-                const player = client.manager.players.get(guild.id);
+            } else if (client.players && client.players.has(guild.id)) {
+                const player = client.players.get(guild.id);
                 if (player && typeof player.destroy === 'function') {
                     await player.destroy();
+                    client.players.delete(guild.id);
                     client.logger.info(`Destroyed music player for guild: ${guild.name}`);
                     destroyed = true;
                 }

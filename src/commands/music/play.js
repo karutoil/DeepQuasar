@@ -87,20 +87,14 @@ module.exports = {
             autoPlay: true
         });
 
-        // Connect to voice channel
-        if (!player.connected) {
-            try {
-                await player.connect();
-                // Wait a moment for the connection to be established
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            } catch (error) {
-                return interaction.editReply({
-                    embeds: [new EmbedBuilder()
-                        .setColor('#ff0000')
-                        .setDescription('❌ Unable to connect to the voice channel. Please check your permissions and try again.')
-                    ]
-                });
-            }
+        // Connect to voice channel (handled automatically by createPlayer in Shoukaku)
+        if (!player.voiceId) {
+            return interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setDescription('❌ Unable to connect to the voice channel. Please check your permissions and try again.')
+                ]
+            });
         }
 
         // Search for tracks
@@ -309,7 +303,7 @@ module.exports = {
                     fields: [
                         { name: '⏱️ Duration', value: client.musicPlayerManager.formatDuration(track.duration), inline: true },
                         { name: '🎵 Queue Position', value: playNext ? '1' : player.queue.size.toString(), inline: true },
-                        { name: '🔊 Volume', value: `${player.volume || 100}%`, inline: true }
+                        { name: '🔊 Volume', value: `${Math.round((player.volume || 1) * 100)}%`, inline: true }
                     ],
                     thumbnail: track.thumbnail,
                     footer: { text: `Requested by ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() }
@@ -317,9 +311,11 @@ module.exports = {
             }
         }
 
-        // Start playback if not already playing
-        if ((!player.playing && !player.paused && player.queue.size > 0) || (!player.current && player.queue.size > 0)) {
-            await player.play();
+        // Start playback if not already playing (handled by MusicPlayerManager)
+        const queue = client.musicPlayerManager.queues.get(interaction.guild.id);
+        if (!queue || !queue.current) {
+            // Let the MusicPlayerManager handle track playback
+            // This is done automatically when tracks are added to the queue
         }
 
         // After adding tracks to queue, save to user history

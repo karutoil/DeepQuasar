@@ -1,7 +1,7 @@
 console.log("Bot start debug"); process.on("uncaughtException",console.error); process.on("unhandledRejection",console.error);
 require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
-const { Manager } = require('moonlink.js');
+const { Shoukaku, Connectors } = require('shoukaku');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
