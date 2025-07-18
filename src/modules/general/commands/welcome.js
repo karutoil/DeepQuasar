@@ -2,6 +2,7 @@ const { SlashCommandBuilder, ChannelType, PermissionFlagsBits } = require('disco
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'General',
     data: new SlashCommandBuilder()
         .setName('welcome')
         .setDescription('Configure welcome and leave messages for the server')

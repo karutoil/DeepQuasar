@@ -5,18 +5,7 @@ const logger = require('../../../utils/logger');
 class SelfRoleManager {
     constructor(client) {
         this.client = client;
-        this.setupInteractionHandlers();
-    }
-
-    setupInteractionHandlers() {
-        this.client.on('interactionCreate', async (interaction) => {
-            if (!interaction.isButton()) return;
-            
-            // Check if this is a self-role button
-            if (interaction.customId.startsWith('selfrole_')) {
-                await this.handleSelfRoleInteraction(interaction);
-            }
-        });
+        // Don't setup interaction handlers directly - let the button handler route to us
     }
 
     async handleSelfRoleInteraction(interaction) {

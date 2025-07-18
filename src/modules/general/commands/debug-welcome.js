@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'General',
     data: new SlashCommandBuilder()
         .setName('debug-welcome')
         .setDescription('Debug welcome system configuration')

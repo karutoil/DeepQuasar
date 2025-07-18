@@ -4,6 +4,7 @@ const Ticket = require('../../../schemas/Ticket');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'Tickets',
     data: new SlashCommandBuilder()
         .setName('dashboard')
         .setDescription('View comprehensive ticket system dashboard and analytics')

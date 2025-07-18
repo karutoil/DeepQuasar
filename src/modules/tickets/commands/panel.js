@@ -3,6 +3,7 @@ const TicketConfig = require('../../../schemas/TicketConfig');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'Tickets',
     data: new SlashCommandBuilder()
         .setName('panel')
         .setDescription('Manage ticket panels')

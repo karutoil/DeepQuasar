@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'General',
     data: new SlashCommandBuilder()
         .setName('create-guild-data')
         .setDescription('Force create/update guild data with welcome system (Debug)')

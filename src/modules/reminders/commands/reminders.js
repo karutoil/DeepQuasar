@@ -3,6 +3,7 @@ const Reminder = require('../../../schemas/Reminder');
 const timeParser = require('../../../utils/timeParser');
 
 module.exports = {
+    category: 'Reminders',
     data: new SlashCommandBuilder()
         .setName('reminders')
         .setDescription('Manage your reminders')

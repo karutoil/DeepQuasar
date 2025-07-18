@@ -3,6 +3,7 @@ const Ticket = require('../../../schemas/Ticket');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'Tickets',
     data: new SlashCommandBuilder()
         .setName('mytickets')
         .setDescription('View your ticket history and manage your tickets')

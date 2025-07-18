@@ -3,6 +3,7 @@ const WelcomeSystem = require('../../../utils/WelcomeSystem');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'General',
     data: new SlashCommandBuilder()
         .setName('test-welcome')
         .setDescription('Test the welcome system (Developer only)')

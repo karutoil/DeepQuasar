@@ -23,26 +23,11 @@ async function load(client) {
     
     let loadedCommands = 0;
 
-    // Load selfrole manager first
-    if (fs.existsSync(managersPath)) {
-        const managerFiles = fs.readdirSync(managersPath).filter(file => file.endsWith('.js'));
-        
-        for (const file of managerFiles) {
-            const filePath = path.join(managersPath, file);
-            
-            try {
-                delete require.cache[require.resolve(filePath)];
-                const SelfRoleManager = require(filePath);
-                
-                // Initialize SelfRoleManager if not already initialized
-                if (file === 'SelfRoleManager.js' && !client.selfRoleManager) {
-                    client.selfRoleManager = new SelfRoleManager(client);
-                    client.logger.debug('Initialized SelfRoleManager');
-                }
-            } catch (error) {
-                client.logger.error(`Error loading selfrole manager ${file}:`, error);
-            }
-        }
+    // Initialize SelfRoleManager from utils if not already initialized
+    if (!client.selfRoleManager) {
+        const SelfRoleManager = require('../../utils/SelfRoleManager');
+        client.selfRoleManager = new SelfRoleManager(client);
+        client.logger.debug('Initialized SelfRoleManager from utils');
     }
 
     // Load commands

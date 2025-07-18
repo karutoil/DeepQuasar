@@ -6,6 +6,7 @@ const PAGE_SIZE = 10;
 const MAX_RESULTS = 100;
 
 module.exports = {
+    category: 'Music',
     data: new SlashCommandBuilder()
         .setName('history')
         .setDescription('View and play from your music play history.'),

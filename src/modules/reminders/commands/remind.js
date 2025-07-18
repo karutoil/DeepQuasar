@@ -4,6 +4,7 @@ const User = require('../../../schemas/User');
 const timeParser = require('../../../utils/timeParser');
 
 module.exports = {
+    category: 'Reminders',
     data: new SlashCommandBuilder()
         .setName('remind')
         .setDescription('Set a reminder')

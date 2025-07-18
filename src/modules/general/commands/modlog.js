@@ -4,6 +4,7 @@ const ModLogManager = require('../../../utils/ModLogManager');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'General',
     data: new SlashCommandBuilder()
         .setName('modlog')
         .setDescription('Configure moderation logging settings')

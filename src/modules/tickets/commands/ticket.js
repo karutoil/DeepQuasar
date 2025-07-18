@@ -4,6 +4,7 @@ const TicketConfig = require('../../../schemas/TicketConfig');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'Tickets',
     data: new SlashCommandBuilder()
         .setName('ticket')
         .setDescription('Manage tickets')

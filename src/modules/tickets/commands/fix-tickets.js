@@ -3,6 +3,7 @@ const TicketConfig = require('../../../schemas/TicketConfig');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    category: 'Tickets',
     data: new SlashCommandBuilder()
         .setName('fix-tickets')
         .setDescription('Fix ticket system modal configurations')
