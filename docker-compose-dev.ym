@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:8.0
+    container_name: discord-bot-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: discord-music-bot
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      # Create named volumes for better persistence
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - discord-bot-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # MongoDB Management Interface
+  mongo-express:
+    image: mongo-express:latest
+    container_name: discord-bot-mongo-express
+    restart: unless-stopped
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_PORT=27017
+      # - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      # If your MongoDB requires authentication, uncomment and set these variables
+      # - ME_CONFIG_MONGODB_AUTH_USERNAME=${MONGO_EXPRESS_USERNAME}
+      # - ME_CONFIG_MONGODB_AUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD}
+      # - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_BASICAUTH_USERNAME}
+      # - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_BASICAUTH_PASSWORD}
+    ports:
+      - "127.0.0.1:8081:8081"
+    networks:
+      - discord-bot-network
+    depends_on:
+      - mongodb
+
+  # Lavalink Audio Server
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4-alpine
+    container_name: discord-bot-lavalink
+    user: root  # Run as host user to fix permissions
+    restart: unless-stopped
+    environment:
+      - SERVER_PORT=2333
+      - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD}
+      - JAVA_OPTS=-Xmx1g -Xms512m
+        # Environment variables for application.yml substitution
+      - LAVALINK_PASSWORD=${LAVALINK_PASSWORD}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
+      - YOUTUBE_REFRESH_TOKEN=${YOUTUBE_REFRESH_TOKEN:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    ports:
+      - "127.0.0.1:2333:2333"
+    volumes:
+      # Link Lavalink config and plugins directly to host filesystem
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:rw
+      - ./data/lavalink-plugins:/opt/Lavalink/plugins
+      - ./data/lavalink-logs:/opt/Lavalink/logs
+    networks:
+      - discord-bot-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --header=\"Authorization: ${LAVALINK_PASSWORD}\" --no-verbose --spider http://localhost:2333/v4/stats"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # Optional: Backup service for automated backups
+  backup:
+    image: alpine:latest
+    container_name: discord-bot-backup
+    restart: "no"
+    profiles:
+      - backup
+    volumes:
+      - ./data:/backup/data:ro
+      - ./backups:/backup/output
+    command: >
+      sh -c "
+        echo 'Creating backup...'
+        DATE=$(date +%Y%m%d_%H%M%S)
+        mkdir -p /backup/output
+        tar -czf /backup/output/discord-bot-backup-$DATE.tar.gz -C /backup data
+        echo 'Backup created: discord-bot-backup-$DATE.tar.gz'
+        ls -la /backup/output/
+      "
+
+networks:
+  discord-bot-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+# Named volumes ensure data persistence across container restarts
