@@ -18,25 +18,27 @@ module.exports = {
             client.logger.error('Failed to fetch application information:', error);
         }
 
-        // Initialize Moonlink Manager
-        client.manager.init(client.user.id);
-        client.logger.info('🎵 Moonlink Manager initialized');
-        
-        // Log node status
-        setTimeout(() => {
-            try {
-                const nodeCount = client.manager.nodes.cache ? client.manager.nodes.cache.size : 0;
-                client.logger.info(`Moonlink nodes: ${nodeCount}`);
-                
-                if (client.manager.nodes.cache) {
-                    for (const [id, node] of client.manager.nodes.cache) {
-                        client.logger.info(`Node ${id}: connected=${node.connected}, host=${node.host}:${node.port}`);
+        // Initialize Moonlink Manager if available (music module enabled)
+        if (client.manager && typeof client.manager.init === 'function') {
+            client.manager.init(client.user.id);
+            client.logger.info('🎵 Moonlink Manager initialized');
+            
+            // Log node status
+            setTimeout(() => {
+                try {
+                    const nodeCount = client.manager.nodes.cache ? client.manager.nodes.cache.size : 0;
+                    client.logger.info(`Moonlink nodes: ${nodeCount}`);
+                    
+                    if (client.manager.nodes.cache) {
+                        for (const [id, node] of client.manager.nodes.cache) {
+                            client.logger.info(`Node ${id}: connected=${node.connected}, host=${node.host}:${node.port}`);
+                        }
                     }
+                } catch (error) {
+                    client.logger.error('Error checking node status:', error);
                 }
-            } catch (error) {
-                client.logger.error('Error checking node status:', error);
-            }
-        }, 2000);
+            }, 2000);
+        }
 
         // Set bot status
         const activities = [
