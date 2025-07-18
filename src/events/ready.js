@@ -145,11 +145,16 @@ async function initializeInviteCaches(client) {
     client.logger.info(`Initialized invite caches for ${initializedCount}/${client.guilds.cache.size} guilds`);
 }
 
+const musicModule = require('../modules/music');
+
 async function updateBotStatistics(client) {
     try {
         const totalGuilds = client.guilds.cache.size;
         const totalUsers = client.users.cache.size;
-        const totalPlayers = client.musicPlayerManager.getPlayerCount();
+        let totalPlayers = 0;
+        if (client.moduleManager && client.moduleManager.isModuleEnabled('music')) {
+            totalPlayers = musicModule.getActivePlayerCount(client);
+        }
 
         client.logger.info(`📊 Bot Statistics - Guilds: ${totalGuilds}, Users: ${totalUsers}, Active Players: ${totalPlayers}`);
 

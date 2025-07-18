@@ -187,8 +187,21 @@ async function unload(client) {
     });
 }
 
+/**
+ * Get the number of active music players
+ * @param {Client} client - The Discord client
+ * @returns {number}
+ */
+function getActivePlayerCount(client) {
+    if (client.musicPlayerManager && typeof client.musicPlayerManager.getPlayerCount === 'function') {
+        return client.musicPlayerManager.getPlayerCount();
+    }
+    return 0;
+}
+
 module.exports = {
     info: moduleInfo,
     load,
-    unload
+    unload,
+    getActivePlayerCount
 };
