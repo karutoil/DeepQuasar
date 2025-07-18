@@ -400,7 +400,17 @@ module.exports = {
     async autocomplete(interaction, client) {
         const focusedValue = interaction.options.getFocused();
         if (focusedValue.length < 2) {
-            return interaction.respond([]);
+            try {
+                if (!interaction.responded && !interaction.deferred) {
+                    await interaction.respond([]);
+                }
+            } catch (e) {
+                // Suppress unknown interaction errors
+                if (e?.code !== 10062 && !(e?.message && e.message.includes('Unknown interaction'))) {
+                    client.logger.error('Autocomplete respond error:', e);
+                }
+            }
+            return;
         }
         try {
             const UserModel = require('../../schemas/User');
@@ -443,14 +453,30 @@ module.exports = {
             }
             // Combine, prioritizing history, but always showing both
             const combined = [...historyChoices, ...searchChoices].slice(0, 25);
-            if (interaction.isAutocomplete()) {
-                await interaction.respond(combined);
+            if (interaction.isAutocomplete() && !interaction.responded && !interaction.deferred) {
+                try {
+                    await interaction.respond(combined);
+                } catch (e) {
+                    // Suppress unknown interaction errors
+                    if (e?.code !== 10062 && !(e?.message && e.message.includes('Unknown interaction'))) {
+                        client.logger.error('Autocomplete respond error:', e);
+                    }
+                }
             } else {
                 client.logger.warn('Attempted to respond to an invalid interaction.');
             }
         } catch (error) {
             client.logger.error('Autocomplete error:', error);
-            await interaction.respond([]);
+            try {
+                if (!interaction.responded && !interaction.deferred) {
+                    await interaction.respond([]);
+                }
+            } catch (e) {
+                // Suppress unknown interaction errors
+                if (e?.code !== 10062 && !(e?.message && e.message.includes('Unknown interaction'))) {
+                    client.logger.error('Autocomplete respond error:', e);
+                }
+            }
         }
     }
 };
