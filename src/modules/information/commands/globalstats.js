@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const User = require('../../schemas/User');
+const User = require('../../../schemas/User');
 
 module.exports = {
     category: 'Information',

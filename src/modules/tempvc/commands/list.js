@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const TempVCInstance = require('../../schemas/TempVCInstance');
-const Utils = require('../../utils/utils');
+const TempVCInstance = require('../../../schemas/TempVCInstance');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'Voice',

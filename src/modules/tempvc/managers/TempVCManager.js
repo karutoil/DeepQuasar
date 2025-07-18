@@ -1,8 +1,8 @@
 const { ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
-const TempVC = require('../schemas/TempVC');
-const TempVCInstance = require('../schemas/TempVCInstance');
-const TempVCUserSettings = require('../schemas/TempVCUserSettings');
-const Utils = require('./utils');
+const TempVC = require('../../../schemas/TempVC');
+const TempVCInstance = require('../../../schemas/TempVCInstance');
+const TempVCUserSettings = require('../../../schemas/TempVCUserSettings');
+const Utils = require('../../../utils/utils');
 
 class TempVCManager {
     constructor(client) {

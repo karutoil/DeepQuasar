@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
-const LFGUtils = require('../../utils/LFGUtils');
-const LFGPost = require('../../schemas/LFGPost');
-const Utils = require('../../utils/utils');
+const LFGUtils = require('../../../utils/LFGUtils');
+const LFGPost = require('../../../schemas/LFGPost');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'LFG',

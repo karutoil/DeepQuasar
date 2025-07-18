@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const LFGSettings = require('../../schemas/LFGSettings');
-const LFGUtils = require('../../utils/LFGUtils');
-const Utils = require('../../utils/utils');
+const LFGSettings = require('../../../schemas/LFGSettings');
+const LFGUtils = require('../../../utils/LFGUtils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'LFG',
@@ -202,7 +202,7 @@ module.exports = {
     },
 
     async handleLoadDefaults(interaction, settings) {
-        const LFGUtils = require('../../utils/LFGUtils');
+        const LFGUtils = require('../../../utils/LFGUtils');
         const defaultPresets = LFGUtils.getDefaultGamePresets();
 
         // Only add presets that don't already exist

@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
-const Utils = require('./utils');
-const Guild = require('../schemas/Guild');
+const Utils = require('../../../utils/utils');
+const Guild = require('../../../schemas/Guild');
 
 /**
  * Music Player Manager for Moonlink.js

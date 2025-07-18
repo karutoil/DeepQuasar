@@ -1,5 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require('discord.js');
-const TempVCInstance = require('../../schemas/TempVCInstance');
+const TempVCInstance = require('../../../../../schemas/TempVCInstance');
 
 async function handleDelete(interaction, instance, channel, manager, client) {
     const embed = new EmbedBuilder()
@@ -70,7 +70,7 @@ async function handleReset(interaction, instance, channel, manager, client) {
 
 async function handleResetConfirmation(interaction, manager, client) {
     const [, , , channelId] = interaction.customId.split('_');
-    const TempVC = require('../../schemas/TempVC');
+    const TempVC = require('../../../../../schemas/TempVC');
     const instance = await TempVCInstance.findByChannelId(channelId);
     if (!instance) {
         return interaction.update({

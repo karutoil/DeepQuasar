@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const Guild = require('../../schemas/Guild');
-const Utils = require('../../utils/utils');
-const ChatBot = require('../../utils/ChatBot');
+const Guild = require('../../../schemas/Guild');
+const Utils = require('../../../utils/utils');
+const ChatBot = require('../../../utils/ChatBot');
 
 module.exports = {
     category: 'AI',

@@ -5,8 +5,8 @@ const {
     ActionRowBuilder,
     StringSelectMenuBuilder
 } = require('discord.js');
-const EmbedTemplate = require('../../schemas/EmbedTemplate');
-const Utils = require('../../utils/utils');
+const EmbedTemplate = require('../../../schemas/EmbedTemplate');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'Settings',

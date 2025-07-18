@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const Utils = require('../../utils/utils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,7 +18,7 @@ module.exports = {
         }
 
         try {
-            const Guild = require('../../schemas/Guild');
+            const Guild = require('../../../schemas/Guild');
             
             // Try to find existing guild data
             let guildData = await Guild.findByGuildId(interaction.guildId);

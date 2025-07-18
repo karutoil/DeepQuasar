@@ -1,7 +1,7 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
-const Utils = require('../../utils/utils');
-const ProfanityFilter = require('../../utils/ProfanityFilter');
-const TempVCInstance = require('../../schemas/TempVCInstance');
+const Utils = require('../../../../../utils/utils');
+const ProfanityFilter = require('../../../../../utils/ProfanityFilter');
+const TempVCInstance = require('../../../../../schemas/TempVCInstance');
 
 async function handleRename(interaction, instance, channel, manager, client) {
     const modal = new ModalBuilder()

@@ -1,8 +1,8 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const TempVC = require('../../schemas/TempVC');
-const TempVCInstance = require('../../schemas/TempVCInstance');
-const Utils = require('../../utils/utils');
-const ProfanityFilter = require('../../utils/ProfanityFilter');
+const TempVC = require('../../../schemas/TempVC');
+const TempVCInstance = require('../../../schemas/TempVCInstance');
+const Utils = require('../../../utils/utils');
+const ProfanityFilter = require('../../../utils/ProfanityFilter');
 
 module.exports = {
     category: 'Settings',

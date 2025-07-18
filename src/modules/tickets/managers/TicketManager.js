@@ -11,10 +11,10 @@ const {
     StringSelectMenuBuilder,
     InteractionType
 } = require('discord.js');
-const Ticket = require('../schemas/Ticket');
-const TicketConfig = require('../schemas/TicketConfig');
+const Ticket = require('../../../schemas/Ticket');
+const TicketConfig = require('../../../schemas/TicketConfig');
 const TranscriptGenerator = require('./TranscriptGenerator');
-const Utils = require('./utils');
+const Utils = require('../../../utils/utils');
 const crypto = require('crypto');
 const ms = require('ms');
 

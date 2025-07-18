@@ -1,6 +1,6 @@
 const { PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, UserSelectMenuBuilder } = require('discord.js');
-const Utils = require('../../utils/utils');
-const TempVCInstance = require('../../schemas/TempVCInstance');
+const Utils = require('../../../../../utils/utils');
+const TempVCInstance = require('../../../../../schemas/TempVCInstance');
 
 async function handleBan(interaction, instance, channel, manager, client) {
     const bannedUserIds = new Set();

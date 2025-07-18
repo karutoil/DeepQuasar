@@ -1,9 +1,9 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const LFGPost = require('../../schemas/LFGPost');
-const LFGSettings = require('../../schemas/LFGSettings');
-const LFGCooldown = require('../../schemas/LFGCooldown');
-const LFGUtils = require('../../utils/LFGUtils');
-const Utils = require('../../utils/utils');
+const LFGPost = require('../../../schemas/LFGPost');
+const LFGSettings = require('../../../schemas/LFGSettings');
+const LFGCooldown = require('../../../schemas/LFGCooldown');
+const LFGUtils = require('../../../utils/LFGUtils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'LFG',
@@ -271,7 +271,7 @@ module.exports = {
     },
 
     async handleCleanup(interaction) {
-        const LFGCleanupTask = require('../../handlers/lfg/LFGCleanupTask');
+        const LFGCleanupTask = require('../../../handlers/lfg/LFGCleanupTask');
         
         await LFGCleanupTask.runCleanup(interaction.client);
 

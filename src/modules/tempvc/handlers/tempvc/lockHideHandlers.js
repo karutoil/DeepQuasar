@@ -1,5 +1,5 @@
 const { PermissionFlagsBits } = require('discord.js');
-const Utils = require('../../utils/utils');
+const Utils = require('../../../../../utils/utils');
 
 async function handleLock(interaction, instance, channel, manager, client) {
     try {

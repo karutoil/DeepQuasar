@@ -1,8 +1,8 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
-const PunishmentLog = require('../../schemas/PunishmentLog');
-const UserNotes = require('../../schemas/UserNotes');
-const Utils = require('../../utils/utils');
-const ModerationUtils = require('../../utils/ModerationUtils');
+const PunishmentLog = require('../../../schemas/PunishmentLog');
+const UserNotes = require('../../../schemas/UserNotes');
+const Utils = require('../../../utils/utils');
+const ModerationUtils = require('../../../utils/ModerationUtils');
 
 module.exports = {
     category: 'Moderation',

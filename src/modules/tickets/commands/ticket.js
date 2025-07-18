@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
-const Ticket = require('../../schemas/Ticket');
-const TicketConfig = require('../../schemas/TicketConfig');
-const Utils = require('../../utils/utils');
+const Ticket = require('../../../schemas/Ticket');
+const TicketConfig = require('../../../schemas/TicketConfig');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     data: new SlashCommandBuilder()

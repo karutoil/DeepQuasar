@@ -1,6 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js');
-const SelfRole = require('../schemas/SelfRole');
-const logger = require('./logger');
+const SelfRole = require('../../../schemas/SelfRole');
+const logger = require('../../../utils/logger');
 
 class SelfRoleManager {
     constructor(client) {

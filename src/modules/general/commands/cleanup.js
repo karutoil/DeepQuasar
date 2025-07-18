@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder } = require('discord.js');
-const Utils = require('../../utils/utils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'Settings',
@@ -350,7 +350,7 @@ module.exports = {
     async sendCleanupNotification(guild, embed) {
         // First, try to get modlog channel from schema/database
         try {
-            const ModLogSchema = require('../../schemas/ModLog');
+            const ModLogSchema = require('../../../schemas/ModLog');
             const modlogData = await ModLogSchema.findOne({ guildId: guild.id });
             
             if (modlogData && modlogData.enabled) {

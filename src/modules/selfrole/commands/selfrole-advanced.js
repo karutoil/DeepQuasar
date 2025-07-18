@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
-const SelfRole = require('../../schemas/SelfRole');
-const Utils = require('../../utils/utils');
+const SelfRole = require('../../../schemas/SelfRole');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'Settings',

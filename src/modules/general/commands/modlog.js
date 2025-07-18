@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
-const ModLog = require('../../schemas/ModLog');
-const ModLogManager = require('../../utils/ModLogManager');
-const Utils = require('../../utils/utils');
+const ModLog = require('../../../schemas/ModLog');
+const ModLogManager = require('../../../utils/ModLogManager');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     data: new SlashCommandBuilder()

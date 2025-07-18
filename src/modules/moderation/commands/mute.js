@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const ModerationUtils = require('../../utils/ModerationUtils');
-const Utils = require('../../utils/utils');
+const ModerationUtils = require('../../../utils/ModerationUtils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'Moderation',

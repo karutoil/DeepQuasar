@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const User = require('../../schemas/User');
+const User = require('../../../schemas/User');
 
 module.exports = {
     category: 'Music',
@@ -258,7 +258,7 @@ module.exports = {
 
         // Helper to create a classic-style play embed
         async function createClassicPlayEmbed({ searchResult, addedTracks, isPlaylist, player, interaction, playNext, shuffle }) {
-            const Utils = require('../../utils/utils');
+            const Utils = require('../../../utils/utils');
             const user = interaction.user;
             const track = addedTracks[0] || searchResult.tracks[0];
             const playlistInfo = searchResult.playlistInfo || {};
@@ -413,7 +413,7 @@ module.exports = {
             return;
         }
         try {
-            const UserModel = require('../../schemas/User');
+            const UserModel = require('../../../schemas/User');
             const userData = await UserModel.findOne({ userId: interaction.user.id });
             let historyChoices = [];
             if (userData && userData.history && userData.history.tracks.length > 0) {

@@ -11,9 +11,9 @@ const {
     TextInputStyle,
     ChannelType
 } = require('discord.js');
-const EmbedTemplate = require('../../schemas/EmbedTemplate');
-const EmbedBuilderHandler = require('../../utils/EmbedBuilderHandler');
-const Utils = require('../../utils/utils');
+const EmbedTemplate = require('../../../schemas/EmbedTemplate');
+const EmbedBuilderHandler = require('../../../utils/EmbedBuilderHandler');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'Settings',

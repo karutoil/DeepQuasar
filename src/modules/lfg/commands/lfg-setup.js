@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
-const LFGSettings = require('../../schemas/LFGSettings');
-const LFGUtils = require('../../utils/LFGUtils');
-const Utils = require('../../utils/utils');
+const LFGSettings = require('../../../schemas/LFGSettings');
+const LFGUtils = require('../../../utils/LFGUtils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'LFG',
@@ -207,7 +207,7 @@ module.exports = {
     },
 
     async handleInit(interaction, settings) {
-        const LFGUtils = require('../../utils/LFGUtils');
+        const LFGUtils = require('../../../utils/LFGUtils');
         
         // Get default game presets
         const defaultPresets = LFGUtils.getDefaultGamePresets();

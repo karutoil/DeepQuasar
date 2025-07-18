@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType, ButtonStyle } = require('discord.js');
-const Utils = require('../../utils/utils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'Settings',

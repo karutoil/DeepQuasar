@@ -1,9 +1,9 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const LFGSettings = require('../../schemas/LFGSettings');
-const LFGPost = require('../../schemas/LFGPost');
-const LFGCooldown = require('../../schemas/LFGCooldown');
-const LFGUtils = require('../../utils/LFGUtils');
-const Utils = require('../../utils/utils');
+const LFGSettings = require('../../../schemas/LFGSettings');
+const LFGPost = require('../../../schemas/LFGPost');
+const LFGCooldown = require('../../../schemas/LFGCooldown');
+const LFGUtils = require('../../../utils/LFGUtils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'LFG',
@@ -329,7 +329,7 @@ module.exports = {
 
         // Test 2: Cleanup Task Import
         try {
-            const LFGCleanupTask = require('../../handlers/lfg/LFGCleanupTask');
+            const LFGCleanupTask = require('../../../handlers/lfg/LFGCleanupTask');
             tests.push({ name: 'Cleanup Task Import', status: '✅', details: 'Successfully imported cleanup task' });
             passed++;
         } catch (error) {
@@ -339,7 +339,7 @@ module.exports = {
 
         // Test 3: Manual Cleanup Run
         try {
-            const LFGCleanupTask = require('../../handlers/lfg/LFGCleanupTask');
+            const LFGCleanupTask = require('../../../handlers/lfg/LFGCleanupTask');
             await LFGCleanupTask.runCleanup(interaction.client);
             tests.push({ name: 'Manual Cleanup Execution', status: '✅', details: 'Cleanup executed successfully' });
             passed++;

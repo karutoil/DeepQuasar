@@ -1,4 +1,4 @@
-const TempVCInstance = require('../../schemas/TempVCInstance');
+const TempVCInstance = require('../../../../../schemas/TempVCInstance');
 const renameHandler = require('./renameHandler');
 const userLimitHandler = require('./userLimitHandler');
 const bitrateHandler = require('./bitrateHandler');
@@ -106,7 +106,7 @@ async function handleModalSubmission(interaction, manager, client) {
     const parts = customId.split('_');
     const type = parts[1];
     const channelId = parts[3];
-    const TempVCInstance = require('../../schemas/TempVCInstance');
+    const TempVCInstance = require('../../../../../schemas/TempVCInstance');
     const instance = await TempVCInstance.findByChannelId(channelId);
     if (!instance) {
         return interaction.reply({ content: '❌ Channel not found.', ephemeral: true });

@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
-const Utils = require('../../utils/utils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -274,7 +274,7 @@ module.exports = {
     },
 
     async handleSetup(interaction, type, guildData) {
-        const Guild = require('../../schemas/Guild');
+        const Guild = require('../../../schemas/Guild');
 
         if (type === 'welcome') {
             const channel = interaction.options.getChannel('channel');
@@ -553,7 +553,7 @@ module.exports = {
 
     async handleTest(interaction, guildData) {
         const type = interaction.options.getString('type');
-        const WelcomeSystem = require('../../utils/WelcomeSystem');
+        const WelcomeSystem = require('../../../utils/WelcomeSystem');
 
         if (type === 'welcome') {
             if (!guildData.welcomeSystem.welcome.enabled) {
@@ -692,7 +692,7 @@ module.exports = {
     },
 
     async handleCustomEmbed(interaction, type, guildData) {
-        const EmbedBuilderHandler = require('../../utils/EmbedBuilderHandler');
+        const EmbedBuilderHandler = require('../../../utils/EmbedBuilderHandler');
         const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
         try {
@@ -845,8 +845,8 @@ module.exports = {
     },
 
     createWelcomePreviewEmbed(embedData, member, guild, type) {
-        const EmbedBuilderHandler = require('../../utils/EmbedBuilderHandler');
-        const WelcomeSystem = require('../../utils/WelcomeSystem');
+        const EmbedBuilderHandler = require('../../../utils/EmbedBuilderHandler');
+        const WelcomeSystem = require('../../../utils/WelcomeSystem');
         
         // Create a copy of embed data with placeholders replaced
         const previewData = JSON.parse(JSON.stringify(embedData));

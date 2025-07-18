@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const LFGUtils = require('../../utils/LFGUtils');
+const LFGUtils = require('../../../utils/LFGUtils');
 
 class LFGCleanupTask {
     /**

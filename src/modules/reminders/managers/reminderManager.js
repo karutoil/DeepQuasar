@@ -1,5 +1,5 @@
-const Reminder = require('./schemas/Reminder');
-const User = require('./schemas/User');
+const Reminder = require('../../../schemas/Reminder');
+const User = require('../../../schemas/User');
 const { DateTime } = require('luxon');
 
 class ReminderManager {

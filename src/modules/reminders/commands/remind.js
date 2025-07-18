@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
-const Reminder = require('../../schemas/Reminder');
-const User = require('../../schemas/User');
-const timeParser = require('../../utils/timeParser');
+const Reminder = require('../../../schemas/Reminder');
+const User = require('../../../schemas/User');
+const timeParser = require('../../../utils/timeParser');
 
 module.exports = {
     data: new SlashCommandBuilder()

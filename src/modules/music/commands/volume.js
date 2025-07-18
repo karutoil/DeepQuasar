@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const Guild = require('../../schemas/Guild');
+const Guild = require('../../../schemas/Guild');
 
 module.exports = {
     category: 'Music',

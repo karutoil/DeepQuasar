@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
-const TicketConfig = require('../../schemas/TicketConfig');
-const Ticket = require('../../schemas/Ticket');
-const Utils = require('../../utils/utils');
+const TicketConfig = require('../../../schemas/TicketConfig');
+const Ticket = require('../../../schemas/Ticket');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -246,7 +246,7 @@ module.exports = {
 
     // --- Ticket Analytics Aggregation ---
     async getTicketAnalytics(guildId) {
-        const Ticket = require('../../schemas/Ticket');
+        const Ticket = require('../../../schemas/Ticket');
         // Use last 100 tickets for analytics
         const recentTickets = await Ticket.find({ guildId }).sort({ createdAt: -1 }).limit(100);
 

@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
-const LFGPost = require('../../schemas/LFGPost');
-const LFGUtils = require('../../utils/LFGUtils');
-const Utils = require('../../utils/utils');
+const LFGPost = require('../../../schemas/LFGPost');
+const LFGUtils = require('../../../utils/LFGUtils');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     category: 'LFG',

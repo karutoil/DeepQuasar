@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const Ticket = require('../../schemas/Ticket');
-const Utils = require('../../utils/utils');
+const Ticket = require('../../../schemas/Ticket');
+const Utils = require('../../../utils/utils');
 
 module.exports = {
     data: new SlashCommandBuilder()

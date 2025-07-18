@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
-const Guild = require('../../schemas/Guild');
-const Utils = require('../../utils/utils');
-const ChatBot = require('../../utils/ChatBot');
+const Guild = require('../../../schemas/Guild');
+const Utils = require('../../../utils/utils');
+const ChatBot = require('../../../utils/ChatBot');
 
 module.exports = {
     category: 'Settings',

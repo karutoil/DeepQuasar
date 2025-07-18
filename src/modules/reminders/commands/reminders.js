@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, StringSelectMenuBuilder } = require('discord.js');
-const Reminder = require('../../schemas/Reminder');
-const timeParser = require('../../utils/timeParser');
+const Reminder = require('../../../schemas/Reminder');
+const timeParser = require('../../../utils/timeParser');
 
 module.exports = {
     data: new SlashCommandBuilder()

@@ -1,8 +1,8 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const TempVCInstance = require('../../schemas/TempVCInstance');
-const TempVCUserSettings = require('../../schemas/TempVCUserSettings');
-const Utils = require('../../utils/utils');
-const ProfanityFilter = require('../../utils/ProfanityFilter');
+const TempVCInstance = require('../../../schemas/TempVCInstance');
+const TempVCUserSettings = require('../../../schemas/TempVCUserSettings');
+const Utils = require('../../../utils/utils');
+const ProfanityFilter = require('../../../utils/ProfanityFilter');
 
 module.exports = {
     category: 'Voice',

@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, EmbedBuilder } = require('discord.js');
-const User = require('../../schemas/User');
-const MusicPlayerManager = require('../../utils/MusicPlayerManager');
+const User = require('../../../schemas/User');
+const MusicPlayerManager = require('../../../utils/MusicPlayerManager');
 
 const PAGE_SIZE = 10;
 const MAX_RESULTS = 100;

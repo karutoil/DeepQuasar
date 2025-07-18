@@ -1,5 +1,5 @@
 const { StringSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
-const Utils = require('../../utils/utils');
+const Utils = require('../../../../../utils/utils');
 
 async function handleRegion(interaction, instance, channel, manager, client) {
     const regions = [
