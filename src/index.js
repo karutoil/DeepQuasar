@@ -81,6 +81,9 @@ class MusicBot {
         // Initialize Music Player Manager
         this.client.musicPlayerManager = new MusicPlayerManager(this.client);
 
+        // Map to track reconnect messages per player/channel
+        this.client.reconnectMessages = new Map();
+
         // Initialize Chatbot service
         this.client.chatBot = ChatBot;
 
@@ -236,7 +239,7 @@ class MusicBot {
             logger.error(`Moonlink node "${node.identifier}" error:`, error || 'Unknown error');
         });
 
-        this.client.manager.on('nodeReconnect', (node) => {
+        this.client.manager.on('nodeReconnect', async (node) => {
             logger.info(`Moonlink node "${node.identifier}" reconnecting...`);
             
             // Reset disconnection tracking
@@ -245,17 +248,35 @@ class MusicBot {
             // Notify channels about reconnection attempt
             if (node.getPlayersCount > 0) {
                 const players = node.getPlayers();
-                players.forEach(player => {
+                for (const player of players) {
                     const channel = this.client.channels.cache.get(player.textChannelId);
-                    if (channel) {
+                    if (!channel) continue;
+                    const key = `${player.guildId}:${player.textChannelId}`;
+                    if (!this.client.reconnectMessages.has(key)) {
+                        // First reconnect: send new message
                         const embed = new EmbedBuilder()
                             .setColor('#ffa500')
                             .setTitle('🔄 Reconnecting')
                             .setDescription('Attempting to reconnect to music server...')
                             .setTimestamp();
-                        channel.send({ embeds: [embed] }).catch(() => {});
+                        try {
+                            const msg = await channel.send({ embeds: [embed] });
+                            this.client.reconnectMessages.set(key, { message: msg, count: 1 });
+                        } catch {}
+                    } else {
+                        // Subsequent reconnects: edit message
+                        const data = this.client.reconnectMessages.get(key);
+                        data.count++;
+                        const embed = new EmbedBuilder()
+                            .setColor('#ffa500')
+                            .setTitle(`🔄 Reconnecting${data.count > 1 ? ` (x${data.count})` : ''}`)
+                            .setDescription('Attempting to reconnect to music server...')
+                            .setTimestamp();
+                        try {
+                            await data.message.edit({ embeds: [embed] });
+                        } catch {}
                     }
-                });
+                }
             }
         });
 
@@ -263,28 +284,37 @@ class MusicBot {
         this.client.manager.on('nodeReady', (node, stats) => {
             logger.info(`Moonlink node "${node.identifier}" is ready. Stats:`, stats);
             
-            // Reset reconnection attempts counter
-            node.reconnectAttempts = 0;
-            
-            // Notify channels about successful reconnection if this was a reconnection
-            if (node.lastDisconnected && Date.now() - node.lastDisconnected < 300000) { // Within 5 minutes
-                if (node.getPlayersCount > 0) {
-                    const players = node.getPlayers();
-                    players.forEach(player => {
-                        const channel = this.client.channels.cache.get(player.textChannelId);
-                        if (channel) {
-                            const embed = new EmbedBuilder()
-                                .setColor('#00ff00')
-                                .setTitle('✅ Reconnected')
-                                .setDescription('Successfully reconnected to music server! Music playback has resumed.')
-                                .setTimestamp();
-                            channel.send({ embeds: [embed] }).catch(() => {});
-                        }
-                    });
-                }
-                delete node.lastDisconnected;
-            }
-        });
+                // Reset reconnection attempts counter
+                node.reconnectAttempts = 0;
+                
+                // Notify channels about successful reconnection if this was a reconnection
+                if (node.lastDisconnected && Date.now() - node.lastDisconnected < 300000) { // Within 5 minutes
+                    if (node.getPlayersCount > 0) {
+                        const players = node.getPlayers();
+                        players.forEach(async player => {
+                            const channel = this.client.channels.cache.get(player.textChannelId);
+                            const key = `${player.guildId}:${player.textChannelId}`;
+                            if (channel) {
+                                const embed = new EmbedBuilder()
+                                    .setColor('#00ff00')
+                                    .setTitle('✅ Reconnected')
+                                    .setDescription('Successfully reconnected to music server! Music playback has resumed.')
+                                    .setTimestamp();
+                                // If we have a reconnect message, edit it and delete from map
+                                if (this.client.reconnectMessages.has(key)) {
+                                    try {
+                                        const data = this.client.reconnectMessages.get(key);
+                                        await data.message.edit({ embeds: [embed] });
+                                    } catch {}
+                                    this.client.reconnectMessages.delete(key);
+                                } else {
+                                    channel.send({ embeds: [embed] }).catch(() => {});
+                                }
+                            }
+                        });
+                    }
+                    delete node.lastDisconnected;
+                }        });
 
         // Auto-resume event for successful player restoration after reconnection
         this.client.manager.on('nodeAutoResumed', (node, players) => {
@@ -337,6 +367,11 @@ class MusicBot {
 
         this.client.manager.on('playerDestroy', (player, reason) => {
             logger.info(`Player destroyed in guild ${player.guildId}. Reason: ${reason || 'Unknown'}`);
+            // Clean up reconnect message if exists
+            const key = `${player.guildId}:${player.textChannelId}`;
+            if (this.client.reconnectMessages && this.client.reconnectMessages.has(key)) {
+                this.client.reconnectMessages.delete(key);
+            }
         });
 
         this.client.manager.on('playerConnected', (player) => {
@@ -505,9 +540,17 @@ class MusicBot {
         }, 10000); // 10 seconds timeout
 
         try {
-            // Destroy all music players and disconnect from voice channels
-            if (this.client.manager && this.client.manager.players) {
-                logger.info('Closing all music players...');
+        // Gracefully shutdown Moonlink internal database
+        if (this.client.manager && this.client.manager.database && typeof this.client.manager.database.shutdown === 'function') {
+            try {
+                await this.client.manager.database.shutdown();
+                logger.info('Moonlink internal database shut down successfully');
+            } catch (err) {
+                logger.error('Error shutting down Moonlink internal database:', err);
+            }
+        }
+        // Destroy all music players and disconnect from voice channels
+        if (this.client.manager && this.client.manager.players) {                logger.info('Closing all music players...');
                 
                 let destroyedCount = 0;
                 try {
