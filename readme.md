@@ -42,6 +42,22 @@ DeepQuasar is a powerful, feature-rich Discord bot designed to enhance your serv
 
 ## Getting Started
 
+### Running Tests
+
+To run all tests and get a clear, easy-to-read summary of successes and failures (including file and line number for each failure), use:
+
+```
+npm test -- --verbose --testLocationInResults
+```
+
+For a minimal output that only shows failures, you can use:
+
+```
+npm test -- --reporters jest-silent-reporter --testLocationInResults
+```
+
+Both commands will show you how many tests passed and failed, and the location of any failures.
+
 DeepQuasar is designed to be both powerful for administrators and user-friendly for your community members. Whether you're running a small gaming server or a large community, DeepQuasar scales to meet your needs.
 
 - [Start Setup →](docs/src/content/docs/getting-started/quick_start.mdx)  
