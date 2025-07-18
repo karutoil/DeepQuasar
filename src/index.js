@@ -639,3 +639,61 @@ process.on('SIGQUIT', () => {
     logger.info('Received SIGQUIT');
     bot.shutdown();
 });
+
+/**
+ * Start the bot and log full error stack if startup fails
+ */
+// Ensure startup errors are logged to console as well as logger
+// Ensure startup errors are logged with full details
+// Ensure startup errors are logged with full details
+// --- TEST: Simulate a startup error to confirm logging works ---
+// Uncomment the next line to test error logging on startup
+// throw new Error('Simulated startup error for logging test');
+// --- END TEST ---
+
+let startupConfirmed = false;
+let startupStuckTimeout;
+
+function monitorStartupLog() {
+    // Patch logger.info to watch for the confirmation line
+    const originalInfo = logger.info;
+    logger.info = function (...args) {
+        if (
+            args.some(
+                arg =>
+                    typeof arg === 'string' &&
+                    arg.includes('is now online and ready!')
+            )
+        ) {
+            startupConfirmed = true;
+            if (startupStuckTimeout) {
+                clearTimeout(startupStuckTimeout);
+                console.log('Startup confirmation detected: Node main is connected.');
+            }
+        }
+        return originalInfo.apply(this, args);
+    };
+}
+
+(async () => {
+    monitorStartupLog();
+    try {
+        await bot.start();
+        console.log('Bot startup completed.'); // Confirm startup reached here
+    } catch (err) {
+        logErrorDetails('Fatal error during bot startup', err);
+        process.exit(1);
+    }
+    // If process is still running and no error, log a message
+    startupStuckTimeout = setTimeout(() => {
+        if (!startupConfirmed) {
+            logErrorDetails('Startup appears to be stuck. No error was thrown, but bot did not finish startup.', {});
+            // Force an error to test error logging
+            try {
+                throw new Error('Forced error: Startup stuck after 15 seconds');
+            } catch (err) {
+                logErrorDetails('Forced error thrown after 15s', err);
+            }
+        }
+    }, 15000);
+})();
