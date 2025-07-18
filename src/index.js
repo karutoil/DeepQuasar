@@ -603,14 +603,6 @@ process.on('SIGHUP', () => {
 
 const util = require('util');
 
-// Diagnose stuck Node.js event loop
-try {
-    require('why-is-node-running');
-    console.log('why-is-node-running enabled: will print open handles if process does not exit.');
-} catch (e) {
-    console.warn('why-is-node-running not installed. Run: npm install why-is-node-running');
-}
-
 // Ensure all errors are logged to console as well as logger
 function logErrorDetails(prefix, error) {
     try {
