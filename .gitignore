@@ -90,5 +90,8 @@ docs/.vitepress/.temp/
 docs/.vitepress/cache/
 update-deepquasarv2.sh
 
+# Test files
+test/test-*.js
+
 .aider*
 AGENTS.md

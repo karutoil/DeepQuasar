@@ -96,6 +96,7 @@ services:
     volumes:
       - bot_logs:/app/logs
       - bot_transcripts:/app/transcripts
+      - bot_datastore:/app/src/datastore
     networks:
       - discord-bot-network
     depends_on:
@@ -116,6 +117,8 @@ volumes:
   bot_logs:
     driver: local
   bot_transcripts:
+    driver: local
+  bot_datastore:
     driver: local
 
 networks:

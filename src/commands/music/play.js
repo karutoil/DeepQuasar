@@ -56,6 +56,26 @@ module.exports = {
         const playNext = interaction.options.getBoolean('next') || false;
         const shuffle = interaction.options.getBoolean('shuffle') || false;
 
+        // Check if music system is operational
+        if (!client.musicPlayerManager.isOperational()) {
+            const health = client.musicPlayerManager.getConnectionHealth();
+            let description = '❌ Music system is temporarily unavailable.';
+            
+            if (health.connecting > 0) {
+                description = '🔄 Music system is reconnecting. Please wait a moment and try again.';
+            } else if (health.disconnected > 0) {
+                description = '⚠️ Music server is disconnected. Attempting to reconnect...';
+            }
+            
+            return interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setTitle('Connection Issue')
+                    .setDescription(description)
+                ]
+            });
+        }
+
         // Check if user is in a voice channel
         if (!interaction.member.voice.channel) {
             return interaction.editReply({
@@ -87,19 +107,29 @@ module.exports = {
             autoPlay: true
         });
 
-        // Connect to voice channel
+        // Connect to voice channel with retry logic
         if (!player.connected) {
             try {
                 await player.connect();
                 // Wait a moment for the connection to be established
                 await new Promise(resolve => setTimeout(resolve, 1000));
             } catch (error) {
-                return interaction.editReply({
-                    embeds: [new EmbedBuilder()
-                        .setColor('#ff0000')
-                        .setDescription('❌ Unable to connect to the voice channel. Please check your permissions and try again.')
-                    ]
-                });
+                client.logger.warn('First connection attempt failed, retrying...', error);
+                
+                // Retry connection once more
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+                    await player.connect();
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                } catch (retryError) {
+                    client.logger.error('Connection retry failed:', retryError);
+                    return interaction.editReply({
+                        embeds: [new EmbedBuilder()
+                            .setColor('#ff0000')
+                            .setDescription('❌ Unable to connect to the voice channel. The music server may be temporarily unavailable. Please try again in a moment.')
+                        ]
+                    });
+                }
             }
         }
 
@@ -112,6 +142,17 @@ module.exports = {
 
         // Handle search results
         if (!searchResult.tracks.length) {
+            // Check if this was due to connection issues
+            if (searchResult.loadType === 'error' && searchResult.error?.includes('server') || searchResult.error?.includes('connection')) {
+                return interaction.editReply({
+                    embeds: [new EmbedBuilder()
+                        .setColor('#ff9500')
+                        .setTitle('⚠️ Connection Issue')
+                        .setDescription('❌ Unable to search due to music server connectivity issues. Please try again in a moment.')
+                    ]
+                });
+            }
+            
             return interaction.editReply({
                 embeds: [new EmbedBuilder()
                     .setColor('#ff0000')
@@ -359,7 +400,17 @@ module.exports = {
     async autocomplete(interaction, client) {
         const focusedValue = interaction.options.getFocused();
         if (focusedValue.length < 2) {
-            return interaction.respond([]);
+            try {
+                if (!interaction.responded && !interaction.deferred) {
+                    await interaction.respond([]);
+                }
+            } catch (e) {
+                // Suppress unknown interaction errors
+                if (e?.code !== 10062 && !(e?.message && e.message.includes('Unknown interaction'))) {
+                    client.logger.error('Autocomplete respond error:', e);
+                }
+            }
+            return;
         }
         try {
             const UserModel = require('../../schemas/User');
@@ -385,28 +436,47 @@ module.exports = {
             // Always fetch live suggestions
             let searchChoices = [];
             try {
-                const searchResult = await client.musicPlayerManager.search({
-                    query: focusedValue,
-                    source: 'youtube',
-                    requester: interaction.user.id
-                });
-                searchChoices = searchResult.tracks.slice(0, 10).map(track => ({
-                    name: `🔎 [Suggest] ${track.title} - ${track.author}`.slice(0, 100),
-                    value: track.url || track.uri || track.identifier || track.title || 'unknown'
-                })).filter(choice => choice.value && choice.value !== 'unknown');
+                // Only attempt search if music system is operational
+                if (client.musicPlayerManager.isOperational()) {
+                    const searchResult = await client.musicPlayerManager.search({
+                        query: focusedValue,
+                        source: 'youtube',
+                        requester: interaction.user.id
+                    });
+                    searchChoices = searchResult.tracks.slice(0, 10).map(track => ({
+                        name: `🔎 [Suggest] ${track.title} - ${track.author}`.slice(0, 100),
+                        value: track.url || track.uri || track.identifier || track.title || 'unknown'
+                    })).filter(choice => choice.value && choice.value !== 'unknown');
+                }
             } catch (e) {
                 client.logger.error('Autocomplete search error:', e);
             }
             // Combine, prioritizing history, but always showing both
             const combined = [...historyChoices, ...searchChoices].slice(0, 25);
-            if (interaction.isAutocomplete()) {
-                await interaction.respond(combined);
+            if (interaction.isAutocomplete() && !interaction.responded && !interaction.deferred) {
+                try {
+                    await interaction.respond(combined);
+                } catch (e) {
+                    // Suppress unknown interaction errors
+                    if (e?.code !== 10062 && !(e?.message && e.message.includes('Unknown interaction'))) {
+                        client.logger.error('Autocomplete respond error:', e);
+                    }
+                }
             } else {
                 client.logger.warn('Attempted to respond to an invalid interaction.');
             }
         } catch (error) {
             client.logger.error('Autocomplete error:', error);
-            await interaction.respond([]);
+            try {
+                if (!interaction.responded && !interaction.deferred) {
+                    await interaction.respond([]);
+                }
+            } catch (e) {
+                // Suppress unknown interaction errors
+                if (e?.code !== 10062 && !(e?.message && e.message.includes('Unknown interaction'))) {
+                    client.logger.error('Autocomplete respond error:', e);
+                }
+            }
         }
     }
 };

@@ -35,7 +35,7 @@ class MusicPlayerManager {
     }
 
     /**
-     * Create or get an existing player for a guild
+     * Create or get an existing player for a guild with connection retry
      * @param {Object} options - Player options
      * @param {string} options.guildId - Guild ID
      * @param {string} options.voiceChannelId - Voice channel ID
@@ -74,28 +74,81 @@ class MusicPlayerManager {
             return player;
         }
 
+        // Ensure we have a connected node before creating a player
+        await this.ensureNodeConnection();
+
         // Create new player (use manager.players.create)
         if (Object.keys(this.client.manager.players).length >= this.client.config.maxPlayers) {
             throw new Error('Maximum number of players reached.');
         }
-        player = this.client.manager.players.create({
-            guildId,
-            voiceChannelId,
-            textChannelId,
-            autoPlay
-        });
-
-        // Set volume from DB
+        
         try {
-            const guildData = await Guild.findByGuildId(guildId);
-            if (guildData && guildData.musicSettings && typeof guildData.musicSettings.defaultVolume === 'number') {
-                player.setVolume(guildData.musicSettings.defaultVolume);
-            }
-        } catch (err) {
-            this.client.logger?.warn?.(`Failed to load default volume for guild ${guildId}:`, err);
-        }
+            player = this.client.manager.players.create({
+                guildId,
+                voiceChannelId,
+                textChannelId,
+                autoPlay
+            });
 
-        return player;
+            // Set volume from DB
+            try {
+                const guildData = await Guild.findByGuildId(guildId);
+                if (guildData && guildData.musicSettings && typeof guildData.musicSettings.defaultVolume === 'number') {
+                    player.setVolume(guildData.musicSettings.defaultVolume);
+                }
+            } catch (err) {
+                this.client.logger?.warn?.(`Failed to load default volume for guild ${guildId}:`, err);
+            }
+
+            return player;
+        } catch (error) {
+            this.client.logger.error('Error creating player:', error);
+            throw new Error('Failed to create music player. Please try again.');
+        }
+    }
+
+    /**
+     * Ensure at least one node is connected, with retry logic
+     * @returns {Promise<void>}
+     */
+    async ensureNodeConnection() {
+        const connectedNodes = Array.from(this.client.manager.nodes.cache.values()).filter(node => node.connected);
+        
+        if (connectedNodes.length > 0) {
+            return; // We have at least one connected node
+        }
+        
+        this.client.logger.warn('No connected nodes available, attempting to reconnect...');
+        
+        // Try to trigger reconnection on all disconnected nodes
+        const disconnectedNodes = Array.from(this.client.manager.nodes.cache.values()).filter(node => !node.connected && !node.destroyed);
+        
+        for (const node of disconnectedNodes) {
+            if (node.reconnectAttempts < node.retryAmount) {
+                try {
+                    node.connect();
+                } catch (error) {
+                    this.client.logger.error(`Failed to trigger reconnection for node ${node.identifier}:`, error);
+                }
+            }
+        }
+        
+        // Wait for at least one node to connect (up to 15 seconds)
+        const connectionPromise = new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            const checkInterval = setInterval(() => {
+                const currentConnectedNodes = Array.from(this.client.manager.nodes.cache.values()).filter(node => node.connected);
+                if (currentConnectedNodes.length > 0) {
+                    clearInterval(checkInterval);
+                    resolve();
+                } else if (Date.now() - startTime > 15000) { // 15 seconds timeout
+                    clearInterval(checkInterval);
+                    reject(new Error('Failed to establish connection to music server'));
+                }
+            }, 1000); // Check every second
+        });
+        
+        await connectionPromise;
     }
 
     /**
@@ -116,7 +169,7 @@ class MusicPlayerManager {
     }
 
     /**
-     * Search for tracks using Moonlink
+     * Search for tracks using Moonlink with automatic retry on disconnection
      * @param {Object} options - Search options
      * @param {string} options.query - Search query
      * @param {string} options.source - Search source (youtube, soundcloud, etc.)
@@ -125,7 +178,8 @@ class MusicPlayerManager {
      */
     async search(options) {
         const { query, source = 'youtube', requester } = options;
-        // Use .cache for Moonlink.js v4
+        
+        // First, check if any nodes are available
         if (!this.client.manager.nodes.cache || this.client.manager.nodes.cache.size === 0) {
             this.client.logger.error('No Lavalink nodes are available for searching.');
             return {
@@ -134,16 +188,39 @@ class MusicPlayerManager {
                 tracks: []
             };
         }
+        
         // Check if at least one node is connected
-        const hasConnectedNode = Array.from(this.client.manager.nodes.cache.values()).some(node => node.connected);
-        if (!hasConnectedNode) {
-            this.client.logger.error('No connected Lavalink nodes for searching.');
-            return {
-                loadType: 'error',
-                error: 'No connected Lavalink nodes. Please try again later.',
-                tracks: []
-            };
+        const connectedNodes = Array.from(this.client.manager.nodes.cache.values()).filter(node => node.connected);
+        if (connectedNodes.length === 0) {
+            this.client.logger.warn('No connected Lavalink nodes for searching. Waiting for reconnection...');
+            
+            // Try to wait for a node to reconnect (up to 10 seconds)
+            const waitForConnection = new Promise((resolve, reject) => {
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    const currentConnectedNodes = Array.from(this.client.manager.nodes.cache.values()).filter(node => node.connected);
+                    if (currentConnectedNodes.length > 0) {
+                        clearInterval(checkInterval);
+                        resolve(true);
+                    } else if (Date.now() - startTime > 10000) { // 10 seconds timeout
+                        clearInterval(checkInterval);
+                        reject(new Error('Connection timeout'));
+                    }
+                }, 500); // Check every 500ms
+            });
+            
+            try {
+                await waitForConnection;
+                this.client.logger.info('Node reconnected, retrying search...');
+            } catch (error) {
+                return {
+                    loadType: 'error',
+                    error: 'Music server is temporarily unavailable. Please try again in a moment.',
+                    tracks: []
+                };
+            }
         }
+        
         let searchQuery = query;
         // Only add prefix for search terms, not URLs
         if (!this.isURL(query)) {
@@ -153,22 +230,45 @@ class MusicPlayerManager {
                 searchQuery = `scsearch:${query}`;
             }
         }
-        try {
-            const result = await this.client.manager.search({
-                query: searchQuery,  // Add prefix for Spotify/SoundCloud search terms
-                source: source,  // Specify source separately
-                requester
-            });
-
-            return result;
-        } catch (error) {
-            this.client.logger.error('Error searching for tracks:', error);
-            return {
-                loadType: 'error',
-                error: error.message,
-                tracks: []
-            };
+        
+        // Implement retry logic for search operations
+        const maxRetries = 3;
+        let lastError;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const result = await this.client.manager.search({
+                    query: searchQuery,
+                    source: source,
+                    requester
+                });
+                
+                return result;
+            } catch (error) {
+                lastError = error;
+                this.client.logger.warn(`Search attempt ${attempt} failed:`, error.message);
+                
+                if (attempt < maxRetries) {
+                    // Wait before retrying (exponential backoff)
+                    const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    
+                    // Check if nodes are still connected before retrying
+                    const currentConnectedNodes = Array.from(this.client.manager.nodes.cache.values()).filter(node => node.connected);
+                    if (currentConnectedNodes.length === 0) {
+                        this.client.logger.warn('No connected nodes available for retry, aborting search');
+                        break;
+                    }
+                }
+            }
         }
+        
+        this.client.logger.error('All search attempts failed:', lastError);
+        return {
+            loadType: 'error',
+            error: lastError?.message || 'Search failed after multiple attempts. Please try again.',
+            tracks: []
+        };
     }
 
     /**
@@ -342,6 +442,40 @@ class MusicPlayerManager {
         }
         
         return url;
+    }
+
+    /**
+     * Check connection health of all nodes
+     * @returns {Object} Connection status information
+     */
+    getConnectionHealth() {
+        const nodes = Array.from(this.client.manager.nodes.cache.values());
+        const connected = nodes.filter(node => node.connected);
+        const connecting = nodes.filter(node => node.state === 'CONNECTING');
+        const disconnected = nodes.filter(node => !node.connected && !node.destroyed);
+        const destroyed = nodes.filter(node => node.destroyed);
+        
+        return {
+            total: nodes.length,
+            connected: connected.length,
+            connecting: connecting.length,
+            disconnected: disconnected.length,
+            destroyed: destroyed.length,
+            healthy: connected.length > 0,
+            nodes: {
+                connected: connected.map(node => ({ identifier: node.identifier, address: node.address })),
+                disconnected: disconnected.map(node => ({ identifier: node.identifier, address: node.address, attempts: node.reconnectAttempts }))
+            }
+        };
+    }
+
+    /**
+     * Check if the music system is operational
+     * @returns {boolean} True if at least one node is connected
+     */
+    isOperational() {
+        const health = this.getConnectionHealth();
+        return health.healthy;
     }
 
     /**

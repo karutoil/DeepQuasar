@@ -38,6 +38,26 @@ module.exports = {
         const source = interaction.options.getString('source') || 'youtube';
         const limit = interaction.options.getInteger('limit') || 10;
 
+        // Check if music system is operational
+        if (!client.musicPlayerManager.isOperational()) {
+            const health = client.musicPlayerManager.getConnectionHealth();
+            let description = '❌ Music system is temporarily unavailable.';
+            
+            if (health.connecting > 0) {
+                description = '🔄 Music system is reconnecting. Please wait a moment and try again.';
+            } else if (health.disconnected > 0) {
+                description = '⚠️ Music server is disconnected. Attempting to reconnect...';
+            }
+            
+            return interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setTitle('Connection Issue')
+                    .setDescription(description)
+                ]
+            });
+        }
+
         // Check if user is in a voice channel
         if (!interaction.member.voice.channel) {
             return interaction.editReply({
@@ -56,6 +76,17 @@ module.exports = {
         });
 
         if (!searchResult.tracks.length) {
+            // Check if this was due to connection issues
+            if (searchResult.loadType === 'error' && (searchResult.error?.includes('server') || searchResult.error?.includes('connection'))) {
+                return interaction.editReply({
+                    embeds: [new EmbedBuilder()
+                        .setColor('#ff9500')
+                        .setTitle('⚠️ Connection Issue')
+                        .setDescription('❌ Unable to search due to music server connectivity issues. Please try again in a moment.')
+                    ]
+                });
+            }
+            
             return interaction.editReply({
                 embeds: [new EmbedBuilder()
                     .setColor('#ff0000')
