@@ -109,9 +109,10 @@ function startPeriodicTasks(client) {
     LFGCleanupTask.init(client);
     
     // Clean up inactive players every 5 minutes
-    setInterval(() => {
-        cleanupInactivePlayers(client);
-    }, 5 * 60 * 1000);
+    // (Moved to music module, only runs if music module is enabled)
+    // setInterval(() => {
+    //     cleanupInactivePlayers(client);
+    // }, 5 * 60 * 1000);
 
     // Update statistics every hour
     setInterval(() => {
@@ -124,31 +125,7 @@ function startPeriodicTasks(client) {
     }, 24 * 60 * 60 * 1000);
 }
 
-async function cleanupInactivePlayers(client) {
-    const players = client.musicPlayerManager.getAllPlayers();
-    let cleanedCount = 0;
 
-    for (const [guildId, player] of players.entries()) {
-        // Remove players that have been inactive for more than 10 minutes
-        if (!player.playing && !player.paused && player.queue.size === 0) {
-            const lastActivity = player.lastActivity || Date.now();
-            const inactiveTime = Date.now() - lastActivity;
-            
-            if (inactiveTime > 10 * 60 * 1000) { // 10 minutes
-                try {
-                    await player.destroy();
-                    cleanedCount++;
-                } catch (error) {
-                    client.logger.error(`Error destroying inactive player for guild ${guildId}:`, error);
-                }
-            }
-        }
-    }
-
-    if (cleanedCount > 0) {
-        client.logger.info(`Cleaned up ${cleanedCount} inactive players`);
-    }
-}
 
 async function initializeInviteCaches(client) {
     client.logger.info('Initializing invite caches for all guilds...');

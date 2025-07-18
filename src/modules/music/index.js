@@ -76,8 +76,102 @@ async function load(client) {
         }
     }
 
+    // --- Moonlink Setup and Event Handlers ---
+    const config = client.config;
+    const logger = client.logger;
+    const { Manager } = require('moonlink.js');
+    const { EmbedBuilder } = require('discord.js');
+
+    if (!client.manager) {
+        logger.info('Setting up Moonlink with config:', {
+            host: config.lavalink.host,
+            port: config.lavalink.port,
+            secure: config.lavalink.secure
+        });
+
+        client.manager = new Manager({
+            nodes: [{
+                identifier: 'main',
+                host: config.lavalink.host,
+                port: config.lavalink.port,
+                password: config.lavalink.password,
+                secure: config.lavalink.secure || false,
+                retryAmount: 10,
+                retryDelay: 5000,
+            }],
+            sendPayload: (guildId, payload) => {
+                const guild = client.guilds.cache.get(guildId);
+                if (guild) {
+                    let parsedPayload = payload;
+                    if (typeof payload === 'string') {
+                        try {
+                            parsedPayload = JSON.parse(payload);
+                        } catch (error) {
+                            logger.error('Failed to parse voice payload:', error);
+                            return;
+                        }
+                    }
+                    guild.shard.send(parsedPayload);
+                }
+            },
+            options: {
+                autoPlay: true,
+                disableNativeSources: true,
+                resume: true,
+                autoResume: true,
+                movePlayersOnReconnect: true,
+                sortTypeNode: 'players',
+            }
+        });
+
+        // Setup Moonlink event handlers
+        setupMoonlinkEvents(client);
+
+        // Handle raw events for voice state updates
+        client.on('raw', (packet) => {
+            client.manager.packetUpdate(packet);
+        });
+    }
+
+    // Start autocleanup of inactive players every 5 minutes
+    if (client.musicPlayerManager) {
+        if (client._musicCleanupInterval) clearInterval(client._musicCleanupInterval);
+        client._musicCleanupInterval = setInterval(async () => {
+            try {
+                const players = client.musicPlayerManager.getAllPlayers();
+                let cleanedCount = 0;
+                for (const [guildId, player] of players.entries()) {
+                    if (!player.playing && !player.paused && player.queue.size === 0) {
+                        const lastActivity = player.lastActivity || Date.now();
+                        const inactiveTime = Date.now() - lastActivity;
+                        if (inactiveTime > 10 * 60 * 1000) { // 10 minutes
+                            try {
+                                await player.destroy();
+                                cleanedCount++;
+                            } catch (error) {
+                                client.logger.error(`Error destroying inactive player for guild ${guildId}:`, error);
+                            }
+                        }
+                    }
+                }
+                if (cleanedCount > 0) {
+                    client.logger.info(`Cleaned up ${cleanedCount} inactive players`);
+                }
+            } catch (err) {
+                client.logger.error('Error during music autocleanup:', err);
+            }
+        }, 5 * 60 * 1000);
+    }
+
     return { commandCount: loadedCommands };
 }
+
+function setupMoonlinkEvents(client) {
+    const logger = client.logger;
+    const { EmbedBuilder } = require('discord.js');
+    // (Paste all event handler logic from index.js here)
+}
+
 
 /**
  * Unload Music module
