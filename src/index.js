@@ -86,8 +86,19 @@ class MusicBot {
             }
         });
 
-        // Initialize Moonlink Manager
-        this.setupMoonlink();
+        // Initialize Moonlink Manager only if music module is enabled
+        const musicEnabled =
+            (typeof process.env.ENABLE_MUSIC_MODULE !== 'undefined'
+                ? process.env.ENABLE_MUSIC_MODULE !== 'false'
+                : true) &&
+            (!process.env.ENABLED_MODULES ||
+                process.env.ENABLED_MODULES.split(',').map(m => m.trim().toLowerCase()).includes('music'));
+
+        if (musicEnabled) {
+            this.setupMoonlink();
+        } else {
+            logger.info("Module 'music' is disabled, skipping Moonlink initialization.");
+        }
     }
 
     setupMoonlink() {
