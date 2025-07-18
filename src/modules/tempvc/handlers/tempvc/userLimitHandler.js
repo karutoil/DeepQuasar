@@ -51,17 +51,36 @@ async function handleLimitSelection(interaction, instance, channel, value, manag
     }
 
     const limit = parseInt(value);
-    await channel.setUserLimit(limit);
-    instance.settings.userLimit = limit;
-    await instance.save();
-    await instance.autoSaveSettings();
+    try {
+        await channel.setUserLimit(limit);
+        instance.settings.userLimit = limit;
+        await instance.save();
+        await instance.autoSaveSettings();
 
-    const limitText = limit === 0 ? 'No limit' : `${limit} users`;
-    await interaction.update({
-        content: `✅ User limit set to: **${limitText}**`,
-        components: []
-    });
-    await manager.updateControlPanel(instance, channel);
+        const limitText = limit === 0 ? 'No limit' : `${limit} users`;
+        await interaction.update({
+            content: `✅ User limit set to: **${limitText}**`,
+            components: []
+        });
+        await manager.updateControlPanel(instance, channel);
+    } catch (error) {
+        client.logger.error('Error setting user limit or updating control panel:', error);
+        // Try to inform the user gracefully
+        try {
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Failed to set user limit. Discord may be experiencing issues. Please try again later.',
+                    ephemeral: true
+                });
+            } else {
+                await interaction.editReply({
+                    content: '❌ Failed to set user limit. Discord may be experiencing issues. Please try again later.'
+                });
+            }
+        } catch (err2) {
+            client.logger.error('Error sending error message to user:', err2);
+        }
+    }
 }
 
 async function handleLimitModal(interaction, instance, channel, manager, client) {

@@ -12,37 +12,55 @@ const deleteResetHandlers = require('./deleteResetHandlers');
 
 async function handleMenuSelection(interaction, instance, channel, manager, client) {
     const action = interaction.values[0];
-    switch (action) {
-        case 'rename':
-            await renameHandler.handleRename(interaction, instance, channel, manager, client); break;
-        case 'limit':
-            await userLimitHandler.handleUserLimit(interaction, instance, channel, manager, client); break;
-        case 'bitrate':
-            await bitrateHandler.handleBitrate(interaction, instance, channel, manager, client); break;
-        case 'region':
-            await regionHandler.handleRegion(interaction, instance, channel, manager, client); break;
-        case 'lock':
-            await lockHideHandlers.handleLock(interaction, instance, channel, manager, client); break;
-        case 'hide':
-            await lockHideHandlers.handleHide(interaction, instance, channel, manager, client); break;
-        case 'kick':
-            await kickHandlers.handleKick(interaction, instance, channel, manager, client); break;
-        case 'ban':
-            await banUnbanHandlers.handleBan(interaction, instance, channel, manager, client); break;
-        case 'unban':
-            await banUnbanHandlers.handleUnban(interaction, instance, channel, manager, client); break;
-        case 'allow_user':
-            await permissionManagementHandlers.handleAllowUser(interaction, instance, channel, manager, client); break;
-        case 'deny_user':
-            await permissionManagementHandlers.handleDenyUser(interaction, instance, channel, manager, client); break;
-        case 'manage_permissions':
-            await permissionManagementHandlers.handleManagePermissions(interaction, instance, channel, manager, client); break;
-        case 'transfer':
-            await transferHandler.handleTransfer(interaction, instance, channel, manager, client); break;
-        case 'reset':
-            await deleteResetHandlers.handleReset(interaction, instance, channel, manager, client); break;
-        case 'delete':
-            await deleteResetHandlers.handleDelete(interaction, instance, channel, manager, client); break;
+    try {
+        switch (action) {
+            case 'rename':
+                await renameHandler.handleRename(interaction, instance, channel, manager, client); break;
+            case 'limit':
+                await userLimitHandler.handleUserLimit(interaction, instance, channel, manager, client); break;
+            case 'bitrate':
+                await bitrateHandler.handleBitrate(interaction, instance, channel, manager, client); break;
+            case 'region':
+                await regionHandler.handleRegion(interaction, instance, channel, manager, client); break;
+            case 'lock':
+                await lockHideHandlers.handleLock(interaction, instance, channel, manager, client); break;
+            case 'hide':
+                await lockHideHandlers.handleHide(interaction, instance, channel, manager, client); break;
+            case 'kick':
+                await kickHandlers.handleKick(interaction, instance, channel, manager, client); break;
+            case 'ban':
+                await banUnbanHandlers.handleBan(interaction, instance, channel, manager, client); break;
+            case 'unban':
+                await banUnbanHandlers.handleUnban(interaction, instance, channel, manager, client); break;
+            case 'allow_user':
+                await permissionManagementHandlers.handleAllowUser(interaction, instance, channel, manager, client); break;
+            case 'deny_user':
+                await permissionManagementHandlers.handleDenyUser(interaction, instance, channel, manager, client); break;
+            case 'manage_permissions':
+                await permissionManagementHandlers.handleManagePermissions(interaction, instance, channel, manager, client); break;
+            case 'transfer':
+                await transferHandler.handleTransfer(interaction, instance, channel, manager, client); break;
+            case 'reset':
+                await deleteResetHandlers.handleReset(interaction, instance, channel, manager, client); break;
+            case 'delete':
+                await deleteResetHandlers.handleDelete(interaction, instance, channel, manager, client); break;
+        }
+    } catch (error) {
+        client.logger.error('Error handling menu selection:', error);
+        try {
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Failed to process your selection. Discord may be experiencing issues. Please try again later.',
+                    ephemeral: true
+                });
+            } else {
+                await interaction.editReply({
+                    content: '❌ Failed to process your selection. Discord may be experiencing issues. Please try again later.'
+                });
+            }
+        } catch (err2) {
+            client.logger.error('Error sending error message to user:', err2);
+        }
     }
 }
 
