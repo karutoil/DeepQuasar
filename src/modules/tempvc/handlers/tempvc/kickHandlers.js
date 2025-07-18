@@ -1,5 +1,5 @@
 const { StringSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
-const Utils = require('../../../../../utils/utils');
+const Utils = require('../../../../utils/utils');
 
 async function handleKick(interaction, instance, channel, manager, client) {
     const membersInVC = channel.members.filter(m => !m.user.bot && m.id !== instance.ownerId);

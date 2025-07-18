@@ -1,6 +1,6 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
-const Utils = require('../../../../../utils/utils');
-const TempVCInstance = require('../../../../../schemas/TempVCInstance');
+const Utils = require('../../../../utils/utils');
+const TempVCInstance = require('../../../../schemas/TempVCInstance');
 
 async function handleUserLimit(interaction, instance, channel, manager, client) {
     const selectMenu = new StringSelectMenuBuilder()

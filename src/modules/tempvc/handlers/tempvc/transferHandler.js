@@ -1,5 +1,5 @@
 const { StringSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
-const Utils = require('../../../../../utils/utils');
+const Utils = require('../../../../utils/utils');
 
 async function handleTransfer(interaction, instance, channel, manager, client) {
     const members = channel.members.filter(m => !m.user.bot && m.id !== instance.ownerId);

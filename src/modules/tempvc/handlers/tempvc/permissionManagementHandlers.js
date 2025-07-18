@@ -1,5 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, UserSelectMenuBuilder } = require('discord.js');
-const Utils = require('../../../../../utils/utils');
+const Utils = require('../../../../utils/utils');
 
 async function buildUserList(guild, userIds) {
     if (!userIds || userIds.length === 0) return 'None';
