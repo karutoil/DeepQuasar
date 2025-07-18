@@ -19,7 +19,13 @@ const moduleInfo = {
  */
 async function load(client) {
     const commandsPath = path.join(__dirname, 'commands');
-    
+
+    // Initialize embed builder sessions (only if templates module is enabled)
+    client.embedBuilderSessions = new Map();
+    client.embedBuilderMessageContent = new Map();
+    client.embedBuilderEditIndex = new Map();
+    client.embedBuilderMessages = new Map();
+
     if (!fs.existsSync(commandsPath)) {
         client.logger.warn('Templates module commands directory not found');
         return { commandCount: 0 };
@@ -30,7 +36,7 @@ async function load(client) {
 
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
-        
+
         try {
             delete require.cache[require.resolve(filePath)];
             const command = require(filePath);
