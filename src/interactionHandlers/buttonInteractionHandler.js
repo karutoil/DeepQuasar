@@ -1100,6 +1100,19 @@ async function handleButtonInteraction(interaction, client) {
             return;
         }
 
+        // Handle selfrole buttons
+        if (customId.startsWith('selfrole_')) {
+            if (client.selfRoleManager) {
+                await client.selfRoleManager.handleSelfRoleInteraction(interaction);
+            } else {
+                await interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Module Error', 'Self-role system is not available.')],
+                    ephemeral: true
+                });
+            }
+            return;
+        }
+
     } catch (error) {
         // customId is always defined at the top, but fallback just in case
         const safeCustomId = typeof customId !== 'undefined' ? customId : '[unknown]';

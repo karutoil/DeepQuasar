@@ -28,15 +28,11 @@ const fs = require('fs');
 
 // Import utilities
 const logger = require('./utils/logger');
-const { loadCommands } = require('./handlers/commandHandler');
+const { loadCommands } = require('./handlers/modularCommandHandler');
 const { loadEvents } = require('./handlers/eventHandler');
 const { deployCommands } = require('./utils/deployCommands');
 const config = require('./config/bot');
-const MusicPlayerManager = require('./utils/MusicPlayerManager');
 const ChatBot = require('./utils/ChatBot');
-const AutoRoleManager = require('./utils/AutoRoleManager');
-const SelfRoleManager = require('./utils/SelfRoleManager');
-const TicketManager = require('./utils/TicketManager');
 
 // Import GuildCleanup utility
 const { cleanupGuildData } = require('./utils/GuildCleanup');
@@ -47,9 +43,6 @@ require('./schemas/User');
 require('./schemas/SelfRole');
 require('./schemas/EmbedTemplate');
 require('./schemas/Reminder'); // <-- Ensure Reminder schema is initialized
-
-// Import ReminderManager
-const ReminderManager = require('./reminderManager');
 
 class MusicBot {
     constructor() {
@@ -78,27 +71,10 @@ class MusicBot {
         this.client.embedBuilderEditIndex = new Map();
         this.client.embedBuilderMessages = new Map();
 
-        // Initialize Music Player Manager
-        this.client.musicPlayerManager = new MusicPlayerManager(this.client);
-
-        // Map to track reconnect messages per player/channel (no longer needed for reconnect counter logic)
-        // this.client.reconnectMessages = new Map();
-
         // Initialize Chatbot service
         this.client.chatBot = ChatBot;
 
-        // Initialize AutoRole Manager
-        this.client.autoRoleManager = new AutoRoleManager(this.client);
-
-        // Initialize SelfRole Manager
-        this.client.selfRoleManager = new SelfRoleManager(this.client);
-
-        // Initialize Ticket Manager
-        this.client.ticketManager = new TicketManager(this.client);
-
-        // Initialize Temp VC Manager
-        const TempVCManager = require('./utils/TempVCManager');
-        this.client.tempVCManager = new TempVCManager(this.client);
+        // Note: Managers will be initialized by their respective modules
 
         // Setup guildDelete event for global cleanup
         this.client.on('guildDelete', async (guild) => {
@@ -110,8 +86,19 @@ class MusicBot {
             }
         });
 
-        // Initialize Moonlink Manager
-        this.setupMoonlink();
+        // Initialize Moonlink Manager only if music module is enabled
+        const musicEnabled =
+            (typeof process.env.ENABLE_MUSIC_MODULE !== 'undefined'
+                ? process.env.ENABLE_MUSIC_MODULE !== 'false'
+                : true) &&
+            (!process.env.ENABLED_MODULES ||
+                process.env.ENABLED_MODULES.split(',').map(m => m.trim().toLowerCase()).includes('music'));
+
+        if (musicEnabled) {
+            this.setupMoonlink();
+        } else {
+            logger.info("Module 'music' is disabled, skipping Moonlink initialization.");
+        }
     }
 
     setupMoonlink() {
@@ -439,9 +426,7 @@ class MusicBot {
             // Set bot activity
             this.client.user.setActivity('🚀 Starting up...', { type: ActivityType.Playing });
 
-            // --- ReminderManager Startup ---
-            this.client.reminderManager = new ReminderManager(this.client);
-            this.client.reminderManager.loadReminders();
+            // Note: ReminderManager will be initialized by the reminders module
 
             // --- Temp VC Cleanup on Startup ---
             try {
@@ -617,14 +602,6 @@ process.on('SIGHUP', () => {
 });
 
 const util = require('util');
-
-// Diagnose stuck Node.js event loop
-try {
-    require('why-is-node-running');
-    console.log('why-is-node-running enabled: will print open handles if process does not exit.');
-} catch (e) {
-    console.warn('why-is-node-running not installed. Run: npm install why-is-node-running');
-}
 
 // Ensure all errors are logged to console as well as logger
 function logErrorDetails(prefix, error) {

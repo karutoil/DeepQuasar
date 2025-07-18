@@ -490,16 +490,26 @@ async function handleSelectMenuInteraction(interaction, client) {
 
     } catch (error) {
         client.logger.error(`Error handling select menu interaction ${customId}:`, error);
-        
+
+        // Try to provide a more user-friendly message for Discord API errors
+        let userMessage = 'An error occurred while processing this selection.';
+        if (error && error.name === 'HTTPError' && error.message && error.message.includes('Service Unavailable')) {
+            userMessage = '❌ Discord is currently experiencing issues (Service Unavailable). Please try again in a moment.';
+        }
+
         const errorEmbed = Utils.createErrorEmbed(
             'Selection Error',
-            'An error occurred while processing this selection.'
+            userMessage
         );
 
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
-        } else {
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        try {
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+            } else {
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            }
+        } catch (err2) {
+            client.logger.error('Error sending error message to user:', err2);
         }
     }
 }
