@@ -81,8 +81,8 @@ class MusicBot {
         // Initialize Music Player Manager
         this.client.musicPlayerManager = new MusicPlayerManager(this.client);
 
-        // Map to track reconnect messages per player/channel
-        this.client.reconnectMessages = new Map();
+        // Map to track reconnect messages per player/channel (no longer needed for reconnect counter logic)
+        // this.client.reconnectMessages = new Map();
 
         // Initialize Chatbot service
         this.client.chatBot = ChatBot;
@@ -218,11 +218,16 @@ class MusicBot {
             // Track disconnection for connection state management
             node.lastDisconnected = Date.now();
             
+            // Generate a new reconnect sessionId (timestamp)
+            const sessionId = Date.now();
+            
             // Notify affected channels about the disconnection if there are active players
             if (node.getPlayersCount > 0) {
                 const players = node.getPlayers();
                 players.forEach(player => {
                     const channel = this.client.channels.cache.get(player.textChannelId);
+                    const key = `${player.guildId}:${player.textChannelId}`;
+                    // No need to store sessionId or reconnectMessages for this player/channel anymore.
                     if (channel && player.playing) {
                         const embed = new EmbedBuilder()
                             .setColor('#ff9500')
@@ -251,31 +256,19 @@ class MusicBot {
                 for (const player of players) {
                     const channel = this.client.channels.cache.get(player.textChannelId);
                     if (!channel) continue;
-                    const key = `${player.guildId}:${player.textChannelId}`;
-                    if (!this.client.reconnectMessages.has(key)) {
-                        // First reconnect: send new message
-                        const embed = new EmbedBuilder()
-                            .setColor('#ffa500')
-                            .setTitle('🔄 Reconnecting')
-                            .setDescription('Attempting to reconnect to music server...')
-                            .setTimestamp();
-                        try {
-                            const msg = await channel.send({ embeds: [embed] });
-                            this.client.reconnectMessages.set(key, { message: msg, count: 1 });
-                        } catch {}
-                    } else {
-                        // Subsequent reconnects: edit message
-                        const data = this.client.reconnectMessages.get(key);
-                        data.count++;
-                        const embed = new EmbedBuilder()
-                            .setColor('#ffa500')
-                            .setTitle(`🔄 Reconnecting${data.count > 1 ? ` (x${data.count})` : ''}`)
-                            .setDescription('Attempting to reconnect to music server...')
-                            .setTimestamp();
-                        try {
-                            await data.message.edit({ embeds: [embed] });
-                        } catch {}
-                    }
+                    // const key = `${player.guildId}:${player.textChannelId}`;
+                    // const sessionId = (this.client.reconnectMessages && this.client.reconnectMessages.has(key)) ? this.client.reconnectMessages.get(key).sessionId : null;
+                    // Always send a new reconnect message for every attempt
+                    const embed = new EmbedBuilder()
+                        .setColor('#ffa500')
+                        .setTitle('🔄 Reconnecting')
+                        .setDescription('Attempting to reconnect to music server...')
+                        .setTimestamp();
+                    try {
+                        await channel.send({ embeds: [embed] });
+                    } catch {}
+                    // No need to track reconnectMessages for counter or message anymore.
+                    // Optionally, you can remove reconnectMessages tracking entirely if not used elsewhere.
                 }
             }
         });
@@ -284,37 +277,29 @@ class MusicBot {
         this.client.manager.on('nodeReady', (node, stats) => {
             logger.info(`Moonlink node "${node.identifier}" is ready. Stats:`, stats);
             
-                // Reset reconnection attempts counter
-                node.reconnectAttempts = 0;
-                
-                // Notify channels about successful reconnection if this was a reconnection
-                if (node.lastDisconnected && Date.now() - node.lastDisconnected < 300000) { // Within 5 minutes
-                    if (node.getPlayersCount > 0) {
-                        const players = node.getPlayers();
-                        players.forEach(async player => {
-                            const channel = this.client.channels.cache.get(player.textChannelId);
-                            const key = `${player.guildId}:${player.textChannelId}`;
-                            if (channel) {
-                                const embed = new EmbedBuilder()
-                                    .setColor('#00ff00')
-                                    .setTitle('✅ Reconnected')
-                                    .setDescription('Successfully reconnected to music server! Music playback has resumed.')
-                                    .setTimestamp();
-                                // If we have a reconnect message, edit it and delete from map
-                                if (this.client.reconnectMessages.has(key)) {
-                                    try {
-                                        const data = this.client.reconnectMessages.get(key);
-                                        await data.message.edit({ embeds: [embed] });
-                                    } catch {}
-                                    this.client.reconnectMessages.delete(key);
-                                } else {
-                                    channel.send({ embeds: [embed] }).catch(() => {});
-                                }
-                            }
-                        });
-                    }
-                    delete node.lastDisconnected;
-                }        });
+            // Reset reconnection attempts counter
+            node.reconnectAttempts = 0;
+            
+            // Notify channels about successful reconnection if this was a reconnection
+            if (node.lastDisconnected && Date.now() - node.lastDisconnected < 300000) { // Within 5 minutes
+                if (node.getPlayersCount > 0) {
+                    const players = node.getPlayers();
+                    players.forEach(async player => {
+                        const channel = this.client.channels.cache.get(player.textChannelId);
+                        const key = `${player.guildId}:${player.textChannelId}`;
+                        if (channel) {
+                            const embed = new EmbedBuilder()
+                                .setColor('#00ff00')
+                                .setTitle('✅ Reconnected')
+                                .setDescription('Successfully reconnected to music server! Music playback has resumed.')
+                                .setTimestamp();
+                             // Always send a new reconnected message
+                             channel.send({ embeds: [embed] }).catch(() => {});                        }
+                    });
+                }
+                delete node.lastDisconnected;
+            }
+        });
 
         // Auto-resume event for successful player restoration after reconnection
         this.client.manager.on('nodeAutoResumed', (node, players) => {
@@ -367,11 +352,6 @@ class MusicBot {
 
         this.client.manager.on('playerDestroy', (player, reason) => {
             logger.info(`Player destroyed in guild ${player.guildId}. Reason: ${reason || 'Unknown'}`);
-            // Clean up reconnect message if exists
-            const key = `${player.guildId}:${player.textChannelId}`;
-            if (this.client.reconnectMessages && this.client.reconnectMessages.has(key)) {
-                this.client.reconnectMessages.delete(key);
-            }
         });
 
         this.client.manager.on('playerConnected', (player) => {

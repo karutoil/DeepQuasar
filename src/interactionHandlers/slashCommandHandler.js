@@ -112,15 +112,23 @@ async function handleSlashCommand(interaction, client) {
     } catch (error) {
         client.logger.error(`Error executing command ${interaction.commandName}:`, error);
 
+        // IMPORTANT FOR COMMAND AUTHORS:
+        // Always reply or defer in your execute() method. Never throw after replying.
+        // If you throw after replying/defer, the error handler will attempt to followUp, which may cause Discord errors.
+
         const errorEmbed = Utils.createErrorEmbed(
             'Command Error',
             'An error occurred while executing this command. The developers have been notified.'
         );
 
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
-        } else {
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        try {
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+            } else {
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            }
+        } catch (err) {
+            client.logger.error('Failed to send error response to interaction:', err);
         }
     }
 }
