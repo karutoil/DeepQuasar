@@ -303,4 +303,24 @@ router.get('/dev-helper', async (req, res) => {
     });
 });
 
+/**
+ * GET /api/auth/callback
+ * Minimal endpoint to satisfy Discord OAuth2 redirect_uri requirement.
+ * You can customize this to redirect to your frontend or show a message.
+ */
+router.get('/callback', (req, res) => {
+    res.send(`
+        <html>
+            <head><title>OAuth2 Callback</title></head>
+            <body>
+                <h2>Authentication successful. You may close this window.</h2>
+                <script>
+                    // Optionally, you can send the code to your frontend here
+                    // window.location = '/'; // Or redirect to your app
+                </script>
+            </body>
+        </html>
+    `);
+});
+
 module.exports = router;
