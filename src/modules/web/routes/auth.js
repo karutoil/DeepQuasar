@@ -69,11 +69,19 @@ router.post('/login', async (req, res) => {
         }
         
         // Get member object for additional details
-        const member = guild.members.cache.get(discordUser.id);
+        let member = guild.members.cache.get(discordUser.id);
+        if (!member) {
+            // Try to fetch the member from the API in case the cache is stale
+            try {
+                member = await guild.members.fetch(discordUser.id);
+            } catch (fetchErr) {
+                req.client.logger?.warn?.('Failed to fetch member from Discord API:', fetchErr);
+            }
+        }
         if (!member) {
             return res.status(403).json({
                 error: 'Access Denied',
-                message: 'User is not a member of the specified guild'
+                message: 'User is not a member of the specified guild (not found in cache or via fetch)'
             });
         }
         
