@@ -248,7 +248,9 @@ const axios = require('axios');
 
 router.get('/dev-helper', async (req, res) => {
     // You may want to set this from config/env in production!
-    const publicUrl = process.env.PUBLIC_URL || `http${req.secure ? 's' : ''}://${req.headers.host}`;
+    // Use the same redirect_uri as you registered in your Discord application settings.
+    // If you set PUBLIC_URL, it will be used. Otherwise, fallback to http://localhost:3000.
+    const publicUrl = process.env.PUBLIC_URL || 'http://localhost:3000';
     const callbackPath = '/api/auth/callback';
     const callbackUrl = `${publicUrl}${callbackPath}`;
 
