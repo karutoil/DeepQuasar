@@ -18,6 +18,11 @@ This document provides examples of how to test the DeepQuasar Dashboard API endp
    DASHBOARD_URL=http://localhost:3001
    ```
 
+3. **Get Discord OAuth2 Access Token**:
+   - Register app at [Discord Developer Portal](https://discord.com/developers/applications)
+   - Set up OAuth2 with scopes: `identify guilds`
+   - Implement OAuth2 flow to get access token
+
 ## Testing with curl
 
 ### 1. Health Check (No Auth Required)
@@ -38,14 +43,23 @@ curl -X GET http://localhost:3000/api/health
 }
 ```
 
-### 2. Authentication
+### 2. Authentication (Discord OAuth2 Required)
 
 ```bash
-# Login to get JWT token
+# Get user's manageable guilds first
+curl -X POST http://localhost:3000/api/auth/guilds \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accessToken": "YOUR_DISCORD_OAUTH2_ACCESS_TOKEN"
+  }'
+```
+
+```bash
+# Login with Discord access token to get JWT
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "userId": "123456789012345678",
+    "accessToken": "YOUR_DISCORD_OAUTH2_ACCESS_TOKEN",
     "guildId": "987654321098765432"
   }'
 ```
@@ -177,13 +191,31 @@ class DeepQuasarAPI {
     this.token = localStorage.getItem('deepquasar_token');
   }
 
-  async login(userId, guildId) {
+  // Get user's manageable guilds with Discord OAuth2 token
+  async getGuilds(discordAccessToken) {
+    const response = await fetch(`${this.baseURL}/auth/guilds`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ accessToken: discordAccessToken }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch guilds');
+    }
+
+    return response.json();
+  }
+
+  // Login with Discord OAuth2 access token
+  async login(discordAccessToken, guildId) {
     const response = await fetch(`${this.baseURL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ userId, guildId }),
+      body: JSON.stringify({ accessToken: discordAccessToken, guildId }),
     });
 
     const data = await response.json();
@@ -284,17 +316,25 @@ class DeepQuasarAPI {
   }
 }
 
-// Usage example
+// Usage example with Discord OAuth2
 async function example() {
   const api = new DeepQuasarAPI();
   
   try {
-    // Login
-    const loginResult = await api.login('123456789012345678', '987654321098765432');
+    // First, get Discord access token through OAuth2 flow
+    const discordAccessToken = 'YOUR_DISCORD_OAUTH2_ACCESS_TOKEN';
+    
+    // Get list of manageable guilds
+    const guilds = await api.getGuilds(discordAccessToken);
+    console.log('Available guilds:', guilds.guilds.map(g => g.name));
+    
+    // Select a guild and login
+    const selectedGuild = guilds.guilds[0];
+    const loginResult = await api.login(discordAccessToken, selectedGuild.id);
     console.log('Logged in:', loginResult.user.username);
     
     // Get guild info
-    const guild = await api.getGuildInfo('987654321098765432');
+    const guild = await api.getGuildInfo(selectedGuild.id);
     console.log('Guild:', guild.guild.name);
     
     // Get music player status

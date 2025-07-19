@@ -3,7 +3,58 @@
  */
 
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const Guild = require('../../../schemas/Guild');
+
+/**
+ * Verify Discord access token with Discord API
+ */
+async function verifyDiscordToken(accessToken) {
+    try {
+        const response = await axios.get('https://discord.com/api/users/@me', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'User-Agent': 'DeepQuasar Dashboard (https://github.com/karutoil/DeepQuasar, 1.0.0)'
+            },
+            timeout: 10000
+        });
+        
+        return {
+            success: true,
+            user: response.data
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.response?.status === 401 ? 'Invalid token' : 'Discord API error'
+        };
+    }
+}
+
+/**
+ * Get user's guilds from Discord API
+ */
+async function getUserGuilds(accessToken) {
+    try {
+        const response = await axios.get('https://discord.com/api/users/@me/guilds', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'User-Agent': 'DeepQuasar Dashboard (https://github.com/karutoil/DeepQuasar, 1.0.0)'
+            },
+            timeout: 10000
+        });
+        
+        return {
+            success: true,
+            guilds: response.data
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.response?.status === 401 ? 'Invalid token' : 'Discord API error'
+        };
+    }
+}
 
 /**
  * Generate JWT token for authenticated user
@@ -226,6 +277,8 @@ function rateLimit(windowMs = 60000, maxRequests = 100) {
 }
 
 module.exports = {
+    verifyDiscordToken,
+    getUserGuilds,
     generateToken,
     verifyToken,
     validateGuildAccess,

@@ -29,19 +29,21 @@ Open `examples/dashboard-demo.html` in your browser to test the API interactivel
 ## 📋 Features Implemented
 
 ### 🔐 Authentication & Security
-- **JWT-based authentication** with secure token generation
-- **Guild access validation** ensures users can only access guilds they belong to
+- **Discord OAuth2 integration** with access token verification
+- **Discord API validation** ensures authentic user identity
+- **Guild access validation** through Discord's permissions system
 - **Role-based permissions** (User, DJ, Moderator, Administrator)
 - **Rate limiting** to prevent abuse (30-50 requests/minute)
 - **CORS configuration** for secure frontend integration
+- **Proper 401 responses** for unauthorized/invalid tokens
 
 ### 🎯 API Endpoints (95 Total)
 
 #### Authentication (4 endpoints)
-- `POST /auth/login` - Generate authentication token
+- `POST /auth/login` - Authenticate with Discord OAuth2 token
 - `POST /auth/verify` - Verify token validity
 - `POST /auth/refresh` - Refresh existing token
-- `GET /auth/guilds/:userId` - Get user's manageable guilds
+- `POST /auth/guilds` - Get user's manageable guilds (OAuth2)
 
 #### Guild Management (6 endpoints)
 - `GET /guild/:guildId` - Get guild information and settings
@@ -145,10 +147,12 @@ src/modules/web/
 
 ## 🔒 Security Features
 
-### JWT Authentication
-- Tokens expire after 7 days
-- Include user ID and guild ID in payload
-- Secure secret-based signing
+### Discord OAuth2 + JWT Authentication
+- **Discord OAuth2**: Verify user identity with Discord's API
+- **Access Token Validation**: All requests validated against Discord
+- **JWT Tokens**: Expire after 7 days, include user ID and guild ID
+- **Secure Authentication**: No plain user/guild ID authentication
+- **401 Responses**: Proper error handling for invalid tokens
 
 ### Permission Validation
 - **User Level**: Basic authenticated access
@@ -202,9 +206,18 @@ curl http://localhost:3000/api/health
 
 ### Authentication Test
 ```bash
+# First get Discord OAuth2 access token through OAuth2 flow, then:
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"userId":"123456789012345678","guildId":"987654321098765432"}'
+  -d '{"accessToken":"YOUR_DISCORD_ACCESS_TOKEN","guildId":"987654321098765432"}'
+```
+
+### Get User's Guilds
+```bash
+# Get guilds user can manage with bot present
+curl -X POST http://localhost:3000/api/auth/guilds \
+  -H "Content-Type: application/json" \
+  -d '{"accessToken":"YOUR_DISCORD_ACCESS_TOKEN"}'
 ```
 
 ## 🚧 Integration Guide

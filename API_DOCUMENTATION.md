@@ -18,9 +18,27 @@ Authorization: Bearer <jwt_token>
 
 ### Getting Started
 
-1. **Login**: Use the `/auth/login` endpoint with your Discord user ID and guild ID
-2. **Token**: Include the returned JWT token in all subsequent requests
-3. **Guild Access**: Ensure you have appropriate permissions in the guild
+**⚠️ Important: This API requires Discord OAuth2 authentication**
+
+1. **OAuth2 Flow**: Implement Discord OAuth2 to get a user's access token
+2. **Login**: Use the `/auth/login` endpoint with the Discord access token and guild ID  
+3. **Token**: Include the returned JWT token in all subsequent requests
+4. **Guild Access**: Ensure the user has Administrator or Manage Guild permissions
+
+### Discord OAuth2 Setup
+
+To authenticate users, you need to:
+
+1. Register your application at [Discord Developer Portal](https://discord.com/developers/applications)
+2. Configure OAuth2 redirect URI (e.g., `http://localhost:3001/auth/callback`)  
+3. Use these scopes: `identify guilds`
+4. Exchange the OAuth2 code for an access token
+5. Use the access token with this API
+
+Example OAuth2 URL:
+```
+https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=identify+guilds
+```
 
 ## Rate Limiting
 
@@ -52,17 +70,23 @@ Common HTTP status codes:
 ## Authentication Endpoints
 
 ### Login
-Generate an authentication token for dashboard access.
+Generate an authentication token using Discord OAuth2 access token.
 
 ```http
 POST /api/auth/login
 Content-Type: application/json
 
 {
-  "userId": "123456789012345678",
+  "accessToken": "discord_oauth2_access_token_here",
   "guildId": "987654321098765432"
 }
 ```
+
+**Requirements:**
+- Valid Discord OAuth2 access token (with `identify guilds` scopes)
+- User must be a member of the specified guild
+- User must have Administrator or Manage Guild permissions in the guild
+- Bot must be present in the guild
 
 **Response:**
 ```json
@@ -72,6 +96,7 @@ Content-Type: application/json
   "user": {
     "id": "123456789012345678",
     "username": "john_doe",
+    "globalName": "John Doe",
     "displayName": "John Doe",
     "avatar": "https://cdn.discordapp.com/avatars/...",
     "permissions": {
@@ -102,7 +127,34 @@ Authorization: Bearer <token>
 Get list of guilds where the user has admin permissions and the bot is present.
 
 ```http
-GET /api/auth/guilds/{userId}
+POST /api/auth/guilds
+Content-Type: application/json
+
+{
+  "accessToken": "discord_oauth2_access_token_here"
+}
+```
+
+**Requirements:**
+- Valid Discord OAuth2 access token (with `identify guilds` scopes)
+
+**Response:**
+```json
+{
+  "success": true,
+  "guilds": [
+    {
+      "id": "987654321098765432",
+      "name": "My Discord Server",
+      "icon": "https://cdn.discordapp.com/icons/...",
+      "memberCount": 1234,
+      "permissions": {
+        "administrator": true,
+        "manageGuild": true
+      }
+    }
+  ]
+}
 ```
 
 ### Refresh Token

@@ -4,24 +4,62 @@
 
 const express = require('express');
 const router = express.Router();
-const { generateToken, verifyToken, validateGuildAccess } = require('../middleware/auth');
+const { verifyDiscordToken, getUserGuilds, generateToken, verifyToken, validateGuildAccess } = require('../middleware/auth');
 
 /**
  * POST /api/auth/login
- * Authenticate user with Discord OAuth2 or generate token for existing user
+ * Authenticate user with Discord OAuth2 access token
  */
 router.post('/login', async (req, res) => {
     try {
-        const { userId, guildId } = req.body;
+        const { accessToken, guildId } = req.body;
         
-        if (!userId || !guildId) {
+        if (!accessToken || !guildId) {
             return res.status(400).json({
                 error: 'Bad Request',
-                message: 'userId and guildId are required'
+                message: 'accessToken and guildId are required'
             });
         }
         
-        // Validate that the guild exists and bot is in it
+        // Verify Discord access token
+        const tokenValidation = await verifyDiscordToken(accessToken);
+        if (!tokenValidation.success) {
+            return res.status(401).json({
+                error: 'Authentication Failed',
+                message: tokenValidation.error || 'Invalid Discord access token'
+            });
+        }
+        
+        const discordUser = tokenValidation.user;
+        
+        // Get user's guilds to verify they have access to the requested guild
+        const userGuildsResponse = await getUserGuilds(accessToken);
+        if (!userGuildsResponse.success) {
+            return res.status(401).json({
+                error: 'Authentication Failed',
+                message: 'Unable to fetch user guilds from Discord'
+            });
+        }
+        
+        // Check if user has admin/manage permissions in the requested guild
+        const userGuild = userGuildsResponse.guilds.find(g => g.id === guildId);
+        if (!userGuild) {
+            return res.status(403).json({
+                error: 'Access Denied',
+                message: 'You are not a member of the specified guild'
+            });
+        }
+        
+        // Check if user has admin or manage guild permissions (0x8 = Admin, 0x20 = Manage Guild)
+        const hasRequiredPerms = (parseInt(userGuild.permissions) & (0x8 | 0x20)) !== 0;
+        if (!hasRequiredPerms) {
+            return res.status(403).json({
+                error: 'Access Denied',
+                message: 'You need Administrator or Manage Guild permissions'
+            });
+        }
+        
+        // Validate that the bot is in the guild
         const guild = req.client.guilds.cache.get(guildId);
         if (!guild) {
             return res.status(404).json({
@@ -30,8 +68,8 @@ router.post('/login', async (req, res) => {
             });
         }
         
-        // Validate that user is a member of the guild
-        const member = guild.members.cache.get(userId);
+        // Get member object for additional details
+        const member = guild.members.cache.get(discordUser.id);
         if (!member) {
             return res.status(403).json({
                 error: 'Access Denied',
@@ -40,16 +78,19 @@ router.post('/login', async (req, res) => {
         }
         
         // Generate JWT token
-        const token = generateToken(userId, guildId);
+        const token = generateToken(discordUser.id, guildId);
         
         res.json({
             success: true,
             token,
             user: {
-                id: member.user.id,
-                username: member.user.username,
+                id: discordUser.id,
+                username: discordUser.username,
+                globalName: discordUser.global_name,
                 displayName: member.displayName,
-                avatar: member.user.displayAvatarURL(),
+                avatar: discordUser.avatar ? 
+                    `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png` :
+                    `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator) % 5}.png`,
                 permissions: {
                     administrator: member.permissions.has('Administrator'),
                     manageGuild: member.permissions.has('ManageGuild'),
@@ -104,42 +145,66 @@ router.post('/verify', verifyToken, validateGuildAccess, (req, res) => {
 });
 
 /**
- * GET /api/auth/guilds/:userId
+ * GET /api/auth/guilds
  * Get list of guilds where user has admin permissions and bot is present
+ * Requires Discord access token
  */
-router.get('/guilds/:userId', async (req, res) => {
+router.post('/guilds', async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { accessToken } = req.body;
         
-        if (!userId) {
+        if (!accessToken) {
             return res.status(400).json({
                 error: 'Bad Request',
-                message: 'User ID is required'
+                message: 'Discord accessToken is required'
             });
         }
         
-        const userGuilds = [];
+        // Verify Discord access token
+        const tokenValidation = await verifyDiscordToken(accessToken);
+        if (!tokenValidation.success) {
+            return res.status(401).json({
+                error: 'Authentication Failed',
+                message: tokenValidation.error || 'Invalid Discord access token'
+            });
+        }
         
-        for (const [guildId, guild] of req.client.guilds.cache) {
-            const member = guild.members.cache.get(userId);
+        // Get user's guilds from Discord
+        const userGuildsResponse = await getUserGuilds(accessToken);
+        if (!userGuildsResponse.success) {
+            return res.status(401).json({
+                error: 'Authentication Failed',
+                message: 'Unable to fetch user guilds from Discord'
+            });
+        }
+        
+        const managedGuilds = [];
+        
+        // Filter guilds where user has admin/manage permissions and bot is present
+        for (const userGuild of userGuildsResponse.guilds) {
+            // Check if user has admin or manage guild permissions
+            const hasRequiredPerms = (parseInt(userGuild.permissions) & (0x8 | 0x20)) !== 0;
+            if (!hasRequiredPerms) continue;
             
-            if (member && (member.permissions.has('Administrator') || member.permissions.has('ManageGuild'))) {
-                userGuilds.push({
-                    id: guild.id,
-                    name: guild.name,
-                    icon: guild.iconURL(),
-                    memberCount: guild.memberCount,
-                    permissions: {
-                        administrator: member.permissions.has('Administrator'),
-                        manageGuild: member.permissions.has('ManageGuild')
-                    }
-                });
-            }
+            // Check if bot is in this guild
+            const botGuild = req.client.guilds.cache.get(userGuild.id);
+            if (!botGuild) continue;
+            
+            managedGuilds.push({
+                id: botGuild.id,
+                name: botGuild.name,
+                icon: botGuild.iconURL(),
+                memberCount: botGuild.memberCount,
+                permissions: {
+                    administrator: (parseInt(userGuild.permissions) & 0x8) !== 0,
+                    manageGuild: (parseInt(userGuild.permissions) & 0x20) !== 0
+                }
+            });
         }
         
         res.json({
             success: true,
-            guilds: userGuilds
+            guilds: managedGuilds
         });
         
     } catch (error) {

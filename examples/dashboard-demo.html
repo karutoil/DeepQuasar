@@ -120,6 +120,22 @@
             border: 1px solid #bee5eb;
         }
         
+        small {
+            display: block;
+            color: #666;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        }
+        
         .response {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -162,16 +178,20 @@
             <!-- Authentication Section -->
             <div class="section">
                 <h3>🔐 Authentication</h3>
+                <p><strong>⚠️ Note:</strong> This demo requires Discord OAuth2 authentication. In production, implement proper OAuth2 flow.</p>
                 <div class="grid">
                     <div>
                         <div class="form-group">
-                            <label for="userId">User ID:</label>
-                            <input type="text" id="userId" placeholder="123456789012345678" value="123456789012345678">
+                            <label for="accessToken">Discord Access Token:</label>
+                            <input type="password" id="accessToken" placeholder="Discord OAuth2 access token">
+                            <small>Get this from Discord OAuth2 flow with 'identify guilds' scopes</small>
                         </div>
                         <div class="form-group">
                             <label for="guildId">Guild ID:</label>
                             <input type="text" id="guildId" placeholder="987654321098765432" value="987654321098765432">
+                            <small>Select from available guilds after getting guilds list</small>
                         </div>
+                        <button class="btn btn-info" onclick="getGuilds()">Get My Guilds</button>
                         <button class="btn" onclick="login()">Login</button>
                         <button class="btn btn-warning" onclick="verifyToken()">Verify Token</button>
                         <button class="btn btn-danger" onclick="logout()">Logout</button>
@@ -304,20 +324,60 @@
         }
 
         // Authentication Functions
+        async function getGuilds() {
+            const accessToken = document.getElementById('accessToken').value;
+            const responseDiv = document.getElementById('authResponse');
+            
+            if (!accessToken) {
+                responseDiv.textContent = 'Please enter Discord access token';
+                return;
+            }
+
+            try {
+                const result = await apiRequest('/auth/guilds', {
+                    method: 'POST',
+                    body: JSON.stringify({ accessToken })
+                });
+                
+                responseDiv.textContent = JSON.stringify(result, null, 2);
+                
+                // Populate guild selector if guilds found
+                if (result.guilds && result.guilds.length > 0) {
+                    const guildSelect = document.createElement('select');
+                    guildSelect.id = 'guildSelect';
+                    guildSelect.onchange = function() {
+                        document.getElementById('guildId').value = this.value;
+                    };
+                    
+                    result.guilds.forEach(guild => {
+                        const option = document.createElement('option');
+                        option.value = guild.id;
+                        option.textContent = `${guild.name} (${guild.memberCount} members)`;
+                        guildSelect.appendChild(option);
+                    });
+                    
+                    responseDiv.appendChild(document.createElement('br'));
+                    responseDiv.appendChild(guildSelect);
+                }
+            } catch (error) {
+                responseDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
         async function login() {
-            const userId = document.getElementById('userId').value;
+            const accessToken = document.getElementById('accessToken').value;
             const guildId = document.getElementById('guildId').value;
             const responseDiv = document.getElementById('authResponse');
             
-            if (!userId || !guildId) {
-                responseDiv.textContent = 'Please enter both User ID and Guild ID';
+            if (!accessToken || !guildId) {
+                responseDiv.textContent = 'Please enter Discord access token and select a guild';
                 return;
             }
 
             try {
                 const result = await apiRequest('/auth/login', {
                     method: 'POST',
-                    body: JSON.stringify({ userId, guildId })
+                    body: JSON.stringify({ accessToken, guildId })
                 });
                 
                 authToken = result.token;
