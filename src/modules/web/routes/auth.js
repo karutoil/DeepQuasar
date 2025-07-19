@@ -239,4 +239,26 @@ router.post('/refresh', verifyToken, (req, res) => {
     }
 });
 
+/**
+ * GET /api/auth/dev-helper
+ * Returns the Discord OAuth2 callback URL and (optionally) the access token if provided.
+ * This is for development/testing purposes only.
+ */
+router.get('/dev-helper', (req, res) => {
+    // You may want to set this from config/env in production!
+    const publicUrl = process.env.PUBLIC_URL || `http${req.secure ? 's' : ''}://${req.headers.host}`;
+    const callbackPath = '/api/auth/callback';
+    const callbackUrl = `${publicUrl}${callbackPath}`;
+
+    // Try to get access token from query or header for convenience
+    const accessToken = req.query.accessToken || req.headers['authorization']?.replace(/^Bearer /, '');
+
+    res.json({
+        discord_oauth_callback_url: callbackUrl,
+        info: "Set this as a Redirect URI in your Discord application settings.",
+        ...(accessToken ? { accessToken } : {}),
+        note: "To get your access token, complete the OAuth2 flow. This endpoint is for development/testing only."
+    });
+});
+
 module.exports = router;
