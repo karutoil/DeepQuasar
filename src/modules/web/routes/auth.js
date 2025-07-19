@@ -303,7 +303,8 @@ router.get('/dev-helper', async (req, res) => {
         info: "Set this as a Redirect URI in your Discord application settings. It must match exactly in your Discord developer portal and in the OAuth2 code exchange.",
         effective_redirect_uri: redirectUri,
         ...(accessToken ? { accessToken } : {}),
-        note: "To get your access token, complete the OAuth2 flow. This endpoint is for development/testing only."
+        note: "To get your access token, complete the OAuth2 flow. This endpoint is for development/testing only.",
+        full_redirect_uri_for_discord: redirectUri
     });
 });
 
