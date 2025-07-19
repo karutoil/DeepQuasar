@@ -249,10 +249,10 @@ const axios = require('axios');
 router.get('/dev-helper', async (req, res) => {
     // You may want to set this from config/env in production!
     // Use the same redirect_uri as you registered in your Discord application settings.
-    // If you set PUBLIC_URL, it will be used. Otherwise, fallback to http://localhost:3000.
-    const publicUrl = process.env.PUBLIC_URL || 'http://localhost:3000';
-    const callbackPath = '/api/auth/callback';
-    const callbackUrl = `${publicUrl}${callbackPath}`;
+    // If you set REDIRECT_URI, it will be used. Otherwise, fallback to PUBLIC_URL or http://localhost:3000.
+    const redirectUri =
+        process.env.REDIRECT_URI ||
+        ((process.env.PUBLIC_URL || 'http://localhost:3000') + '/api/auth/callback');
 
     // Try to get access token from query or header for convenience
     let accessToken = req.query.accessToken || req.headers['authorization']?.replace(/^Bearer /, '');
@@ -261,7 +261,6 @@ router.get('/dev-helper', async (req, res) => {
     if (req.query.code) {
         const clientId = process.env.DISCORD_CLIENT_ID;
         const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-        const redirectUri = callbackUrl;
 
         if (!clientId || !clientSecret) {
             return res.status(500).json({
