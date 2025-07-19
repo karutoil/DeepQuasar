@@ -1,257 +1,132 @@
-# Dashboard Integration Features
+# DeepQuasar Dashboard Features & API Endpoints
 
-This document outlines potential features and data points from the application that can be integrated into a web-based dashboard.
+This document outlines the features available in the DeepQuasar web dashboard and what API endpoint would need to be created.
 
-## 1. Overview of Application Components & Data Flow
+## General Settings
 
-### Application Summary
+- **Prefix Configuration**: Change the bot's command prefix.
+  - `PATCH /api/guilds/{guildId}/settings`
+- **Language Selection**: Set the default language for bot responses.
+  - `PATCH /api/guilds/{guildId}/settings`
+- **Timezone**: Configure the server's timezone for logs and reminders.
+  - `PATCH /api/guilds/{guildId}/settings`
+- **Dashboard Access**: Manage permissions for who can access and modify settings in the dashboard.
+  - `GET /api/guilds/{guildId}/dashboard-access`
+  - `POST /api/guilds/{guildId}/dashboard-access`
+  - `DELETE /api/guilds/{guildId}/dashboard-access/{roleOrUserId}`
 
-This project is a Node.js-based Discord bot with modular command handling, music playback, moderation, self-role management, and advanced embed/template features. The codebase is primarily JavaScript, using Discord.js and Mongoose (MongoDB ORM) as its main frameworks/libraries.
+## Module-Specific Settings
 
-### Key Modules/Services
+### 🧠 AI Module
 
-- **Command Handlers:** Modular commands for information, music, settings, and moderation.
-- **Database Schemas:** Mongoose models for users, guilds, moderation logs, templates, tickets, notes, and temporary voice channels.
-- **Music Player Manager:** Handles music playback, queue management, and history.
-- **Embed Builder:** Advanced embed creation and template management.
-- **Moderation Utilities:** Ban, mute, warn, and log moderation actions.
-- **Reminder Manager:** Schedules and delivers reminders to users.
-- **Transcript Generator:** Generates transcripts of conversations.
-- **Profanity Filter:** Detects and filters inappropriate content.
-- **Temporary Voice Channel Manager:** Manages creation and control of temporary voice channels.
+- **AI Chatbot**: Enable or disable the AI chatbot.
+  - `PATCH /api/guilds/{guildId}/ai/settings`
+- **Chatbot Personality**: Customize the AI's personality and response style.
+  - `PATCH /api/guilds/{guildId}/ai/settings`
+- **Channel Whitelist**: Restrict the AI chatbot to specific channels.
+  - `GET /api/guilds/{guildId}/ai/whitelist`
+  - `POST /api/guilds/{guildId}/ai/whitelist`
+  - `DELETE /api/guilds/{guildId}/ai/whitelist/{channelId}`
 
-### Data Flow Description
+### 🛡️ Moderation Module
 
-- **User Interactions:** Users interact via Discord commands, buttons, and select menus.
-- **Command Processing:** Handlers process commands, interact with the database, and update bot state.
-- **Database Operations:** Mongoose models manage persistent data for users, guilds, logs, templates, and more.
-- **Music Playback:** Music commands interact with the MusicPlayerManager, which controls playback and history.
-- **Moderation Actions:** Moderation commands log actions and update user/guild states.
-- **Embed/Template Management:** Users can create, edit, and manage embed templates for messages.
-- **Reminders and Notes:** Scheduled reminders and user notes are stored and managed via schemas.
+- **ModLog Channel**: Set the channel for moderation logs.
+  - `PATCH /api/guilds/{guildId}/moderation/settings`
+- **Punishment Configuration**: Customize actions for kicks, bans, and mutes.
+  - `PATCH /api/guilds/{guildId}/moderation/settings`
+- **Automated Moderation**:
+    - **Profanity Filter**: Enable and configure the profanity filter.
+      - `GET /api/guilds/{guildId}/moderation/profanity`
+      - `PATCH /api/guilds/{guildId}/moderation/profanity`
+    - **Anti-Raid**: Configure automatic actions to take during a raid.
+      - `GET /api/guilds/{guildId}/moderation/anti-raid`
+      - `PATCH /api/guilds/{guildId}/moderation/anti-raid`
+- **User Management**:
+    - **View User History**: See a user's moderation history.
+      - `GET /api/guilds/{guildId}/users/{userId}/moderation-history`
+    - **Issue Punishments**: Manually issue punishments to users.
+      - `POST /api/guilds/{guildId}/moderation/punishments`
 
-## 2. Database Insights & Data Visualization Opportunities
+### 🎵 Music Module
 
-### Database System(s) Used: MongoDB (via Mongoose)
+- **Music Controls**: Play, pause, skip, and stop music from the dashboard.
+  - `POST /api/guilds/{guildId}/music/player/play`
+  - `POST /api/guilds/{guildId}/music/player/pause`
+  - `POST /api/guilds/{guildId}/music/player/skip`
+  - `POST /api/guilds/{guildId}/music/player/stop`
+- **Queue Management**: View and manage the music queue.
+  - `GET /api/guilds/{guildId}/music/queue`
+  - `DELETE /api/guilds/{guildId}/music/queue/{trackPosition}`
+- **Volume Control**: Adjust the music volume.
+  - `PUT /api/guilds/{guildId}/music/player/volume`
+- **DJ Roles**: Assign roles that have permission to manage the music player.
+  - `GET /api/guilds/{guildId}/music/settings`
+  - `PATCH /api/guilds/{guildId}/music/settings`
 
-### Schema Details and Data Points for Visualization
+### 🎟️ Ticket System
 
-#### **User Collection (`users`)**
-* **Purpose:** Stores user profiles, preferences, premium status, and guild-specific settings.
-* **Key Fields:**
-    * `userId (String)`: Discord user ID (unique).
-    * `username (String)`: Discord username.
-    * `discriminator (String)`: Discord discriminator.
-    * `timezone (String)`: User's timezone.
-    * `premium (Object)`: Premium status, expiration.
-    * `preferences (Object)`: Music volume, autoplay, filters.
-    * `guildSettings (Array)`: Per-guild user settings.
-    * `createdAt (Date)`: Account creation date.
-* **Dashboard Visualization Potential:**
-    * **User Growth Over Time:** Chart of new users by `createdAt`.
-    * **Premium Users:** Count and trend of premium users.
-    * **User Preferences:** Distribution of music settings, timezones.
-    * **Active Users:** Based on reminders, notes, or last activity.
-* **Example Query/API Endpoint:**
-    ```
-    GET /api/dashboard/users/count
-    GET /api/dashboard/users/premium
-    GET /api/dashboard/users/timezone-distribution
-    ```
+- **Ticket Configuration**:
+    - **Ticket Category**: Set the category where ticket channels are created.
+      - `PATCH /api/guilds/{guildId}/tickets/settings`
+    - **Support Roles**: Assign roles that can manage tickets.
+      - `PATCH /api/guilds/{guildId}/tickets/settings`
+- **Ticket Management**:
+    - **View Open Tickets**: See a list of all open tickets.
+      - `GET /api/guilds/{guildId}/tickets`
+    - **Close Tickets**: Close tickets from the dashboard.
+      - `POST /api/guilds/{guildId}/tickets/{ticketId}/close`
+    - **Transcripts**: View and download ticket transcripts.
+      - `GET /api/guilds/{guildId}/tickets/{ticketId}/transcript`
 
-#### **Guild Collection (`guilds`)**
-* **Purpose:** Stores server (guild) configuration, premium status, and settings.
-* **Key Fields:**
-    * `guildId (String)`: Discord guild ID (unique).
-    * `guildName (String)`: Server name.
-    * `premium (Object)`: Premium status, expiration.
-    * `settings (Object)`: Various configuration options.
-    * `createdAt (Date)`: Server registration date.
-* **Dashboard Visualization Potential:**
-    * **Guild Growth:** Chart of new guilds over time.
-    * **Premium Guilds:** List and count of premium servers.
-    * **Configuration Overview:** Table of settings per guild.
-* **Example Query/API Endpoint:**
-    ```
-    GET /api/dashboard/guilds/count
-    GET /api/dashboard/guilds/premium
-    GET /api/dashboard/guilds/settings
-    ```
+### 👋 Welcome System
 
-#### **Moderation Log Collection (`modlogs`)**
-* **Purpose:** Logs moderation events (ban, mute, kick, etc.) per guild.
-* **Key Fields:**
-    * `guildId (String)`: Server ID.
-    * `events (Object)`: Event types and channels.
-    * `defaultChannel (String)`: Default log channel.
-    * `enabled (Boolean)`: Log enabled status.
-* **Dashboard Visualization Potential:**
-    * **Moderation Actions Over Time:** Chart of bans, mutes, kicks.
-    * **Event Channel Mapping:** Table of event types to channels.
-    * **Recent Moderation Events:** List of latest actions.
-* **Example Query/API Endpoint:**
-    ```
-    GET /api/dashboard/modlogs/recent
-    GET /api/dashboard/modlogs/event-counts
-    ```
+- **Welcome Messages**:
+    - **Enable/Disable**: Turn the welcome system on or off.
+      - `PATCH /api/guilds/{guildId}/welcome/settings`
+    - **Welcome Channel**: Set the channel for welcome messages.
+      - `PATCH /api/guilds/{guildId}/welcome/settings`
+    - **Message Content**: Customize the welcome message with variables like username, server name, etc.
+      - `PATCH /api/guilds/{guildId}/welcome/settings`
+- **Welcome Embeds**: Create and customize welcome message embeds.
+  - `GET /api/guilds/{guildId}/welcome/embeds`
+  - `POST /api/guilds/{guildId}/welcome/embeds`
+  - `PUT /api/guilds/{guildId}/welcome/embeds/{embedId}`
+  - `DELETE /api/guilds/{guildId}/welcome/embeds/{embedId}`
 
-#### **Punishment Log Collection (`punishmentlogs`)**
-* **Purpose:** Tracks user punishments (mute, ban) and their expiration.
-* **Key Fields:**
-    * `guildId (String)`: Server ID.
-    * `userId (String)`: User ID.
-    * `action (String)`: Type of punishment.
-    * `expiresAt (Date)`: Expiration timestamp.
-    * `status (String)`: Status (active/expired).
-    * `createdAt (Date)`: When punishment was applied.
-* **Dashboard Visualization Potential:**
-    * **Active Punishments:** List of currently active mutes/bans.
-    * **Expired Actions:** Table of expired punishments.
-    * **Punishment Trends:** Chart of actions over time.
-* **Example Query/API Endpoint:**
-    ```
-    GET /api/dashboard/punishments/active
-    GET /api/dashboard/punishments/expired
-    ```
+### 롤 AutoRole & SelfRole
 
-#### **Embed Template Collection (`embedtemplates`)**
-* **Purpose:** Stores embed templates for messages.
-* **Key Fields:**
-    * `guildId (String)`: Server ID.
-    * `name (String)`: Template name.
-    * `fields (Array)`: Embed fields.
-    * `createdAt (Date)`: Creation date.
-* **Dashboard Visualization Potential:**
-    * **Template Usage:** List and count of templates per guild.
-    * **Template Details:** View/edit template content.
-* **Example Query/API Endpoint:**
-    ```
-    GET /api/dashboard/templates/list
-    GET /api/dashboard/templates/{guildId}
-    ```
+- **AutoRole**:
+    - **Assign Roles**: Automatically assign roles to new members.
+      - `GET /api/guilds/{guildId}/autorole/settings`
+      - `PATCH /api/guilds/{guildId}/autorole/settings`
+- **SelfRole**:
+    - **Role Menus**: Create and manage menus that allow users to self-assign roles.
+      - `GET /api/guilds/{guildId}/selfrole/menus`
+      - `POST /api/guilds/{guildId}/selfrole/menus`
+      - `PUT /api/guilds/{guildId}/selfrole/menus/{menuId}`
+      - `DELETE /api/guilds/{guildId}/selfrole/menus/{menuId}`
 
-#### **Ticket Config Collection (`ticketconfigs`)**
-* **Purpose:** Stores support ticket configuration per guild.
-* **Key Fields:**
-    * `guildId (String)`: Server ID.
-    * `channels (Object)`: Channel configuration.
-    * `modalConfig (Map)`: Modal forms for tickets.
-* **Dashboard Visualization Potential:**
-    * **Ticket Channel Mapping:** Table of open/closed/support channels.
-    * **Modal Configurations:** List of ticket forms/questions.
-* **Example Query/API Endpoint:**
-    ```
-    GET /api/dashboard/tickets/config
-    ```
+###  TEMP VC - Temporary Voice Channels
 
-#### **User Notes Collection (`usernotes`)**
-* **Purpose:** Stores notes about users, including private/public notes.
-* **Key Fields:**
-    * `guildId (String)`: Server ID.
-    * `userId (String)`: User ID.
-    * `notes (Array)`: Note objects (content, author, isPrivate).
-* **Dashboard Visualization Potential:**
-    * **User Notes Overview:** List/search notes per user/guild.
-    * **Note Editing:** Edit/delete notes from dashboard.
-* **Example Query/API Endpoint:**
-    ```
-    GET /api/dashboard/usernotes/{guildId}/{userId}
-    ```
+- **TempVC Category**: Set the category for temporary voice channels.
+  - `PATCH /api/guilds/{guildId}/tempvc/settings`
+- **Channel Configuration**: Configure the naming scheme and user limits for temporary channels.
+  - `PATCH /api/guilds/{guildId}/tempvc/settings`
 
-#### **Temporary Voice Channel Collections (`tempvcs`, `tempvcinstances`, `tempvcusersettings`)**
-* **Purpose:** Manages temporary voice channel configurations, instances, and user settings.
-* **Key Fields:**
-    * `guildId (String)`: Server ID.
-    * `namingTemplates (Array)`: Channel naming templates.
-    * `instances (Array)`: Active temp VC instances.
-    * `userSettings (Object)`: Per-user VC settings.
-* **Dashboard Visualization Potential:**
-    * **Active Temp VCs:** List of current temp voice channels.
-    * **User VC Settings:** Table of user preferences.
-    * **Template Management:** Edit naming templates.
-* **Example Query/API Endpoint:**
-    ```
-    GET /api/dashboard/tempvc/instances
-    GET /api/dashboard/tempvc/templates
-    ```
+### ⏰ Reminders
 
-#### **Appeals Collection (`appeals`)**
-* **Purpose:** Tracks user appeals for moderation actions.
-* **Key Fields:**
-    * `guildId (String)`: Server ID.
-    * `userId (String)`: User ID.
-    * `createdAt (Date)`: Appeal creation date.
-    * `status (String)`: Appeal status.
-* **Dashboard Visualization Potential:**
-    * **Appeal History:** List/search appeals per user/guild.
-    * **Appeal Status:** Table of open/closed appeals.
-* **Example Query/API Endpoint:**
-    ```
-    GET /api/dashboard/appeals/{guildId}/{userId}
-    ```
+- **View Reminders**: See a list of all active reminders for the server.
+  - `GET /api/guilds/{guildId}/reminders`
+- **Manage Reminders**: Add, edit, or delete reminders.
+  - `POST /api/guilds/{guildId}/reminders`
+  - `PUT /api/guilds/{guildId}/reminders/{reminderId}`
+  - `DELETE /api/guilds/{guildId}/reminders/{reminderId}`
 
-## 3. Administrative & Control Features
+### 🎮 LFG (Looking for Group)
 
-### User Management
-- View/search users by ID, username, discriminator.
-- Edit user profiles (roles, premium status, preferences).
-- Suspend/ban users.
-- Reset user settings.
-- Example API/Action: `POST /api/admin/users/{id}/suspend`
-
-### Content/Data Management
-- View/edit/delete embed templates, notes, ticket configs.
-- Manage bot responses and custom content.
-- Example API/Action: `PUT /api/admin/templates/{id}`
-
-### Bot/Application Configuration
-- Change global settings (feature toggles, API keys, thresholds).
-- Reload or update configuration.
-- Example API/Action: `POST /api/admin/settings/update`
-
-### Moderation Tools
-- Review flagged users/content.
-- Apply bans, mutes, warnings.
-- View moderation logs and history.
-- Example API/Action: `POST /api/admin/moderation/ban/{user_id}`
-
-### System Status & Monitoring
-- View application logs (error, access, moderation).
-- Monitor bot uptime, command usage, and resource stats.
-- Check service health and connectivity.
-- Example API/Action: `GET /api/dashboard/logs/errors`
-
-### Music Playback Management
-- View/playback history.
-- Manage music queue and active players.
-- Example API/Action: `POST /api/music/play/{track_id}`
-
-### Reminder & Scheduling Management
-- View scheduled reminders.
-- Edit/cancel reminders.
-- Example API/Action: `DELETE /api/reminders/{reminder_id}`
-
-## 4. Potential Integrations & External Services
-
-- **Discord API:** User/guild data, message sending, voice channel management.
-- **Music Services:** YouTube, Spotify, SoundCloud (track info, playback history).
-- **Logging/Monitoring:** Integration with external logging services (e.g., Sentry, Datadog).
-- **Payment/Subscription:** If premium features are paid, integrate with Stripe/PayPal for transaction summaries.
-- **Support/Helpdesk:** Ticket system integration for support requests.
-
-## 5. Security Considerations for Dashboard Integration
-
-- **Authentication:** Use OAuth2 (Discord login) or JWT for secure dashboard access.
-- **Authorization:** Role-based access control (RBAC) to restrict admin/moderator features.
-- **Input Validation:** Validate all dashboard inputs to prevent injection and XSS attacks.
-- **Logging:** Log all administrative actions for audit trails.
-- **Rate Limiting:** Protect sensitive endpoints from abuse.
-
-## 6. Technical Recommendations for Dashboard Development
-
-- **API Design:** Implement a RESTful API for dashboard interaction, with clear endpoints for all features.
-- **Real-time Updates:** Use WebSockets or server-sent events for live data (e.g., music queue, moderation actions).
-- **Error Handling:** Provide clear error messages and feedback in the dashboard UI.
-- **Scalability:** Optimize queries and endpoints to avoid performance bottlenecks.
-- **Frontend Framework:** Consider React, Vue, or Svelte for a responsive dashboard UI.
-- **Documentation:** Document all API endpoints and dashboard features for maintainability.
+- **LFG Channel**: Set the channel for LFG posts.
+  - `PATCH /api/guilds/{guildId}/lfg/settings`
+- **Game List**: Manage the list of games that users can create LFG posts for.
+  - `GET /api/guilds/{guildId}/lfg/games`
+  - `POST /api/guilds/{guildId}/lfg/games`
+  - `DELETE /api/guilds/{guildId}/lfg/games/{gameName}`

@@ -3,6 +3,35 @@ const TicketConfig = require('../../../schemas/TicketConfig');
 const Utils = require('../../../utils/utils');
 
 module.exports = {
+    // Autocomplete for dynamic ticket types
+    async autocomplete(interaction, client) {
+        if (interaction.options.getSubcommand() !== 'add-button') return;
+        const focused = interaction.options.getFocused(true);
+        if (focused.name !== 'type') return;
+        try {
+            const config = await TicketConfig.findOne({ guildId: interaction.guild.id });
+            let choices = [];
+            if (config && config.modalConfig && config.modalConfig.size > 0) {
+                choices = Array.from(config.modalConfig.keys());
+            }
+            // Also suggest types already used in panel buttons (for convenience)
+            const panelId = interaction.options.getString('panel_id');
+            if (panelId && config && config.panels) {
+                const panel = config.panels.find(p => p.panelId === panelId);
+                if (panel) {
+                    for (const btn of panel.buttons) {
+                        if (!choices.includes(btn.ticketType)) choices.push(btn.ticketType);
+                    }
+                }
+            }
+            // Filter by user input
+            const filtered = choices.filter(c => c.toLowerCase().includes(focused.value.toLowerCase()));
+            // Respond with up to 25 choices
+            await interaction.respond(filtered.slice(0, 25).map(c => ({ name: c, value: c })));
+        } catch (err) {
+            await interaction.respond([]);
+        }
+    },
     category: 'Tickets',
     data: new SlashCommandBuilder()
         .setName('panel')
@@ -82,15 +111,9 @@ module.exports = {
                 .addStringOption(option =>
                     option
                         .setName('type')
-                        .setDescription('Ticket type for this button')
+                        .setDescription('Ticket type for this button (e.g. support, bug, etc). This is now dynamic and can be any type configured for your server. Start typing to see suggestions!')
                         .setRequired(true)
-                        .addChoices(
-                            { name: 'Support', value: 'support' },
-                            { name: 'Bug Report', value: 'bug' },
-                            { name: 'Partnership', value: 'partnership' },
-                            { name: 'Billing', value: 'billing' },
-                            { name: 'Other', value: 'other' }
-                        ))
+                        .setAutocomplete(true))
                 .addStringOption(option =>
                     option
                         .setName('label')
