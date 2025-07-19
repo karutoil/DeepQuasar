@@ -253,6 +253,7 @@ router.get('/dev-helper', async (req, res) => {
     const redirectUri =
         process.env.REDIRECT_URI ||
         ((process.env.PUBLIC_URL || 'http://localhost:3000') + '/api/auth/callback');
+    const callbackUrl = redirectUri;
 
     // Try to get access token from query or header for convenience
     let accessToken = req.query.accessToken || req.headers['authorization']?.replace(/^Bearer /, '');
@@ -297,7 +298,8 @@ router.get('/dev-helper', async (req, res) => {
 
     res.json({
         discord_oauth_callback_url: callbackUrl,
-        info: "Set this as a Redirect URI in your Discord application settings.",
+        info: "Set this as a Redirect URI in your Discord application settings. It must match exactly in your Discord developer portal and in the OAuth2 code exchange.",
+        effective_redirect_uri: redirectUri,
         ...(accessToken ? { accessToken } : {}),
         note: "To get your access token, complete the OAuth2 flow. This endpoint is for development/testing only."
     });
