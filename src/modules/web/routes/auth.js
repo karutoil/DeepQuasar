@@ -244,14 +244,54 @@ router.post('/refresh', verifyToken, (req, res) => {
  * Returns the Discord OAuth2 callback URL and (optionally) the access token if provided.
  * This is for development/testing purposes only.
  */
-router.get('/dev-helper', (req, res) => {
+const axios = require('axios');
+
+router.get('/dev-helper', async (req, res) => {
     // You may want to set this from config/env in production!
     const publicUrl = process.env.PUBLIC_URL || `http${req.secure ? 's' : ''}://${req.headers.host}`;
     const callbackPath = '/api/auth/callback';
     const callbackUrl = `${publicUrl}${callbackPath}`;
 
     // Try to get access token from query or header for convenience
-    const accessToken = req.query.accessToken || req.headers['authorization']?.replace(/^Bearer /, '');
+    let accessToken = req.query.accessToken || req.headers['authorization']?.replace(/^Bearer /, '');
+
+    // If a code is provided, try to exchange it for an access token
+    if (req.query.code) {
+        const clientId = process.env.DISCORD_CLIENT_ID;
+        const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+        const redirectUri = callbackUrl;
+
+        if (!clientId || !clientSecret) {
+            return res.status(500).json({
+                error: "Config Error",
+                message: "DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET must be set in environment"
+            });
+        }
+
+        try {
+            const params = new URLSearchParams();
+            params.append('client_id', clientId);
+            params.append('client_secret', clientSecret);
+            params.append('grant_type', 'authorization_code');
+            params.append('code', req.query.code);
+            params.append('redirect_uri', redirectUri);
+            params.append('scope', 'identify guilds');
+
+            const tokenRes = await axios.post('https://discord.com/api/oauth2/token', params, {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
+
+            accessToken = tokenRes.data.access_token;
+        } catch (err) {
+            return res.status(400).json({
+                error: "Authentication Error",
+                message: "Invalid code or failed to exchange code for token",
+                details: err.response?.data || err.message
+            });
+        }
+    }
 
     res.json({
         discord_oauth_callback_url: callbackUrl,
