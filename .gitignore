@@ -95,3 +95,6 @@ test/test-*.js
 
 .aider*
 AGENTS.md
+
+# Dashboard frontend (Next.js)
+dashboard/
