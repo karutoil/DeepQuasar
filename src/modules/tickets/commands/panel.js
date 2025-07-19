@@ -111,7 +111,7 @@ module.exports = {
                 .addStringOption(option =>
                     option
                         .setName('type')
-                        .setDescription('Ticket type for this button (e.g. support, bug, etc). This is now dynamic and can be any type configured for your server. Start typing to see suggestions!')
+                        .setDescription('Ticket type for this button (e.g. support, bug, etc).')
                         .setRequired(true)
                         .setAutocomplete(true))
                 .addStringOption(option =>

@@ -505,6 +505,16 @@ class MusicBot {
         }, 10000); // 10 seconds timeout
 
         try {
+        // Gracefully shutdown web server
+        if (this.client.webModule) {
+            try {
+                await this.client.webModule.shutdown();
+                logger.info('Web server shut down successfully');
+            } catch (err) {
+                logger.error('Error shutting down web server:', err);
+            }
+        }
+        
         // Gracefully shutdown Moonlink internal database
         if (this.client.manager && this.client.manager.database && typeof this.client.manager.database.shutdown === 'function') {
             try {
