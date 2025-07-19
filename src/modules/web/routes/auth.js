@@ -272,8 +272,6 @@ router.get('/dev-helper', async (req, res) => {
 
         try {
             const params = new URLSearchParams();
-            params.append('client_id', clientId);
-            params.append('client_secret', clientSecret);
             params.append('grant_type', 'authorization_code');
             params.append('code', req.query.code);
             params.append('redirect_uri', redirectUri);
@@ -283,6 +281,10 @@ router.get('/dev-helper', async (req, res) => {
             const tokenRes = await axios.post('https://discord.com/api/oauth2/token', params.toString(), {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                auth: {
+                    username: clientId,
+                    password: clientSecret
                 }
             });
 
