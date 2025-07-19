@@ -383,6 +383,18 @@ router.get('/callback', async (req, res) => {
                     <h2>Authentication successful!</h2>
                     <h3>Access Token Response:</h3>
                     <pre>${JSON.stringify(tokenData, null, 2)}</pre>
+                    <p>
+                        <b>Next step:</b> Use the <code>access_token</code> above to POST to <code>/api/auth/login</code> with a JSON body:<br>
+                        <pre>{
+  "accessToken": "${tokenData.access_token}",
+  "guildId": "YOUR_GUILD_ID"
+}</pre>
+                        <br>
+                        The response will include a <code>token</code> (JWT) to use with <code>/api/auth/verify</code> and other endpoints.<br>
+                        <br>
+                        Example curl:<br>
+                        <pre>curl -X POST http://localhost:3000/api/auth/login -H "Content-Type: application/json" -d '{"accessToken": "${tokenData.access_token}", "guildId": "YOUR_GUILD_ID"}'</pre>
+                    </p>
                     <p>You may close this window.</p>
                 </body>
             </html>
