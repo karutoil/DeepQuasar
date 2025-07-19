@@ -275,9 +275,10 @@ router.get('/dev-helper', async (req, res) => {
             params.append('grant_type', 'authorization_code');
             params.append('code', req.query.code);
             params.append('redirect_uri', redirectUri);
-            params.append('scope', 'identify guilds');
+            // Discord does not require scope for token exchange, but if you do, use the same as in the original auth request
+            // params.append('scope', 'identify guilds');
 
-            const tokenRes = await axios.post('https://discord.com/api/oauth2/token', params, {
+            const tokenRes = await axios.post('https://discord.com/api/oauth2/token', params.toString(), {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
