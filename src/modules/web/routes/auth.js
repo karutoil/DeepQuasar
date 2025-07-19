@@ -420,4 +420,41 @@ router.get('/callback', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/auth/me
+ * Returns the authenticated user's Discord info and permissions in the current guild.
+ * Requires a valid JWT in Authorization header.
+ */
+router.get('/me', verifyToken, validateGuildAccess, (req, res) => {
+    res.json({
+        success: true,
+        user: {
+            id: req.member.user.id,
+            username: req.member.user.username,
+            displayName: req.member.displayName,
+            avatar: req.member.user.displayAvatarURL(),
+            permissions: {
+                administrator: req.member.permissions.has('Administrator'),
+                manageGuild: req.member.permissions.has('ManageGuild'),
+                moderateMembers: req.member.permissions.has('ModerateMembers'),
+                manageMessages: req.member.permissions.has('ManageMessages')
+            }
+        },
+        guild: {
+            id: req.guild.id,
+            name: req.guild.name,
+            icon: req.guild.iconURL(),
+            memberCount: req.guild.memberCount
+        }
+    });
+});
+
+/**
+ * GET /api/auth/ping
+ * Simple health check endpoint.
+ */
+router.get('/ping', (req, res) => {
+    res.json({ success: true, message: 'pong', timestamp: Date.now() });
+});
+
 module.exports = router;
