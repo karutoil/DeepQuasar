@@ -313,19 +313,91 @@ router.get('/dev-helper', async (req, res) => {
  * Minimal endpoint to satisfy Discord OAuth2 redirect_uri requirement.
  * You can customize this to redirect to your frontend or show a message.
  */
-router.get('/callback', (req, res) => {
-    res.send(`
-        <html>
-            <head><title>OAuth2 Callback</title></head>
-            <body>
-                <h2>Authentication successful. You may close this window.</h2>
-                <script>
-                    // Optionally, you can send the code to your frontend here
-                    // window.location = '/'; // Or redirect to your app
-                </script>
-            </body>
-        </html>
-    `);
+router.get('/callback', async (req, res) => {
+    const code = req.query.code;
+    const error = req.query.error;
+    const redirectUri =
+        process.env.REDIRECT_URI ||
+        ((process.env.PUBLIC_URL || 'http://localhost:3000') + '/api/auth/callback');
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+
+    if (error) {
+        return res.send(`
+            <html>
+                <head><title>OAuth2 Callback</title></head>
+                <body>
+                    <h2>OAuth2 Error</h2>
+                    <pre>${error}</pre>
+                </body>
+            </html>
+        `);
+    }
+
+    if (!code) {
+        return res.send(`
+            <html>
+                <head><title>OAuth2 Callback</title></head>
+                <body>
+                    <h2>No code provided.</h2>
+                </body>
+            </html>
+        `);
+    }
+
+    if (!clientId || !clientSecret) {
+        return res.send(`
+            <html>
+                <head><title>OAuth2 Callback</title></head>
+                <body>
+                    <h2>Config Error</h2>
+                    <pre>DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET must be set in environment</pre>
+                </body>
+            </html>
+        `);
+    }
+
+    try {
+        const params = new URLSearchParams();
+        params.append('grant_type', 'authorization_code');
+        params.append('code', code);
+        params.append('redirect_uri', redirectUri);
+
+        const axios = require('axios');
+        const tokenRes = await axios.post('https://discord.com/api/oauth2/token', params.toString(), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            auth: {
+                username: clientId,
+                password: clientSecret
+            }
+        });
+
+        const tokenData = tokenRes.data;
+
+        res.send(`
+            <html>
+                <head><title>OAuth2 Callback</title></head>
+                <body>
+                    <h2>Authentication successful!</h2>
+                    <h3>Access Token Response:</h3>
+                    <pre>${JSON.stringify(tokenData, null, 2)}</pre>
+                    <p>You may close this window.</p>
+                </body>
+            </html>
+        `);
+    } catch (err) {
+        res.send(`
+            <html>
+                <head><title>OAuth2 Callback</title></head>
+                <body>
+                    <h2>Token Exchange Failed</h2>
+                    <pre>${err.response?.data ? JSON.stringify(err.response.data, null, 2) : err.message}</pre>
+                </body>
+            </html>
+        `);
+    }
 });
 
 module.exports = router;
