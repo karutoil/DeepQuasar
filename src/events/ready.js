@@ -1,7 +1,7 @@
 const { ActivityType } = require('discord.js');
 const Guild = require('../schemas/Guild');
 const WelcomeSystem = require('../utils/WelcomeSystem');
-const LFGCleanupTask = require('../handlers/lfg/LFGCleanupTask');
+const LFGCleanupTask = require('../modules/lfg/handlers/LFGCleanupTask');
 
 module.exports = {
     name: 'ready',

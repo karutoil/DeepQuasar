@@ -3,7 +3,7 @@ const { handleAutocomplete } = require('../interactionHandlers/autocompleteHandl
 const { handleButtonInteraction } = require('../interactionHandlers/buttonInteractionHandler');
 const { handleSelectMenuInteraction } = require('../interactionHandlers/selectMenuInteractionHandler');
 const { handleModalSubmit } = require('../interactionHandlers/modalSubmitHandler');
-const ticketAssignModalHandler = require('../interactionHandlers/ticketAssignModalHandler');
+const ticketAssignModalHandler = require('../modules/tickets/handlers/ticketAssignModalHandler');
 
 module.exports = {
     name: 'interactionCreate',

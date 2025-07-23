@@ -483,7 +483,7 @@ async function handleSelectMenuInteraction(interaction, client) {
 
         // Handle LFG select menus
         if (customId.startsWith('lfg_')) {
-            const LFGInteractionHandler = require('./lfg/LFGInteractionHandler');
+            const LFGInteractionHandler = require('../modules/lfg/handlers/LFGInteractionHandler');
             const handled = await LFGInteractionHandler.handleSelectMenuInteraction(interaction);
             if (handled) return;
         }

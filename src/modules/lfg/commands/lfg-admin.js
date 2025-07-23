@@ -271,7 +271,7 @@ module.exports = {
     },
 
     async handleCleanup(interaction) {
-        const LFGCleanupTask = require('../../../handlers/lfg/LFGCleanupTask');
+        const LFGCleanupTask = require('../handlers/LFGCleanupTask');
         
         await LFGCleanupTask.runCleanup(interaction.client);
 
