@@ -21,7 +21,7 @@ class ModuleManager {
         const defaultEnabledModules = [
             'ai', 'information', 'music', 'utils', 'templates', 
             'selfrole', 'autorole', 'tempvc', 'tickets', 
-            'general', 'moderation', 'lfg', 'reminders'
+            'general', 'moderation', 'lfg', 'reminders', 'web'
         ];
 
         // Load enabled modules from environment variable or use defaults
