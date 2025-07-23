@@ -316,33 +316,49 @@ class SmartCommandDeployer {
 
     async loadCommands() {
         const commands = [];
-        const commandsPath = path.join(__dirname, 'src', 'commands');
+        const modulesPath = path.join(__dirname, 'src', 'modules');
         
-        if (!fs.existsSync(commandsPath)) {
-            console.log('❌ Commands directory not found');
+        if (!fs.existsSync(modulesPath)) {
+            console.log('❌ Modules directory not found');
             return [];
         }
 
-        const commandFolders = fs.readdirSync(commandsPath);
+        // Load module configuration to check which modules are enabled
+        const ModuleManager = require('./src/modules/index.js');
+        const moduleManager = new ModuleManager();
+        const enabledModules = moduleManager.getEnabledModules();
+
+        const moduleDirectories = fs.readdirSync(modulesPath, { withFileTypes: true })
+            .filter(dirent => dirent.isDirectory())
+            .map(dirent => dirent.name);
         
-        for (const folder of commandFolders) {
-            const folderPath = path.join(commandsPath, folder);
-            if (!fs.lstatSync(folderPath).isDirectory()) continue;
+        for (const moduleDir of moduleDirectories) {
+            // Skip disabled modules
+            if (!enabledModules.includes(moduleDir)) {
+                console.log(`⏭️ Skipping disabled module: ${moduleDir}`);
+                continue;
+            }
+
+            const commandsPath = path.join(modulesPath, moduleDir, 'commands');
             
-            const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
+            if (!fs.existsSync(commandsPath)) {
+                continue; // Module might not have commands
+            }
+            
+            const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
             
             for (const file of commandFiles) {
                 try {
-                    const filePath = path.join(folderPath, file);
+                    const filePath = path.join(commandsPath, file);
                     delete require.cache[require.resolve(filePath)]; // Clear cache
                     const command = require(filePath);
                     if (command.data) {
                         const commandData = command.data.toJSON();
                         commands.push(commandData);
-                        // console.log(`📝 Loaded command: ${commandData.name}`); // Optional: uncomment for verbose logging
+                        // console.log(`📝 Loaded command: ${commandData.name} from ${moduleDir}`); // Optional: uncomment for verbose logging
                     }
                 } catch (error) {
-                    console.log(`❌ Failed to load ${file}: ${error.message}`);
+                    console.log(`❌ Failed to load ${file} from ${moduleDir}: ${error.message}`);
                 }
             }
         }

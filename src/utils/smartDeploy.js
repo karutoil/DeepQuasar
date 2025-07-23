@@ -40,23 +40,38 @@ class SmartDeploymentService {
 
     async loadCommands() {
         const commands = [];
-        const commandsPath = path.join(__dirname, '../commands');
+        const modulesPath = path.join(__dirname, '../modules');
         
-        if (!fs.existsSync(commandsPath)) {
+        if (!fs.existsSync(modulesPath)) {
             return [];
         }
 
-        const commandFolders = fs.readdirSync(commandsPath);
+        // Load module configuration to check which modules are enabled
+        const ModuleManager = require('../modules/index.js');
+        const moduleManager = new ModuleManager();
+        const enabledModules = moduleManager.getEnabledModules();
+
+        const moduleDirectories = fs.readdirSync(modulesPath, { withFileTypes: true })
+            .filter(dirent => dirent.isDirectory())
+            .map(dirent => dirent.name);
         
-        for (const folder of commandFolders) {
-            const folderPath = path.join(commandsPath, folder);
-            if (!fs.lstatSync(folderPath).isDirectory()) continue;
+        for (const moduleDir of moduleDirectories) {
+            // Skip disabled modules
+            if (!enabledModules.includes(moduleDir)) {
+                continue;
+            }
+
+            const commandsPath = path.join(modulesPath, moduleDir, 'commands');
             
-            const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
+            if (!fs.existsSync(commandsPath)) {
+                continue; // Module might not have commands
+            }
+            
+            const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
             
             for (const file of commandFiles) {
                 try {
-                    const filePath = path.join(folderPath, file);
+                    const filePath = path.join(commandsPath, file);
                     delete require.cache[require.resolve(filePath)]; // Clear cache
                     const command = require(filePath);
                     if (command.data && command.execute) {
