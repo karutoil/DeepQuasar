@@ -132,11 +132,27 @@ module.exports = {
         }
 
         const { embed, components } = createQueueDisplay(client, player, page);
-        // Always use update for button interactions, reply for slash
-        if (interaction.isButton && interaction.isButton()) {
-            return interaction.update({ embeds: [embed], components });
-        } else {
-            return interaction.reply({ embeds: [embed], components });
+        const reply = await interaction.reply({ embeds: [embed], components, fetchReply: true });
+
+        if (components.length > 0) {
+            const collector = reply.createMessageComponentCollector({
+                filter: i => i.user.id === interaction.user.id,
+                time: 180000 // 3 minutes
+            });
+
+            collector.on('collect', async i => {
+                const match = i.customId.match(/queue_(prev|next)_(\d+)/);
+                if (match) {
+                    const currentPage = parseInt(match[2], 10);
+                    const newPage = match[1] === 'prev' ? currentPage - 1 : currentPage + 1;
+                    const { embed, components } = createQueueDisplay(client, player, newPage);
+                    await i.update({ embeds: [embed], components });
+                }
+            });
+
+            collector.on('end', () => {
+                interaction.editReply({ components: [] }).catch(() => {});
+            });
         }
     }
 };

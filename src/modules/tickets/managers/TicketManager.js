@@ -184,32 +184,7 @@ class TicketManager {
             footer: { text: `Panel ID: ${panelId}` }
         });
 
-        const buttons = options.buttons || [
-            {
-                customId: `ticket_create_support`,
-                label: 'General Support',
-                emoji: '🛠️',
-                style: 'Primary',
-                ticketType: 'support',
-                description: 'Get help with general questions'
-            },
-            {
-                customId: `ticket_create_bug`,
-                label: 'Bug Report',
-                emoji: '🐛',
-                style: 'Danger',
-                ticketType: 'bug',
-                description: 'Report a bug or issue'
-            },
-            {
-                customId: `ticket_create_partnership`,
-                label: 'Partnership',
-                emoji: '🤝',
-                style: 'Success',
-                ticketType: 'partnership',
-                description: 'Discuss partnership opportunities'
-            }
-        ];
+        const buttons = options.buttons || [];
 
         const rows = this.createButtonRows(buttons);
         const message = await channel.send({ embeds: [embed], components: rows });

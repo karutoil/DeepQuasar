@@ -307,6 +307,30 @@ userSchema.methods.deletePlaylist = function(name) {
     return this.playlists.length < initialLength;
 };
 
+userSchema.methods.addTrackToPlaylist = function(playlistName, track) {
+    const playlist = this.getPlaylist(playlistName);
+    if (!playlist) {
+        throw new Error('Playlist not found');
+    }
+
+    const trackExists = playlist.tracks.some(t => t.uri === track.uri);
+    if (trackExists) {
+        return false; // Track already exists
+    }
+
+    playlist.tracks.push({
+        title: track.title,
+        artist: track.author,
+        uri: track.uri,
+        source: track.sourceName,
+        duration: track.duration,
+        addedAt: new Date()
+    });
+
+    playlist.updatedAt = new Date();
+    return true;
+};
+
 userSchema.methods.getGuildSettings = function(guildId) {
     let guildSettings = this.guildSettings.find(settings => settings.guildId === guildId);
     

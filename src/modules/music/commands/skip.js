@@ -1,4 +1,6 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, Collection } = require('discord.js');
+
+const cooldowns = new Collection();
 
 module.exports = {
     category: 'Music',
@@ -27,7 +29,6 @@ module.exports = {
             });
         }
 
-        // Check if user is in the same voice channel
         if (!client.musicPlayerManager.isInSameVoiceChannel(interaction.member, player)) {
             return interaction.reply({
                 embeds: [new EmbedBuilder()
@@ -38,7 +39,6 @@ module.exports = {
             });
         }
 
-        // Check if there is a current track
         if (!player.current) {
             return interaction.reply({
                 embeds: [new EmbedBuilder()
@@ -50,13 +50,25 @@ module.exports = {
         }
 
         const amount = interaction.options.getInteger('amount') || 1;
+        const now = Date.now();
+        const cooldownAmount = amount > 1 ? 15000 : 5000;
+
+        if (cooldowns.has(interaction.user.id)) {
+            const expirationTime = cooldowns.get(interaction.user.id);
+            if (now < expirationTime) {
+                const timeLeft = (expirationTime - now) / 1000;
+                return interaction.reply({ content: `Please wait ${timeLeft.toFixed(1)} more second(s) before reusing the \`skip\` command.`, ephemeral: true });
+            }
+        }
+
+        cooldowns.set(interaction.user.id, now + cooldownAmount);
+        setTimeout(() => cooldowns.delete(interaction.user.id), cooldownAmount);
+
         const currentTrack = player.current;
         const artist = currentTrack.author || currentTrack.artist || currentTrack.uploader || 'Unknown';
 
         if (amount === 1) {
-            // Skip single track
             player.skip();
-            
             return interaction.reply({
                 embeds: [client.musicPlayerManager.createBeautifulEmbed({
                     title: 'Skipped',
@@ -65,11 +77,9 @@ module.exports = {
                 })]
             });
         } else {
-            // Skip multiple tracks
-            let skippedTracks = 1; // Current track
+            let skippedTracks = 1;
             const skippedList = [currentTrack.title];
 
-            // Skip additional tracks from the queue
             for (let i = 1; i < amount && player.queue.size > 0; i++) {
                 const nextTrack = player.queue.tracks[0];
                 if (nextTrack) {
@@ -79,7 +89,6 @@ module.exports = {
                 }
             }
 
-            // Skip the current track
             player.skip();
 
             const embed = client.musicPlayerManager.createBeautifulEmbed({

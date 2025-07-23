@@ -1094,7 +1094,8 @@ async function handleButtonInteraction(interaction, client) {
             customId.startsWith('panel_select_button_') ||
             customId === 'panel_customizer_back' ||
             customId.startsWith('panel_customizer_back_') ||
-            customId === 'panel_button_edit_back'
+            customId === 'panel_button_edit_back' ||
+            customId.startsWith('panel_delete_confirm_')
         ) {
             await handlePanelCustomizerButton(interaction, client);
             return;
@@ -1199,6 +1200,79 @@ async function handlePanelCustomizerButton(interaction, client) {
             }
         }
         
+        // Handle panel delete confirmation
+        if (customId.startsWith('panel_delete_confirm_')) {
+            // Extract panelId
+            const panelId = customId.replace('panel_delete_confirm_', '');
+            // Show confirmation dialog
+            const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+            const panel = config.panels.find(p => p.panelId === panelId);
+            if (!panel) {
+                return interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Panel Not Found', 'The panel could not be found.')],
+                    ephemeral: true
+                });
+            }
+            const embed = new EmbedBuilder()
+                .setTitle('🗑️ Confirm Panel Deletion')
+                .setDescription(`Are you sure you want to delete this panel?
+
+**Panel:** ${panel.title}
+**ID:** \`${panel.panelId}\`
+
+⚠️ **This action cannot be undone!**`)
+                .setColor(0xED4245); // cleared invisible chars
+            const confirmRow = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`panel_delete_execute_${panelId}`)
+                        .setLabel('Yes, Delete Panel')
+                        .setStyle(ButtonStyle.Danger)
+                        .setEmoji('🗑️'),
+                    new ButtonBuilder()
+                        .setCustomId(`panel_customizer_back_${panelId}`)
+                        .setLabel('Cancel')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setEmoji('❌')
+                );
+            await interaction.reply({
+                embeds: [embed],
+                components: [confirmRow],
+                ephemeral: true
+            });
+            return;
+        }
+
+        // Handle panel delete execution
+        if (customId.startsWith('panel_delete_execute_')) {
+            const panelId = customId.replace('panel_delete_execute_', '');
+            // Actually delete the panel
+            const panelIndex = config.panels.findIndex(p => p.panelId === panelId);
+            if (panelIndex === -1) {
+                return interaction.reply({
+                    embeds: [Utils.createErrorEmbed('Panel Not Found', 'The panel could not be found.')],
+                    ephemeral: true
+                });
+            }
+            const panel = config.panels[panelIndex];
+            // Delete the message in the channel
+            try {
+                const channel = interaction.guild.channels.cache.get(panel.channelId);
+                if (channel) {
+                    const message = await channel.messages.fetch(panel.messageId).catch(() => null);
+                    if (message) await message.delete();
+                }
+            } catch (e) {}
+            // Remove from config
+            config.panels.splice(panelIndex, 1);
+            await config.save();
+            await interaction.update({
+                embeds: [Utils.createSuccessEmbed('Panel Deleted', 'The ticket panel has been deleted successfully.')],
+                components: []
+            });
+            return;
+        }
+
         // Handle actions that require showing modals (don't defer these)
         const modalActions = ['title', 'description', 'color', 'label', 'emoji', 'edit_button_label', 'edit_button_emoji', 'edit_button_type'];
         if (modalActions.includes(action)) {

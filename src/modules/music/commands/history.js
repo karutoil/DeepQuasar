@@ -124,36 +124,23 @@ module.exports = {
         const collectorTimeout = interaction.client.config.collectorTimeout || 60_000; // Configurable timeout
         const collector = interaction.channel.createMessageComponentCollector({
             filter: i => i.user.id === userId,
-            time: collectorTimeout
+            time: collectorTimeout,
+            idle: collectorTimeout
         });
 
         collector.on('collect', async i => {
-            history = await getHistory();
-            const totalPages = Math.ceil(history.length / PAGE_SIZE) || 1;
-            if (i.customId === 'history_back') {
-                page = Math.max(1, page - 1);
-                await i.update({ embeds: [buildEmbed(page)], components: buildComponents(page) });
-            } else if (i.customId === 'history_forward') {
-                page = Math.min(totalPages, page + 1);
-                await i.update({ embeds: [buildEmbed(page)], components: buildComponents(page) });
-            }
-        });
-
-        collector.on('collect', async i => {
-            history = await getHistory();
-            const totalPages = Math.ceil(history.length / PAGE_SIZE) || 1;
-            if (i.customId === 'history_back') {
-                page = Math.max(1, page - 1);
-                await i.update({ embeds: [buildEmbed(page)], components: buildComponents(page) });
-            } else if (i.customId === 'history_forward') {
-                page = Math.min(totalPages, page + 1);
+            if (i.customId === 'history_back' || i.customId === 'history_forward') {
+                if (i.customId === 'history_back') {
+                    page = Math.max(1, page - 1);
+                } else {
+                    page = Math.min(totalPages, page + 1);
+                }
                 await i.update({ embeds: [buildEmbed(page)], components: buildComponents(page) });
             } else if (i.customId === 'history_select') {
                 const idx = parseInt(i.values[0], 10);
                 const track = history[idx];
-                // Play the selected track
-                const playerManager = new MusicPlayerManager(interaction.client);
-                const result = await playerManager.playOrQueue({
+                
+                const result = await client.musicPlayerManager.playOrQueue({
                     guildId,
                     voiceChannelId: voiceChannel.id,
                     textChannelId: interaction.channelId,
@@ -161,25 +148,25 @@ module.exports = {
                     source: track.source || 'youtube',
                     requester: userId
                 });
+
                 await i.deferUpdate();
-                // Use the same embed/message as /play command
-                let replyContent;
+
                 let replyEmbed;
                 if (result.error) {
-                    replyContent = `Failed to play: ${result.error}`;
+                    replyEmbed = new EmbedBuilder()
+                        .setColor('#ff0000')
+                        .setTitle('Error')
+                        .setDescription(result.error);
                 } else if (result.searchResult.loadType === 'PLAYLIST_LOADED') {
                     replyEmbed = new EmbedBuilder()
                         .setTitle('🎶 Playlist Queued')
                         .setDescription(`Queued **${result.searchResult.tracks.length}** tracks from [${result.searchResult.playlistInfo?.name || 'playlist'}](${track.uri})`)
                         .setColor('#00b894');
                 } else {
-                    replyEmbed = playerManager.createNowPlayingEmbed(result.searchResult.tracks[0], result.player);
+                    replyEmbed = client.musicPlayerManager.createNowPlayingEmbed(result.searchResult.tracks[0], result.player);
                 }
-                if (replyEmbed) {
-                    await interaction.followUp({ embeds: [replyEmbed], ephemeral: false });
-                } else {
-                    await interaction.followUp({ content: replyContent, ephemeral: true });
-                }
+                
+                await interaction.followUp({ embeds: [replyEmbed], ephemeral: false });
                 collector.stop();
             }
         });

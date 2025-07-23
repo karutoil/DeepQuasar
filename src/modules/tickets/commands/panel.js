@@ -40,7 +40,7 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('create')
-                .setDescription('Create a new ticket panel')
+                .setDescription('Create a new ticket panel (no buttons by default; add any ticket types you want after)')
                 .addChannelOption(option =>
                     option
                         .setName('channel')
@@ -55,7 +55,8 @@ module.exports = {
                 .addStringOption(option =>
                     option
                         .setName('description')
-                        .setDescription('Panel description')
+                        // Discord option description limit: 100 chars
+                        .setDescription('Panel description (optional, max 100 chars)')
                         .setRequired(false))
                 .addStringOption(option =>
                     option
@@ -111,7 +112,8 @@ module.exports = {
                 .addStringOption(option =>
                     option
                         .setName('type')
-                        .setDescription('Ticket type for this button (e.g. support, bug, etc). This is now dynamic and can be any type configured for your server. Start typing to see suggestions!')
+                        // Discord option description limit: 100 chars
+                        .setDescription('Ticket type for this button (e.g. support, bug, reports, appeal, etc). Any name is allowed.')
                         .setRequired(true)
                         .setAutocomplete(true))
                 .addStringOption(option =>
@@ -138,7 +140,8 @@ module.exports = {
                 .addStringOption(option =>
                     option
                         .setName('description')
-                        .setDescription('Button description')
+                        // Discord option description limit: 100 chars
+                        .setDescription('Button description (optional, max 100 chars)')
                         .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
@@ -195,7 +198,8 @@ module.exports = {
     async createPanel(interaction) {
         const channel = interaction.options.getChannel('channel');
         const title = interaction.options.getString('title') || '🎫 Support Tickets';
-        const description = interaction.options.getString('description') || 'Click a button below to create a support ticket.';
+        let description = interaction.options.getString('description') || 'Click a button below to create a support ticket.';
+        if (description.length > 4096) description = description.slice(0, 4096);
         const colorInput = interaction.options.getString('color');
         
         let color = 0x5865F2;
@@ -682,7 +686,8 @@ module.exports = {
             ]
         });
 
-        const controlRow1 = new ActionRowBuilder()
+        // Modernized control layout: Edit, Manage, and Destructive grouped
+        const editRow = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId(`panel_edit_title_${panel.panelId}`)
@@ -701,7 +706,7 @@ module.exports = {
                     .setStyle(ButtonStyle.Primary)
             );
 
-        const controlRow2 = new ActionRowBuilder()
+        const manageRow = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId(`panel_manage_buttons_${panel.panelId}`)
@@ -720,11 +725,21 @@ module.exports = {
                     .setStyle(ButtonStyle.Success)
             );
 
+        const destructiveRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`panel_delete_confirm_${panel.panelId}`)
+                    .setLabel('Delete Panel')
+                    .setEmoji('🗑️')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
         await interaction.editReply({
             content: '### 📺 **LIVE PREVIEW**',
             embeds: [previewEmbed, controlEmbed],
-            components: [...previewRows, controlRow1, controlRow2]
+            components: [...previewRows, editRow, manageRow, destructiveRow]
         });
+
     },
 
     createPreviewButtonRows(buttons) {

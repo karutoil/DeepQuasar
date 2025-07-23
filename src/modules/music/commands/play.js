@@ -400,26 +400,18 @@ module.exports = {
     async autocomplete(interaction, client) {
         const focusedValue = interaction.options.getFocused();
         if (focusedValue.length < 2) {
-            try {
-                if (!interaction.responded && !interaction.deferred) {
-                    await interaction.respond([]);
-                }
-            } catch (e) {
-                // Suppress unknown interaction errors
-                if (e?.code !== 10062 && !(e?.message && e.message.includes('Unknown interaction'))) {
-                    client.logger.error('Autocomplete respond error:', e);
-                }
-            }
-            return;
+            return interaction.respond([]);
         }
+
         try {
+            let choices = [];
+
+            // Get history choices
             const UserModel = require('../../../schemas/User');
             const userData = await UserModel.findOne({ userId: interaction.user.id });
-            let historyChoices = [];
             if (userData && userData.history && userData.history.tracks.length > 0) {
-                // Deduplicate by title+artist+uri
                 const seen = new Set();
-                historyChoices = userData.history.tracks
+                const historyChoices = userData.history.tracks
                     .filter(track => track.title && track.title.toLowerCase().includes(focusedValue.toLowerCase()))
                     .filter(track => {
                         const key = `${track.title}|${track.artist}|${track.uri}`;
@@ -432,49 +424,36 @@ module.exports = {
                         name: `🕘 [History] ${track.title} - ${track.artist}`.slice(0, 100),
                         value: track.uri || track.title
                     }));
+                choices.push(...historyChoices);
             }
-            // Always fetch live suggestions
-            let searchChoices = [];
-            try {
-                // Only attempt search if music system is operational
-                if (client.musicPlayerManager.isOperational()) {
-                    const searchResult = await client.musicPlayerManager.search({
-                        query: focusedValue,
-                        source: 'youtube',
-                        requester: interaction.user.id
-                    });
-                    searchChoices = searchResult.tracks.slice(0, 10).map(track => ({
-                        name: `🔎 [Suggest] ${track.title} - ${track.author}`.slice(0, 100),
-                        value: track.url || track.uri || track.identifier || track.title || 'unknown'
-                    })).filter(choice => choice.value && choice.value !== 'unknown');
-                }
-            } catch (e) {
-                client.logger.error('Autocomplete search error:', e);
+
+            // Get live search suggestions
+            if (client.musicPlayerManager.isOperational()) {
+                const searchResult = await client.musicPlayerManager.search({
+                    query: focusedValue,
+                    source: 'youtube',
+                    requester: interaction.user.id
+                });
+                const searchChoices = searchResult.tracks.slice(0, 10).map(track => ({
+                    name: `🔎 [Suggest] ${track.title} - ${track.author}`.slice(0, 100),
+                    value: track.url || track.uri || track.identifier || track.title || 'unknown'
+                })).filter(choice => choice.value && choice.value !== 'unknown');
+                choices.push(...searchChoices);
             }
-            // Combine, prioritizing history, but always showing both
-            const combined = [...historyChoices, ...searchChoices].slice(0, 25);
-            if (interaction.isAutocomplete() && !interaction.responded && !interaction.deferred) {
-                try {
-                    await interaction.respond(combined);
-                } catch (e) {
-                    // Suppress unknown interaction errors
-                    if (e?.code !== 10062 && !(e?.message && e.message.includes('Unknown interaction'))) {
-                        client.logger.error('Autocomplete respond error:', e);
-                    }
-                }
-            } else {
-                client.logger.warn('Attempted to respond to an invalid interaction.');
-            }
+
+            // Respond with combined choices
+            await interaction.respond(choices.slice(0, 25));
         } catch (error) {
-            client.logger.error('Autocomplete error:', error);
-            try {
-                if (!interaction.responded && !interaction.deferred) {
+            // Suppress 'Unknown interaction' errors (DiscordAPIError[10062]) as they're normal
+            if (error?.code !== 10062 && !error?.message?.includes('Unknown interaction')) {
+                client.logger.error('Autocomplete error:', error);
+            }
+            // If an error occurs, respond with an empty array to prevent the interaction from failing.
+            if (!interaction.responded) {
+                try {
                     await interaction.respond([]);
-                }
-            } catch (e) {
-                // Suppress unknown interaction errors
-                if (e?.code !== 10062 && !(e?.message && e.message.includes('Unknown interaction'))) {
-                    client.logger.error('Autocomplete respond error:', e);
+                } catch (respondError) {
+                    // Ignore response errors - interaction likely expired
                 }
             }
         }

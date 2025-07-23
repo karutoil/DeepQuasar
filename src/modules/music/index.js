@@ -169,7 +169,17 @@ async function load(client) {
 function setupMoonlinkEvents(client) {
     const logger = client.logger;
     const { EmbedBuilder } = require('discord.js');
-    // (Paste all event handler logic from index.js here)
+    // Moonlink.js event handlers
+    client.manager.on('trackEnd', (player, track) => {
+        // If there are user-queued tracks, play the next one
+        if (player.queue && player.queue.size > 0) {
+            player.play();
+            logger.debug(`[Music] trackEnd: Playing next queued track in guild ${player.guildId}`);
+        } else {
+            // If queue is empty, let Moonlink.js autoplay handle it
+            logger.debug(`[Music] trackEnd: Queue empty in guild ${player.guildId}, letting autoplay handle next track if enabled.`);
+        }
+    });
 }
 
 
