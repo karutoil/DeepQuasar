@@ -272,6 +272,29 @@ class MusicPlayerManager {
     }
 
     /**
+     * Search for playlists using LavaSearch plugin (for queries, not URLs)
+     * @param {Object} options - Search options
+     * @param {string} options.query - Search query
+     * @param {string} options.source - Search source (youtube, soundcloud, etc.)
+     * @param {string} options.requester - Requester user ID
+     * @param {string} [options.types] - Comma-separated result types (default: 'playlist')
+     * @returns {Object} LavaSearch results (may include playlists, tracks, etc)
+     */
+    async lavaSearch(options) {
+        const { query, source = 'youtube', requester, types = 'playlist' } = options;
+        if (!this.client.manager.lavaSearch) {
+            throw new Error('LavaSearch is not available on this node.');
+        }
+        return await this.client.manager.lavaSearch({
+            query,
+            source,
+            requester,
+            types
+        });
+    }
+
+
+    /**
      * Check if a string is a URL
      * @param {string} string - String to check
      * @returns {boolean} True if URL, false otherwise

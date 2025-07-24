@@ -434,6 +434,59 @@ async function handleSelectMenuInteraction(interaction, client) {
             return;
         }
 
+        // Handle playlist search result selection
+        if (customId === 'playlist_select') {
+            const userId = interaction.user.id;
+            if (!client.searchResults || !client.searchResults.has(userId)) {
+                return interaction.reply({
+                    content: '❌ Playlist search results have expired. Please search again.',
+                    ephemeral: true
+                });
+            }
+            const searchData = client.searchResults.get(userId);
+            const selectedValue = interaction.values[0];
+            const playlist = (searchData.playlists || []).find(pl => (pl.info?.url === selectedValue || pl.info?.identifier === selectedValue || String(searchData.playlists.indexOf(pl)) === selectedValue));
+            if (!playlist) {
+                return interaction.reply({
+                    content: '❌ Could not find the selected playlist.',
+                    ephemeral: true
+                });
+            }
+            // Check voice channel
+            if (!interaction.member.voice.channel || interaction.member.voice.channel.id !== searchData.voiceChannelId) {
+                return interaction.reply({
+                    content: '❌ You need to be in the same voice channel where you started the search.',
+                    ephemeral: true
+                });
+            }
+            await interaction.deferReply({ ephemeral: true });
+            try {
+                const player = await client.musicPlayerManager.createPlayer({
+                    guildId: searchData.guildId,
+                    voiceChannelId: searchData.voiceChannelId,
+                    textChannelId: searchData.textChannelId,
+                    autoPlay: true
+                });
+                if (!player.connected) {
+                    await player.connect();
+                }
+                player.queue.add(playlist.tracks);
+                if (!player.playing && !player.paused) {
+                    await player.play();
+                }
+                await interaction.editReply({
+                    content: `✅ Added playlist **${playlist.info?.name || 'Unknown'}** (${playlist.tracks?.length || 0} tracks) to the queue.`
+                });
+                client.searchResults.delete(userId);
+            } catch (error) {
+                client.logger.error('Error handling playlist selection:', error);
+                await interaction.editReply({
+                    content: '❌ Failed to add playlist to queue. Please try again.'
+                });
+            }
+            return;
+        }
+
         // Handle settings selection
         if (customId.startsWith('settings_')) {
             await handleSettingsSelection(interaction, client);

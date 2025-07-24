@@ -22,30 +22,22 @@ module.exports = {
                     { name: 'Spotify', value: 'spotify' }
                 )
         )
-        .addStringOption(option =>
-            option
-                .setName('type')
-                .setDescription('Type of content to search for')
-                .setRequired(false)
-                .addChoices(
-                    { name: 'Track', value: 'track' },
-                    { name: 'Playlist', value: 'playlist' }
-                )
-        ),
 
     async execute(interaction, client) {
         await interaction.deferReply();
 
         const query = interaction.options.getString('query');
         const source = interaction.options.getString('source') || 'youtube';
-        const type = interaction.options.getString('type') || 'track';
 
-        // Search for tracks or playlists
+        // Only search for tracks (playlist search removed)
+
+
+
+        // Search for tracks or playlists (legacy)
         const searchResult = await client.musicPlayerManager.search({
             query: query,
             source: source,
-            requester: interaction.user.id,
-            type: type
+            requester: interaction.user.id
         });
 
         if (!searchResult.tracks.length) {
@@ -68,59 +60,38 @@ module.exports = {
             });
         }
 
-        if (searchResult.loadType === 'playlist') {
-            const playlist = searchResult.tracks;
-            const embed = client.musicPlayerManager.createBeautifulEmbed({
-                title: `Playlist Found`,
-                description: `**${searchResult.playlistInfo.name}**\n${playlist.length} tracks`,
-                color: '#5865F2',
-                footer: { text: `Requested by ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() }
-            });
+        // Handle track search results only
+        const tracks = searchResult.tracks.slice(0, 10); // Show top 10 results
+        const embed = client.musicPlayerManager.createBeautifulEmbed({
+            title: 'Search Results',
+            description: tracks.map((track, i) => `**${i + 1}.** [${track.title}](${track.uri}) • ${client.musicPlayerManager.formatDuration(track.duration)} • ${track.author || 'Unknown'}`).join('\n'),
+            color: '#5865F2',
+            footer: { text: `Requested by ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() }
+        });
 
-            const row = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`add_playlist_${interaction.user.id}`)
-                        .setLabel('Add to Queue')
-                        .setStyle(ButtonStyle.Success)
-                );
+        // Build select menu
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('search_select')
+            .setPlaceholder('Select a track to add to queue')
+            .setMinValues(1)
+            .setMaxValues(1)
+            .addOptions(tracks.map((track, i) => ({
+                label: track.title.length > 97 ? track.title.slice(0, 97) + '...' : track.title,
+                value: i.toString(),
+                description: track.author ? `by ${track.author}` : undefined
+            })));
+        const row = new ActionRowBuilder().addComponents(selectMenu);
 
-            const reply = await interaction.editReply({ embeds: [embed], components: [row] });
+        // Store search results for this user for later selection
+        if (!client.searchResults) client.searchResults = new Map();
+        client.searchResults.set(interaction.user.id, {
+            tracks,
+            guildId: interaction.guild.id,
+            voiceChannelId: interaction.member.voice.channel?.id,
+            textChannelId: interaction.channel.id
+        });
 
-            const collector = reply.createMessageComponentCollector({
-                filter: i => i.user.id === interaction.user.id && i.customId === `add_playlist_${interaction.user.id}`,
-                time: 180000, // 3 minutes
-                max: 1
-            });
-
-            collector.on('collect', async i => {
-                const player = await client.musicPlayerManager.createPlayer({
-                    guildId: interaction.guild.id,
-                    voiceChannelId: interaction.member.voice.channel.id,
-                    textChannelId: interaction.channel.id,
-                    autoPlay: true
-                });
-
-                if (!player.connected) {
-                    await player.connect();
-                }
-
-                player.queue.add(playlist);
-
-                if (!player.playing && !player.paused) {
-                    await player.play();
-                }
-
-                await i.update({ content: `Added playlist **${searchResult.playlistInfo.name}** to the queue.`, embeds: [], components: [] });
-            });
-
-            collector.on('end', collected => {
-                if (collected.size === 0) {
-                    interaction.deleteReply().catch(() => {});
-                }
-            });
-
-        } else {
-    }
+        await interaction.editReply({ embeds: [embed], components: [row] });
     }
 };
+

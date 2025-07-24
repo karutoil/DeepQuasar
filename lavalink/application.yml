@@ -67,6 +67,7 @@ plugins:
   lavasrc:
     sources:
       spotify: true # Enable Spotify source
+      youtube: true
     spotify:
       # clientId & clientSecret are required for using spsearch
       clientId: "${SPOTIFY_CLIENT_ID}" # Your Spotify client ID
