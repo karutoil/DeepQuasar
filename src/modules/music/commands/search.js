@@ -21,9 +21,9 @@ module.exports = {
                     { name: 'SoundCloud', value: 'soundcloud' },
                     { name: 'Spotify', value: 'spotify' }
                 )
-        )
+        ),
 
-    async execute(interaction, client) {
+    execute: async function(interaction, client) {
         await interaction.deferReply();
 
         const query = interaction.options.getString('query');

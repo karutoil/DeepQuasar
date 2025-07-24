@@ -27,6 +27,7 @@ async function loadCommands(client) {
     const enabledModules = moduleManager.getEnabledModules();
     client.logger.info(`Enabled modules: ${enabledModules.join(', ')}`);
     
+    client.logger.info(`[DEBUG] Registered commands after module load: ${Array.from(client.commands.keys()).join(', ')}`);
     return result;
 }
 

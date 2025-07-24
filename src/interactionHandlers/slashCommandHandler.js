@@ -4,6 +4,7 @@ async function handleSlashCommand(interaction, client) {
     const command = client.commands.get(interaction.commandName);
 
     if (!command) {
+        client.logger.error(`[DEBUG] Command '${interaction.commandName}' not found in client.commands. Registered commands: ${Array.from(client.commands.keys()).join(', ')}`);
         const embed = Utils.createErrorEmbed(
             'Command Not Found',
             'This command is not available or has been disabled.'
