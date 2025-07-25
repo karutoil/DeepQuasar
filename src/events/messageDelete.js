@@ -1,5 +1,5 @@
 const { Events } = require('discord.js');
-const LFGMessageHandler = require('../handlers/lfg/LFGMessageHandler');
+const LFGMessageHandler = require('../modules/lfg/handlers/LFGMessageHandler');
 
 module.exports = {
     name: Events.MessageDelete,

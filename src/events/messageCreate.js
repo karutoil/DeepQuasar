@@ -1,6 +1,6 @@
 const { Events, EmbedBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js');
 const ChatBot = require('../utils/ChatBot');
-const LFGMessageHandler = require('../handlers/lfg/LFGMessageHandler');
+const LFGMessageHandler = require('../modules/lfg/handlers/LFGMessageHandler');
 const timeParser = require('../utils/timeParser');
 const Reminder = require('../schemas/Reminder');
 const User = require('../schemas/User');

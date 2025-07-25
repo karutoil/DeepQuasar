@@ -458,7 +458,7 @@ class LFGInteractionHandler {
         const selectedGame = interaction.values[0];
         const guildId = interaction.guild.id;
 
-        const LFGSettings = require('../../../schemas/LFGSettings');
+        const LFGSettings = require('../../schemas/LFGSettings');
         const settings = await LFGSettings.findOne({ guildId }) || new LFGSettings({ guildId });
 
         const channel = interaction.guild.channels.cache.get(channelId);
